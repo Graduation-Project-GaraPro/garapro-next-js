@@ -25,7 +25,6 @@ export default function JobColumn({
   jobs,
   status,
   bgColor,
-//   borderColor,
   onDragStart,
   onDragEnd,
   onDrop,

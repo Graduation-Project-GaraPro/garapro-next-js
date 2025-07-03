@@ -50,7 +50,7 @@ export function SiteHeader() {
         </Link>
 
         {/* Search Form moved to left, next to logo */}
-        <SearchForm className="ml-4 w-64" />
+        <SearchForm className="ml-4 w-74" />
 
         {/* Spacer to push content to edges */}
         <div className="flex-1" />
@@ -69,7 +69,7 @@ export function SiteHeader() {
             </Button>
             <Badge
               variant="destructive"
-              className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
+              className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs bg-[#ae2621]"
             >
               1
             </Badge>
