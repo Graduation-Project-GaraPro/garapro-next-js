@@ -1,12 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Label } from '@/components/ui/label'
+import { User, userService, UserFilters } from '@/services/user-service'
 import {
   Table,
   TableBody,
@@ -32,6 +33,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { 
   Search, 
   Filter, 
@@ -63,161 +74,7 @@ import {
   CreditCard,
   Star
 } from 'lucide-react'
-
-const users = [
-  {
-    id: 1,
-    name: 'John Doe',
-    email: 'john.doe@example.com',
-    phone: '+1 (555) 123-4567',
-    role: 'user',
-    status: 'active',
-    joinedDate: '2024-01-15',
-    lastLogin: '2024-03-20 14:30',
-    avatar: 'JD',
-    location: 'New York, NY',
-    verified: true,
-    totalOrders: 15,
-    totalSpent: 1250.50,
-    details: {
-      address: '123 Main St, New York, NY 10001',
-      dateOfBirth: '1990-05-15',
-      emergencyContact: '+1 (555) 987-6543',
-      preferences: {
-        notifications: true,
-        marketing: false,
-        twoFactor: true
-      },
-      devices: ['iPhone 13', 'MacBook Pro'],
-      lastIpAddress: '192.168.1.100',
-      userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X)',
-      accountHistory: [
-        { action: 'Login', date: '2024-03-20 14:30', ip: '192.168.1.100' },
-        { action: 'Password Changed', date: '2024-03-15 10:20', ip: '192.168.1.100' },
-        { action: 'Profile Updated', date: '2024-03-10 16:45', ip: '192.168.1.100' }
-      ],
-      orders: [
-        { id: 'ORD-001', amount: 150.00, status: 'Completed', date: '2024-03-18' },
-        { id: 'ORD-002', amount: 89.99, status: 'Completed', date: '2024-03-15' },
-        { id: 'ORD-003', amount: 299.99, status: 'In Progress', date: '2024-03-20' }
-      ]
-    }
-  },
-  {
-    id: 2,
-    name: 'Jane Smith',
-    email: 'jane.smith@example.com',
-    phone: '+1 (555) 987-6543',
-    role: 'admin',
-    status: 'active',
-    joinedDate: '2024-01-10',
-    lastLogin: '2024-03-20 16:45',
-    avatar: 'JS',
-    location: 'Los Angeles, CA',
-    verified: true,
-    totalOrders: 0,
-    totalSpent: 0,
-    details: {
-      address: '456 Oak Ave, Los Angeles, CA 90210',
-      dateOfBirth: '1985-08-22',
-      emergencyContact: '+1 (555) 123-4567',
-      preferences: {
-        notifications: true,
-        marketing: true,
-        twoFactor: true
-      },
-      devices: ['iPhone 14', 'iPad Pro'],
-      lastIpAddress: '10.0.0.50',
-      userAgent: 'Mozilla/5.0 (iPad; CPU OS 16_0 like Mac OS X)',
-      accountHistory: [
-        { action: 'Login', date: '2024-03-20 16:45', ip: '10.0.0.50' },
-        { action: 'Admin Action', date: '2024-03-19 09:15', ip: '10.0.0.50' },
-        { action: 'Settings Changed', date: '2024-03-18 14:30', ip: '10.0.0.50' }
-      ],
-      orders: [],
-      permissions: ['user_management', 'system_settings', 'reports']
-    }
-  },
-  {
-    id: 3,
-    name: 'Bob Johnson',
-    email: 'bob.johnson@example.com',
-    phone: '+1 (555) 456-7890',
-    role: 'user',
-    status: 'banned',
-    joinedDate: '2024-02-01',
-    lastLogin: '2024-03-15 09:20',
-    avatar: 'BJ',
-    location: 'Chicago, IL',
-    verified: false,
-    totalOrders: 3,
-    totalSpent: 450.00,
-    details: {
-      address: '789 Pine St, Chicago, IL 60601',
-      dateOfBirth: '1988-12-03',
-      emergencyContact: '+1 (555) 321-6547',
-      preferences: {
-        notifications: false,
-        marketing: true,
-        twoFactor: false
-      },
-      devices: ['Android Galaxy S21'],
-      lastIpAddress: '172.16.0.25',
-      userAgent: 'Mozilla/5.0 (Linux; Android 11; SM-G991B)',
-      banReason: 'Multiple policy violations',
-      banDate: '2024-03-15',
-      banDuration: 'Permanent',
-      accountHistory: [
-        { action: 'Account Banned', date: '2024-03-15 09:20', ip: '172.16.0.25' },
-        { action: 'Warning Issued', date: '2024-03-14 16:30', ip: '172.16.0.25' },
-        { action: 'Login', date: '2024-03-13 11:45', ip: '172.16.0.25' }
-      ],
-      orders: [
-        { id: 'ORD-004', amount: 200.00, status: 'Cancelled', date: '2024-03-14' },
-        { id: 'ORD-005', amount: 150.00, status: 'Refunded', date: '2024-03-10' },
-        { id: 'ORD-006', amount: 100.00, status: 'Completed', date: '2024-03-05' }
-      ]
-    }
-  },
-  {
-    id: 4,
-    name: 'Alice Brown',
-    email: 'alice.brown@example.com',
-    phone: '+1 (555) 321-6547',
-    role: 'user',
-    status: 'active',
-    joinedDate: '2024-02-15',
-    lastLogin: '2024-03-20 12:15',
-    avatar: 'AB',
-    location: 'Houston, TX',
-    verified: true,
-    totalOrders: 8,
-    totalSpent: 675.25,
-    details: {
-      address: '321 Elm St, Houston, TX 77001',
-      dateOfBirth: '1992-03-18',
-      emergencyContact: '+1 (555) 789-0123',
-      preferences: {
-        notifications: true,
-        marketing: false,
-        twoFactor: false
-      },
-      devices: ['iPhone 12', 'Windows PC'],
-      lastIpAddress: '203.0.113.45',
-      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      accountHistory: [
-        { action: 'Login', date: '2024-03-20 12:15', ip: '203.0.113.45' },
-        { action: 'Order Placed', date: '2024-03-19 15:30', ip: '203.0.113.45' },
-        { action: 'Profile Updated', date: '2024-03-18 09:45', ip: '203.0.113.45' }
-      ],
-      orders: [
-        { id: 'ORD-007', amount: 89.99, status: 'Completed', date: '2024-03-19' },
-        { id: 'ORD-008', amount: 125.50, status: 'Completed', date: '2024-03-16' },
-        { id: 'ORD-009', amount: 299.99, status: 'In Progress', date: '2024-03-20' }
-      ]
-    }
-  }
-]
+import { toast } from '@/components/ui/use-toast'
 
 const getStatusBadge = (status: string) => {
   switch (status) {
@@ -227,6 +84,8 @@ const getStatusBadge = (status: string) => {
       return <Badge variant="destructive">Banned</Badge>
     case 'inactive':
       return <Badge variant="secondary">Inactive</Badge>
+    case 'pending':
+      return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>
     default:
       return <Badge variant="secondary">{status}</Badge>
   }
@@ -236,8 +95,8 @@ const getRoleBadge = (role: string) => {
   switch (role) {
     case 'admin':
       return <Badge className="bg-purple-100 text-purple-800">Admin</Badge>
-    case 'moderator':
-      return <Badge className="bg-blue-100 text-blue-800">Moderator</Badge>
+    case 'manager':
+      return <Badge className="bg-blue-100 text-blue-800">Manager</Badge>
     case 'user':
       return <Badge className="bg-gray-100 text-gray-800">User</Badge>
     default:
@@ -247,54 +106,180 @@ const getRoleBadge = (role: string) => {
 
 export function UserManagement() {
   const [searchTerm, setSearchTerm] = useState('')
+  const [users, setUsers] = useState<User[]>([])
   const [statusFilter, setStatusFilter] = useState('all')
   const [roleFilter, setRoleFilter] = useState('all')
   const [verifiedFilter, setVerifiedFilter] = useState('all')
   const [selectedUsers, setSelectedUsers] = useState<number[]>([])
   const [isBulkActionDialogOpen, setIsBulkActionDialogOpen] = useState(false)
-  const [selectedUser, setSelectedUser] = useState<any>(null)
+  const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const [copiedField, setCopiedField] = useState<string | null>(null)
+  const [banDialogOpen, setBanDialogOpen] = useState(false)
+  const [unbanDialogOpen, setUnbanDialogOpen] = useState(false)
+  const [banReason, setBanReason] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalUsers, setTotalUsers] = useState(0)
+  const [error, setError] = useState<string | null>(null)
 
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.email.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = statusFilter === 'all' || user.status === statusFilter
-    const matchesRole = roleFilter === 'all' || user.role === roleFilter
-    const matchesVerified = verifiedFilter === 'all' || 
-                           (verifiedFilter === 'verified' && user.verified) ||
-                           (verifiedFilter === 'unverified' && !user.verified)
-    
-    return matchesSearch && matchesStatus && matchesRole && matchesVerified
-  })
+  const filteredUsers = users // Remove client-side filtering since it's handled by the service
 
-  const handleBanUser = (user: any) => {
+  useEffect(() => {
+    loadUsers()
+  }, [searchTerm, statusFilter, roleFilter, verifiedFilter, currentPage])
+
+  // Debounce search term
+  useEffect(() => {
+    const delayedSearch = setTimeout(() => {
+      if (currentPage !== 1) {
+        setCurrentPage(1)
+      } else {
+        loadUsers()
+      }
+    }, 300)
+
+    return () => clearTimeout(delayedSearch)
+  }, [searchTerm])
+
+  const loadUsers = async () => {
+    try {
+      setIsLoading(true)
+      setError(null)
+      
+      const filters: UserFilters = {
+        page: currentPage,
+        limit: 10,
+      }
+
+      if (searchTerm) filters.search = searchTerm
+      if (statusFilter !== 'all') filters.status = statusFilter
+      if (roleFilter !== 'all') filters.role = roleFilter
+      if (verifiedFilter !== 'all'){
+        if (verifiedFilter === "verified") filters.verified = true
+        if (verifiedFilter === "unverified") filters.verified = false
+        if (verifiedFilter === "all") filters.verified = undefined
+        console.log(filters.verified)
+      } 
+
+      const response = await userService.getUsers(filters)
+      
+      setUsers(response.users)
+      setTotalPages(response.totalPages)
+      setTotalUsers(response.total)
+    } catch (error) {
+      console.error('Failed to load users:', error)
+      setError('Failed to load users. Please try again later.')
+      toast({
+        title: "Error",
+        description: "Failed to load users. Please try again later.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const refreshUsers = async () => {
+    setIsRefreshing(true)
+    await loadUsers()
+    setIsRefreshing(false)
+    toast({
+      title: "Success",
+      description: "Users refreshed successfully.",
+    })
+  }
+
+  const handleBanUser = async (user: User) => {
+    if (!banReason.trim()) {
+      toast({
+        title: "Error",
+        description: "Please provide a reason for banning this user.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      await userService.banUser(user.id, banReason)
+      setBanDialogOpen(false)
+      setBanReason('')
+      setSelectedUser(null)
+      await loadUsers()
+      toast({
+        title: "Success",
+        description: `${user.name} has been banned successfully.`,
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to ban user. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleUnbanUser = async (user: User) => {
+    try {
+      await userService.unbanUser(user.id)
+      setUnbanDialogOpen(false)
+      setSelectedUser(null)
+      await loadUsers()
+      toast({
+        title: "Success",
+        description: `${user.name} has been unbanned successfully.`,
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to unban user. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleChangeRole = async (user: User, newRole: 'user' | 'admin' | 'manager') => {
+    try {
+      await userService.changeUserRole(user.id, newRole)
+      await loadUsers()
+      toast({
+        title: "Success",
+        description: `${user.name}'s role has been changed to ${newRole}.`,
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to change user role. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleVerifyUser = async (user: User) => {
+    try {
+      await userService.verifyUser(user.id)
+      await loadUsers()
+      toast({
+        title: "Success",
+        description: `${user.name} has been verified successfully.`,
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to verify user. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleUserDetails = (user: User) => {
     setSelectedUser(user)
-    // Open ban dialog
   }
 
-  const handleUnbanUser = (user: any) => {
+  const handleEditUser = (user: User) => {
     setSelectedUser(user)
-    // Open unban dialog
-  }
-
-  const confirmBan = () => {
-    console.log('Banning user:', selectedUser?.name)
-    setSelectedUser(null)
-  }
-
-  const confirmUnban = () => {
-    console.log('Unbanning user:', selectedUser?.name)
-    setSelectedUser(null)
-  }
-
-  const handleUserDetails = (user: any) => {
-    setSelectedUser(user)
-  }
-
-  const handleEditUser = (user: any) => {
-    setSelectedUser(user)
-    // Open edit dialog
+    // Open edit dialog - you can implement this
   }
 
   const handleSelectUser = (userId: number) => {
@@ -313,10 +298,51 @@ export function UserManagement() {
     }
   }
 
-  const handleBulkAction = (action: string) => {
-    console.log(`Bulk action ${action} for users:`, selectedUsers)
-    setIsBulkActionDialogOpen(false)
-    setSelectedUsers([])
+  const handleBulkAction = async (action: string) => {
+    try {
+      switch (action) {
+        case 'ban':
+          // Implement bulk ban
+          await userService.bulkUpdateUsers(selectedUsers, { status: 'banned' } as any)
+          break
+        case 'unban':
+          await userService.bulkUpdateUsers(selectedUsers, { status: 'active' } as any)
+          break
+        case 'delete':
+          await userService.bulkDeleteUsers(selectedUsers)
+          break
+        case 'export':
+          const blob = await userService.exportUsers({ 
+            search: searchTerm || undefined,
+            role: roleFilter !== 'all' ? roleFilter : undefined,
+            status: statusFilter !== 'all' ? statusFilter : undefined,
+          })
+          const url = window.URL.createObjectURL(blob)
+          const a = document.createElement('a')
+          a.href = url
+          a.download = 'users.csv'
+          a.click()
+          window.URL.revokeObjectURL(url)
+          break
+      }
+      
+      setIsBulkActionDialogOpen(false)
+      setSelectedUsers([])
+      if (action !== 'export') {
+        await loadUsers()
+      }
+      
+      toast({
+        title: "Success",
+        description: `Bulk ${action} completed successfully.`,
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: `Failed to perform bulk ${action}. Please try again.`,
+        variant: "destructive",
+      })
+    }
   }
 
   const handleCopyToClipboard = async (text: string, fieldName: string) => {
@@ -324,19 +350,37 @@ export function UserManagement() {
       await navigator.clipboard.writeText(text)
       setCopiedField(fieldName)
       setTimeout(() => setCopiedField(null), 2000)
+      toast({
+        title: "Copied",
+        description: `${fieldName} copied to clipboard.`,
+      })
     } catch (err) {
       console.error('Failed to copy text: ', err)
+      toast({
+        title: "Error",
+        description: "Failed to copy to clipboard.",
+        variant: "destructive",
+      })
     }
   }
 
-  const renderUserDetails = (user: any) => {
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2)
+  }
+
+  const renderUserDetails = (user: User) => {
     return (
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <Avatar className="h-16 w-16">
-              <AvatarFallback className="text-lg">{user.avatar}</AvatarFallback>
+              <AvatarFallback className="text-lg">{getInitials(user.name)}</AvatarFallback>
             </Avatar>
             <div>
               <h3 className="text-xl font-semibold text-gray-900">{user.name}</h3>
@@ -349,17 +393,31 @@ export function UserManagement() {
             </div>
           </div>
           <div className="flex items-center space-x-2">
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={() => handleEditUser(user)}>
               <Edit className="h-4 w-4 mr-2" />
               Edit
             </Button>
             {user.status === 'banned' ? (
-              <Button variant="outline" size="sm">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => {
+                  setSelectedUser(user)
+                  setUnbanDialogOpen(true)
+                }}
+              >
                 <CheckCircle className="h-4 w-4 mr-2" />
                 Unban
               </Button>
             ) : (
-              <Button variant="outline" size="sm">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => {
+                  setSelectedUser(user)
+                  setBanDialogOpen(true)
+                }}
+              >
                 <Ban className="h-4 w-4 mr-2" />
                 Ban
               </Button>
@@ -431,12 +489,16 @@ export function UserManagement() {
             <div className="space-y-2">
               <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <span className="text-sm text-gray-600">Joined Date</span>
-                <span className="text-sm text-gray-900">{user.joinedDate}</span>
+                <span className="text-sm text-gray-900">
+                  {new Date(user.joinedDate).toLocaleDateString()}
+                </span>
               </div>
               
               <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <span className="text-sm text-gray-600">Last Login</span>
-                <span className="text-sm text-gray-900">{user.lastLogin}</span>
+                <span className="text-sm text-gray-900">
+                  {new Date(user.lastLogin).toLocaleDateString()}
+                </span>
               </div>
               
               <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
@@ -453,18 +515,18 @@ export function UserManagement() {
         </div>
 
         {/* Account History */}
-        {user.details?.accountHistory && (
+        {user.details?.accountHistory && user.details.accountHistory.length > 0 && (
           <div className="space-y-3">
             <h4 className="font-medium text-gray-900">Recent Activity</h4>
             <div className="space-y-2">
-              {user.details.accountHistory.slice(0, 5).map((activity: any, index: number) => (
+              {user.details.accountHistory.slice(0, 5).map((activity, index) => (
                 <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div className="flex items-center space-x-2">
                     <Activity className="h-4 w-4 text-gray-400" />
                     <span className="text-sm text-gray-900">{activity.action}</span>
                   </div>
                   <div className="flex items-center space-x-4 text-xs text-gray-500">
-                    <span>{activity.date}</span>
+                    <span>{new Date(activity.date).toLocaleDateString()}</span>
                     <span>{activity.ip}</span>
                   </div>
                 </div>
@@ -478,7 +540,7 @@ export function UserManagement() {
           <div className="space-y-3">
             <h4 className="font-medium text-gray-900">Recent Orders</h4>
             <div className="space-y-2">
-              {user.details.orders.slice(0, 3).map((order: any, index: number) => (
+              {user.details.orders.slice(0, 3).map((order, index) => (
                 <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div className="flex items-center space-x-2">
                     <CreditCard className="h-4 w-4 text-gray-400" />
@@ -489,7 +551,7 @@ export function UserManagement() {
                     <Badge variant={order.status === 'Completed' ? 'default' : 'secondary'}>
                       {order.status}
                     </Badge>
-                    <span>{order.date}</span>
+                    <span>{new Date(order.date).toLocaleDateString()}</span>
                   </div>
                 </div>
               ))}
@@ -521,7 +583,18 @@ export function UserManagement() {
       {/* Filters */}
       <Card>
         <CardHeader>
-          <CardTitle>Filters & Search</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>Filters & Search</CardTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={refreshUsers}
+              disabled={isRefreshing}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -543,6 +616,7 @@ export function UserManagement() {
               <option value="active">Active</option>
               <option value="banned">Banned</option>
               <option value="inactive">Inactive</option>
+              <option value="pending">Pending</option>
             </select>
             <select
               value={roleFilter}
@@ -551,7 +625,7 @@ export function UserManagement() {
             >
               <option value="all">All Roles</option>
               <option value="admin">Admin</option>
-              <option value="moderator">Moderator</option>
+              <option value="manager">Manager</option>
               <option value="user">User</option>
             </select>
             <select
@@ -567,11 +641,26 @@ export function UserManagement() {
         </CardContent>
       </Card>
 
+      {/* Error Message */}
+      {error && (
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="pt-4">
+            <div className="flex items-center space-x-2 text-red-800">
+              <AlertTriangle className="h-4 w-4" />
+              <span className="text-sm">{error}</span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Users Table */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Users ({filteredUsers.length})</CardTitle>
+            <CardTitle>
+              Users ({totalUsers})
+              {isLoading && <Loader2 className="inline ml-2 h-4 w-4 animate-spin" />}
+            </CardTitle>
             {selectedUsers.length > 0 && (
               <div className="flex items-center space-x-2">
                 <span className="text-sm text-gray-600">
@@ -623,7 +712,7 @@ export function UserManagement() {
                   <TableCell>
                     <div className="flex items-center space-x-3">
                       <Avatar className="h-8 w-8">
-                        <AvatarFallback>{user.avatar}</AvatarFallback>
+                        <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
                       </Avatar>
                       <div>
                         <div className="font-medium text-gray-900">{user.name}</div>
@@ -640,8 +729,12 @@ export function UserManagement() {
                       <Badge variant="secondary">Unverified</Badge>
                     )}
                   </TableCell>
-                  <TableCell className="text-sm text-gray-500">{user.joinedDate}</TableCell>
-                  <TableCell className="text-sm text-gray-500">{user.lastLogin}</TableCell>
+                  <TableCell className="text-sm text-gray-500">
+                    {new Date(user.joinedDate).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell className="text-sm text-gray-500">
+                    {new Date(user.lastLogin).toLocaleDateString()}
+                  </TableCell>
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -660,13 +753,25 @@ export function UserManagement() {
                           Edit User
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
+                        {!user.verified && (
+                          <DropdownMenuItem onClick={() => handleVerifyUser(user)}>
+                            <CheckCircle className="mr-2 h-4 w-4" />
+                            Verify User
+                          </DropdownMenuItem>
+                        )}
                         {user.status === 'banned' ? (
-                          <DropdownMenuItem onClick={() => handleUnbanUser(user)}>
+                          <DropdownMenuItem onClick={() => {
+                            setSelectedUser(user)
+                            setUnbanDialogOpen(true)
+                          }}>
                             <CheckCircle className="mr-2 h-4 w-4" />
                             Unban User
                           </DropdownMenuItem>
                         ) : (
-                          <DropdownMenuItem onClick={() => handleBanUser(user)}>
+                          <DropdownMenuItem onClick={() => {
+                            setSelectedUser(user)
+                            setBanDialogOpen(true)
+                          }}>
                             <Ban className="mr-2 h-4 w-4" />
                             Ban User
                           </DropdownMenuItem>
@@ -678,6 +783,33 @@ export function UserManagement() {
               ))}
             </TableBody>
           </Table>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4">
+              <div className="text-sm text-gray-500">
+                Page {currentPage} of {totalPages}
+              </div>
+              <div className="flex space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(currentPage - 1)}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage(currentPage + 1)}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -699,13 +831,71 @@ export function UserManagement() {
             <Button variant="outline" onClick={() => setSelectedUser(null)}>
               Close
             </Button>
-            <Button onClick={() => handleEditUser(selectedUser)}>
+            <Button onClick={() => handleEditUser(selectedUser!)}>
               <Edit className="h-4 w-4 mr-2" />
               Edit User
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Ban User Dialog */}
+      <AlertDialog open={banDialogOpen} onOpenChange={setBanDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Ban User</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to ban {selectedUser?.name}? Please provide a reason for the ban.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="my-4">
+            <Label htmlFor="banReason">Ban Reason</Label>
+            <Input
+              id="banReason"
+              value={banReason}
+              onChange={(e) => setBanReason(e.target.value)}
+              placeholder="Enter reason for banning this user..."
+              className="mt-1"
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setBanReason('')
+              setSelectedUser(null)
+            }}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => selectedUser && handleBanUser(selectedUser)}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Ban User
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Unban User Dialog */}
+      <AlertDialog open={unbanDialogOpen} onOpenChange={setUnbanDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Unban User</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to unban {selectedUser?.name}? This will restore their account access.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setSelectedUser(null)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => selectedUser && handleUnbanUser(selectedUser)}
+            >
+              Unban User
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Bulk Actions Dialog */}
       <Dialog open={isBulkActionDialogOpen} onOpenChange={setIsBulkActionDialogOpen}>
@@ -737,6 +927,14 @@ export function UserManagement() {
             <Button
               variant="outline"
               className="w-full justify-start"
+              onClick={() => handleBulkAction('delete')}
+            >
+              <X className="mr-2 h-4 w-4" />
+              Delete Selected Users
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full justify-start"
               onClick={() => handleBulkAction('export')}
             >
               <Download className="mr-2 h-4 w-4" />
@@ -761,4 +959,4 @@ export function UserManagement() {
       </Dialog>
     </div>
   )
-} 
+}

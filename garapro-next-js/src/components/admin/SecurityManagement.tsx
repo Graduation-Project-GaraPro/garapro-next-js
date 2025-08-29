@@ -19,7 +19,6 @@ import {
   Eye,
   EyeOff
 } from 'lucide-react'
-import { Switch } from '@/components/ui/switch'
 
 const securityPolicies = [
   {

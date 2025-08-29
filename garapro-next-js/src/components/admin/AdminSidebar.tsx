@@ -7,15 +7,16 @@ import { cn } from '@/lib/utils'
 import {
   LayoutDashboard,
   Users,
-  Building2,
-  Shield,
   Settings,
   BarChart3,
   FileText,
   UserCheck,
   ChevronDown,
   ChevronRight,
-  FileCheck
+  FileCheck,
+  Megaphone,
+  DollarSign,
+  MapPin
 } from 'lucide-react'
 
 const menuItems = [
@@ -32,16 +33,6 @@ const menuItems = [
       { title: 'All Users', href: '/admin/users' },
       { title: 'Banned Users', href: '/admin/users/banned' },
       { title: 'User Roles', href: '/admin/users/roles' },
-    ]
-  },
-  {
-    title: 'Garage Management',
-    href: '/admin/garages',
-    icon: Building2,
-    submenu: [
-      { title: 'All Garages', href: '/admin/garages' },
-      { title: 'Banned Garages', href: '/admin/garages/banned' },
-      { title: 'Domain Management', href: '/admin/garages/domains' },
     ]
   },
   {
@@ -73,6 +64,37 @@ const menuItems = [
       { title: 'All Logs', href: '/admin/logs' },
       { title: 'Log Analytics', href: '/admin/logs/analytics' },
       { title: 'Log Management', href: '/admin/logs/management' },
+    ]
+  },
+  {
+    title: 'Promotional Campaigns',
+    href: '/admin/campaigns',
+    icon: Megaphone,
+    submenu: [
+      { title: 'All Campaigns', href: '/admin/campaigns' },
+      { title: 'Create Campaign', href: '/admin/campaigns/create' },
+      { title: 'Campaign Analytics', href: '/admin/campaigns/analytics' },
+    ]
+  },
+  {
+    title: 'Revenue Reports',
+    href: '/admin/revenue',
+    icon: DollarSign,
+    submenu: [
+      { title: 'Daily Reports', href: '/admin/revenue/daily' },
+      { title: 'Monthly Reports', href: '/admin/revenue/monthly' },
+      { title: 'Yearly Reports', href: '/admin/revenue/yearly' },
+      { title: 'Branch Comparison', href: '/admin/revenue/branches' },
+    ]
+  },
+  {
+    title: 'Garage Branches',
+    href: '/admin/branches',
+    icon: MapPin,
+    submenu: [
+      { title: 'All Branches', href: '/admin/branches' },
+      { title: 'Create Branch', href: '/admin/branches/create' },
+      { title: 'Branch Management', href: '/admin/branches/management' },
     ]
   },
   {

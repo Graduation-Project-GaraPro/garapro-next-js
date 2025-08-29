@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -16,7 +16,6 @@ import {
 import { Progress } from '@/components/ui/progress'
 import { 
   Users, 
-  Building2, 
   Activity, 
   AlertTriangle, 
   TrendingUp, 
@@ -28,7 +27,8 @@ import {
   RefreshCw,
   Loader2,
   DollarSign,
-  Server
+  Server,
+  XCircle
 } from 'lucide-react'
 import { MetricData } from '@/types/statistics'
 import { statisticsService } from '@/services/statistics-service'
@@ -54,27 +54,6 @@ const defaultMetrics: MetricData[] = [
       growthRate: '12%',
       avgSessionDuration: '24m 32s',
       retentionRate: '78%'
-    }
-  },
-  {
-    id: 'active-garages',
-    title: 'Active Garages',
-    value: '156',
-    change: '+8%',
-    changeType: 'positive',
-    icon: Building2,
-    color: 'text-green-600',
-    bgColor: 'bg-green-50',
-    trend: [120, 130, 140, 148, 152, 156],
-    details: {
-      totalGarages: '189',
-      activeGarages: '156',
-      pendingApproval: '23',
-      suspendedGarages: '10',
-      avgRating: '4.2/5',
-      totalServices: '1,234',
-      topCategories: ['Oil Change', 'Brake Service', 'Engine Repair', 'Tire Service'],
-      revenueThisMonth: '$45,230'
     }
   },
   {
@@ -169,6 +148,7 @@ export function DashboardOverview() {
   const [isLoading, setIsLoading] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date())
 
   // Load initial data
   useEffect(() => {
@@ -184,6 +164,8 @@ export function DashboardOverview() {
       unsubscribe = statisticsService.subscribeToRealTimeUpdates((data) => {
         if (data.type === 'metrics_update' && data.metrics) {
           setMetrics(data.metrics)
+          setLastUpdated(new Date())
+          setError(null) // Clear any previous errors
         }
       })
     } catch (error) {
@@ -198,51 +180,67 @@ export function DashboardOverview() {
     }
   }, [])
 
-  const loadMetrics = async () => {
+  const loadMetrics = useCallback(async () => {
     try {
       setIsLoading(true)
       setError(null)
       
-      // Try to fetch real data from service
+      // Fetch data from service (will return fallback data if API unavailable)
       const data = await statisticsService.getMetrics()
-      if (data && data.length > 0) {
-        setMetrics(data)
-      } else {
-        // Fallback to default metrics if service returns empty
-        setMetrics(defaultMetrics)
-      }
+      setMetrics(data)
+      setLastUpdated(new Date())
     } catch (err) {
-      console.warn('Failed to load metrics from service, using default data:', err)
-      setError('Using cached data - service unavailable')
-      setMetrics(defaultMetrics)
+      console.warn('Unexpected error loading metrics:', err)
+      setError('Failed to load metrics. Using cached data.')
+      // Keep existing metrics instead of resetting to defaults
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [])
 
-  const handleMetricClick = (metric: MetricData) => {
+  const handleMetricClick = useCallback((metric: MetricData) => {
     setSelectedMetric(metric)
-  }
+  }, [])
 
-  const handleRefreshData = async () => {
+  const handleRefreshData = useCallback(async () => {
     try {
       setIsRefreshing(true)
       setError(null)
       
-      // Try to refresh data from service
+      // Refresh data from service (will return fallback data if API unavailable)
       const data = await statisticsService.getMetrics()
-      if (data && data.length > 0) {
-        setMetrics(data)
-      }
+      setMetrics(data)
+      setLastUpdated(new Date())
     } catch (err) {
-      console.warn('Failed to refresh metrics:', err)
-      setError('Failed to refresh data')
+      console.warn('Unexpected error refreshing metrics:', err)
+      setError('Failed to refresh data. Please try again.')
     } finally {
       setIsRefreshing(false)
     }
-  }
+  }, [])
 
-  const renderMetricDetails = (metric: MetricData) => {
+  const handleExportData = useCallback(async () => {
+    try {
+      const blob = await statisticsService.exportStatistics('metrics')
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `dashboard-metrics-${new Date().toISOString().split('T')[0]}.csv`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (error) {
+      console.error('Export failed:', error)
+      setError('Failed to export data. Please try again.')
+    }
+  }, [])
+
+  const handleCloseError = useCallback(() => {
+    setError(null)
+  }, [])
+
+  const renderMetricDetails = useCallback((metric: MetricData) => {
     const Icon = metric.icon
     
     return (
@@ -331,7 +329,7 @@ export function DashboardOverview() {
             <BarChart3 className="h-4 w-4 mr-2" />
             View Analytics
           </Button>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={handleExportData}>
             <Download className="h-4 w-4 mr-2" />
             Export Data
           </Button>
@@ -346,38 +344,92 @@ export function DashboardOverview() {
         </div>
       </div>
     )
-  }
+  }, [handleRefreshData, handleExportData])
 
   // Show loading state
   if (isLoading && metrics.length === 0) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {[...Array(6)].map((_, index) => (
-          <Card key={index} className="animate-pulse">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <div className="h-4 bg-gray-200 rounded w-24"></div>
-              <div className="h-8 w-8 bg-gray-200 rounded-lg"></div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="h-8 bg-gray-200 rounded w-16"></div>
-                <div className="h-4 bg-gray-200 rounded w-20"></div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold text-gray-900">Dashboard Overview</h2>
+          <div className="flex items-center space-x-2 text-sm text-gray-500">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span>Loading metrics...</span>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[...Array(6)].map((_, index) => (
+            <Card key={index} className="animate-pulse">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <div className="h-4 bg-gray-200 rounded w-24"></div>
+                <div className="h-8 w-8 bg-gray-200 rounded-lg"></div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="h-8 bg-gray-200 rounded w-16"></div>
+                  <div className="h-4 bg-gray-200 rounded w-20"></div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     )
   }
 
   return (
     <div className="space-y-6">
+      {/* Header with last updated info */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Dashboard Overview</h2>
+          <p className="text-sm text-gray-500 mt-1">
+            Last updated: {lastUpdated.toLocaleTimeString()}
+          </p>
+        </div>
+        <div className="flex items-center space-x-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleRefreshData} 
+            disabled={isRefreshing}
+          >
+            {isRefreshing ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Refreshing...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh
+              </>
+            )}
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleExportData}>
+            <Download className="h-4 w-4 mr-2" />
+            Export
+          </Button>
+        </div>
+      </div>
+
       {/* Error Message */}
       {error && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <div className="flex items-center">
-            <AlertTriangle className="h-5 w-5 text-yellow-600 mr-2" />
-            <span className="text-sm text-yellow-800">{error}</span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <AlertTriangle className="h-5 w-5 text-yellow-600 mr-2" />
+              <span className="text-sm text-yellow-800">{error}</span>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleCloseError}
+              className="h-6 w-6 p-0 text-yellow-600 hover:text-yellow-800"
+            >
+              <XCircle className="h-4 w-4" />
+            </Button>
           </div>
         </div>
       )}
