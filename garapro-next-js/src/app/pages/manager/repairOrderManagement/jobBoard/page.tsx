@@ -5,9 +5,9 @@ import { Plus, Filter, LayoutGrid, List, Link } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import DragDropBoard from "./drag-drop-board"
 import EditTaskModal from "@/app/pages/manager/repairOrderManagement/components/edit-task-modal"
-import { jobService } from "@/services/job-service"
+import { jobService } from "@/services/manager/job-service"
 import type { Job, JobStatus } from "@/types/job"
-import { SearchForm } from '@/components/layout/search-form'
+import { SearchForm } from '@/components/manager/layout/search-form'
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"

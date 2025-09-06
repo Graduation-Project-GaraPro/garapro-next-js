@@ -19,7 +19,7 @@ import {
   LayoutDashboard,
 } from "lucide-react"
 
-import { NavMain } from "@/components/layout/nav-main"
+import { NavMain } from "@/components/manager/layout/nav-main"
 import {
   Sidebar,
   SidebarContent,
@@ -36,12 +36,12 @@ const data = {
   topNav: [
     {
       title: "Job Board",
-      url: "/pages/manager/repairOrderManagement",
+      url: "/pages/manager/repairOrderManagement/jobBoard",
       icon: Calendar,
     },
     {
       title: "Tech Board",
-      url: "/tech-board",
+      url: "/pages/manager/tech-board",
       icon: CircuitBoard,
     },
   ],
@@ -49,22 +49,22 @@ const data = {
   mainNav: [
     {
       title: "Appointments",
-      url: "/appointments",
+      url: "/pages/manager/appointments",
       icon: CalendarDays,
     },
     {
       title: "Inventory",
-      url: "/inventory",
+      url: "/pages/manager/inventory",
       icon: Package,
     },
     {
       title: "Orders",
-      url: "/orders",
+      url: "/pages/manager/orders",
       icon: FileText,
     },
     {
       title: "Reports",
-      url: "/reports",
+      url: "/pages/manager/reports",
       icon: BarChart3,
     },
   ],
@@ -72,22 +72,22 @@ const data = {
   manageNav: [
     {
       title: "Customers",
-      url: "/customers",
+      url: "/pages/manager/customers",
       icon: Users,
     },
     {
       title: "Vendors",
-      url: "/vendors",
+      url: "/pages/manager/vendors",
       icon: Truck,
     },
     {
       title: "Canned Jobs",
-      url: "/canned-jobs",
+      url: "/pages/manager/canned-jobs",
       icon: Star,
     },
     {
       title: "Inspections",
-      url: "/inspections",
+      url: "/pages/manager/inspections",
       icon: ClipboardCheck,
     },
   ],
@@ -105,7 +105,7 @@ const data = {
     },
     {
       title: "Billing",
-      url: "/billing",
+      url: "/pages/manager/billing",
       icon: CreditCard,
     },
   ],
