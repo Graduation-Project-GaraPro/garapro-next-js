@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -31,7 +31,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog'
 import {
   AlertDialog,
@@ -45,36 +44,27 @@ import {
 } from '@/components/ui/alert-dialog'
 import { 
   Search, 
-  Filter, 
   MoreHorizontal, 
-  UserX, 
-  UserCheck, 
   Mail,
-  Calendar,
-  Shield,
   Ban,
   CheckCircle,
   Eye,
   Edit,
   Phone,
   MapPin,
-  Clock,
-  AlertTriangle,
-  Info,
+  Activity,
+  CreditCard,
   Copy,
   Check,
   X,
-  Save,
-  Loader2,
   Download,
   RefreshCw,
-  UserPlus,
-  Settings,
-  Activity,
-  CreditCard,
-  Star
+  Loader2,
+  AlertTriangle
 } from 'lucide-react'
-import { toast } from '@/components/ui/use-toast'
+import { toast } from 'sonner'
+import SendEmailDialog from '@/components/admin/users/SendEmailDialog'
+import ActivityDialog from '@/components/admin/users/ActivityDialog'
 
 const getStatusBadge = (status: string) => {
   switch (status) {
@@ -104,6 +94,31 @@ const getRoleBadge = (role: string) => {
   }
 }
 
+// Hàm cleanup portal triệt để
+const cleanupPortals = () => {
+  // Xóa tất cả portal elements
+  const portals = document.querySelectorAll('[data-radix-portal]')
+  portals.forEach(portal => {
+    if (portal.parentNode) {
+      portal.parentNode.removeChild(portal)
+    }
+  })
+
+  // Reset body styles
+  document.body.style.pointerEvents = ''
+  document.body.style.overflow = ''
+  document.body.removeAttribute('data-radix-modal-open')
+  document.body.removeAttribute('data-radix-dialog-open')
+  
+  // Xóa các overlay còn sót lại
+  const overlays = document.querySelectorAll('[data-radix-overlay]')
+  overlays.forEach(overlay => {
+    if (overlay.parentNode) {
+      overlay.parentNode.removeChild(overlay)
+    }
+  })
+}
+
 export function UserManagement() {
   const [searchTerm, setSearchTerm] = useState('')
   const [users, setUsers] = useState<User[]>([])
@@ -119,31 +134,22 @@ export function UserManagement() {
   const [banDialogOpen, setBanDialogOpen] = useState(false)
   const [unbanDialogOpen, setUnbanDialogOpen] = useState(false)
   const [banReason, setBanReason] = useState('')
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false)
+  const [activityDialogOpen, setActivityDialogOpen] = useState(false)
+  const [exporting, setExporting] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalUsers, setTotalUsers] = useState(0)
   const [error, setError] = useState<string | null>(null)
 
-  const filteredUsers = users // Remove client-side filtering since it's handled by the service
-
+  // Cleanup triệt để khi component unmount
   useEffect(() => {
-    loadUsers()
-  }, [searchTerm, statusFilter, roleFilter, verifiedFilter, currentPage])
+    return () => {
+      cleanupPortals()
+    }
+  }, [])
 
-  // Debounce search term
-  useEffect(() => {
-    const delayedSearch = setTimeout(() => {
-      if (currentPage !== 1) {
-        setCurrentPage(1)
-      } else {
-        loadUsers()
-      }
-    }, 300)
-
-    return () => clearTimeout(delayedSearch)
-  }, [searchTerm])
-
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     try {
       setIsLoading(true)
       setError(null)
@@ -159,8 +165,6 @@ export function UserManagement() {
       if (verifiedFilter !== 'all'){
         if (verifiedFilter === "verified") filters.verified = true
         if (verifiedFilter === "unverified") filters.verified = false
-        if (verifiedFilter === "all") filters.verified = undefined
-        console.log(filters.verified)
       } 
 
       const response = await userService.getUsers(filters)
@@ -171,33 +175,39 @@ export function UserManagement() {
     } catch (error) {
       console.error('Failed to load users:', error)
       setError('Failed to load users. Please try again later.')
-      toast({
-        title: "Error",
-        description: "Failed to load users. Please try again later.",
-        variant: "destructive",
-      })
+      toast.error('Failed to load users. Please try again later.')
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [searchTerm, statusFilter, roleFilter, verifiedFilter, currentPage])
+
+  useEffect(() => {
+    loadUsers()
+  }, [loadUsers])
+
+  // Debounce search term
+  useEffect(() => {
+    const delayedSearch = setTimeout(() => {
+      if (currentPage !== 1) {
+        setCurrentPage(1)
+      } else {
+        loadUsers()
+      }
+    }, 300)
+
+    return () => clearTimeout(delayedSearch)
+  }, [searchTerm, currentPage, loadUsers])
 
   const refreshUsers = async () => {
     setIsRefreshing(true)
     await loadUsers()
     setIsRefreshing(false)
-    toast({
-      title: "Success",
-      description: "Users refreshed successfully.",
-    })
+    toast.success('Users refreshed successfully.')
   }
 
   const handleBanUser = async (user: User) => {
     if (!banReason.trim()) {
-      toast({
-        title: "Error",
-        description: "Please provide a reason for banning this user.",
-        variant: "destructive",
-      })
+      toast.error('Please provide a reason for banning this user.')
       return
     }
 
@@ -207,16 +217,9 @@ export function UserManagement() {
       setBanReason('')
       setSelectedUser(null)
       await loadUsers()
-      toast({
-        title: "Success",
-        description: `${user.name} has been banned successfully.`,
-      })
+      toast.success(`${user.name} has been banned successfully.`)
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to ban user. Please try again.",
-        variant: "destructive",
-      })
+      toast.error('Failed to ban user. Please try again.')
     }
   }
 
@@ -226,16 +229,9 @@ export function UserManagement() {
       setUnbanDialogOpen(false)
       setSelectedUser(null)
       await loadUsers()
-      toast({
-        title: "Success",
-        description: `${user.name} has been unbanned successfully.`,
-      })
+      toast.success(`${user.name} has been unbanned successfully.`)
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to unban user. Please try again.",
-        variant: "destructive",
-      })
+      toast.error('Failed to unban user. Please try again.')
     }
   }
 
@@ -243,16 +239,9 @@ export function UserManagement() {
     try {
       await userService.changeUserRole(user.id, newRole)
       await loadUsers()
-      toast({
-        title: "Success",
-        description: `${user.name}'s role has been changed to ${newRole}.`,
-      })
+      toast.success(`${user.name}'s role has been changed to ${newRole}.`)
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to change user role. Please try again.",
-        variant: "destructive",
-      })
+      toast.error('Failed to change user role. Please try again.')
     }
   }
 
@@ -260,16 +249,9 @@ export function UserManagement() {
     try {
       await userService.verifyUser(user.id)
       await loadUsers()
-      toast({
-        title: "Success",
-        description: `${user.name} has been verified successfully.`,
-      })
+      toast.success(`${user.name} has been verified successfully.`)
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to verify user. Please try again.",
-        variant: "destructive",
-      })
+      toast.error('Failed to verify user. Please try again.')
     }
   }
 
@@ -279,7 +261,6 @@ export function UserManagement() {
 
   const handleEditUser = (user: User) => {
     setSelectedUser(user)
-    // Open edit dialog - you can implement this
   }
 
   const handleSelectUser = (userId: number) => {
@@ -291,56 +272,57 @@ export function UserManagement() {
   }
 
   const handleSelectAll = () => {
-    if (selectedUsers.length === filteredUsers.length) {
+    if (selectedUsers.length === users.length) {
       setSelectedUsers([])
     } else {
-      setSelectedUsers(filteredUsers.map(user => user.id))
+      setSelectedUsers(users.map(user => user.id))
     }
   }
 
   const handleBulkAction = async (action: string) => {
     try {
+      let actionLabel = ""
       switch (action) {
-        case 'ban':
-          // Implement bulk ban
-          await userService.bulkUpdateUsers(selectedUsers, { status: 'banned' } as any)
+        case "ban":
+          actionLabel = "Ban"
+          await userService.bulkUpdateUsers(selectedUsers, { status: "banned" } as any)
           break
-        case 'unban':
-          await userService.bulkUpdateUsers(selectedUsers, { status: 'active' } as any)
+        case "unban":
+          actionLabel = "Unban"
+          await userService.bulkUpdateUsers(selectedUsers, { status: "active" } as any)
           break
-        case 'delete':
+        case "delete":
+          actionLabel = "Delete"
           await userService.bulkDeleteUsers(selectedUsers)
           break
-        case 'export':
-          const blob = await userService.exportUsers({ 
+        case "export":
+          actionLabel = "Export"
+          const blob = await userService.exportUsers({
             search: searchTerm || undefined,
-            role: roleFilter !== 'all' ? roleFilter : undefined,
-            status: statusFilter !== 'all' ? statusFilter : undefined,
+            role: roleFilter !== "all" ? roleFilter : undefined,
+            status: statusFilter !== "all" ? statusFilter : undefined,
           })
           const url = window.URL.createObjectURL(blob)
-          const a = document.createElement('a')
+          const a = document.createElement("a")
           a.href = url
-          a.download = 'users.csv'
+          a.download = "users.csv"
           a.click()
           window.URL.revokeObjectURL(url)
           break
       }
-      
+  
       setIsBulkActionDialogOpen(false)
       setSelectedUsers([])
-      if (action !== 'export') {
+      if (action !== "export") {
         await loadUsers()
       }
-      
-      toast({
-        title: "Success",
-        description: `Bulk ${action} completed successfully.`,
+  
+      toast.success(`${actionLabel} successful`, {
+        description: `Bulk ${actionLabel.toLowerCase()} completed for ${selectedUsers.length} user(s).`,
       })
     } catch (error) {
-      toast({
-        title: "Error",
-        description: `Failed to perform bulk ${action}. Please try again.`,
-        variant: "destructive",
+      toast.error("Action failed", {
+        description: `Could not complete bulk ${action}. Please try again.`,
       })
     }
   }
@@ -350,17 +332,28 @@ export function UserManagement() {
       await navigator.clipboard.writeText(text)
       setCopiedField(fieldName)
       setTimeout(() => setCopiedField(null), 2000)
-      toast({
-        title: "Copied",
-        description: `${fieldName} copied to clipboard.`,
-      })
+      toast.success(`${fieldName} copied to clipboard.`)
     } catch (err) {
       console.error('Failed to copy text: ', err)
-      toast({
-        title: "Error",
-        description: "Failed to copy to clipboard.",
-        variant: "destructive",
-      })
+      toast.error('Failed to copy to clipboard.')
+    }
+  }
+
+  const handleExportUser = async (user: User, format: "csv" | "excel" | "json" = "csv") => {
+    setExporting(true)
+    try {
+      const blob = await userService.exportUser(user, format)
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `user_${user.id}.${format === "json" ? "json" : format === "excel" ? "xls" : "csv"}`
+      a.click()
+      URL.revokeObjectURL(url)
+      toast.success('User data exported successfully.')
+    } catch (error) {
+      toast.error('Failed to export user data.')
+    } finally {
+      setExporting(false)
     }
   }
 
@@ -371,6 +364,13 @@ export function UserManagement() {
       .join('')
       .toUpperCase()
       .slice(0, 2)
+  }
+
+  // Hàm đóng dialog với cleanup triệt để
+  const handleDialogClose = () => {
+    setSelectedUser(null)
+    // Cleanup sau khi animation hoàn tất
+    setTimeout(cleanupPortals, 150)
   }
 
   const renderUserDetails = (user: User) => {
@@ -393,10 +393,10 @@ export function UserManagement() {
             </div>
           </div>
           <div className="flex items-center space-x-2">
-            <Button variant="outline" size="sm" onClick={() => handleEditUser(user)}>
+            {/* <Button variant="outline" size="sm" onClick={() => handleEditUser(user)}>
               <Edit className="h-4 w-4 mr-2" />
               Edit
-            </Button>
+            </Button> */}
             {user.status === 'banned' ? (
               <Button 
                 variant="outline" 
@@ -514,64 +514,19 @@ export function UserManagement() {
           </div>
         </div>
 
-        {/* Account History */}
-        {user.details?.accountHistory && user.details.accountHistory.length > 0 && (
-          <div className="space-y-3">
-            <h4 className="font-medium text-gray-900">Recent Activity</h4>
-            <div className="space-y-2">
-              {user.details.accountHistory.slice(0, 5).map((activity, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center space-x-2">
-                    <Activity className="h-4 w-4 text-gray-400" />
-                    <span className="text-sm text-gray-900">{activity.action}</span>
-                  </div>
-                  <div className="flex items-center space-x-4 text-xs text-gray-500">
-                    <span>{new Date(activity.date).toLocaleDateString()}</span>
-                    <span>{activity.ip}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Recent Orders */}
-        {user.details?.orders && user.details.orders.length > 0 && (
-          <div className="space-y-3">
-            <h4 className="font-medium text-gray-900">Recent Orders</h4>
-            <div className="space-y-2">
-              {user.details.orders.slice(0, 3).map((order, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center space-x-2">
-                    <CreditCard className="h-4 w-4 text-gray-400" />
-                    <span className="text-sm text-gray-900">{order.id}</span>
-                  </div>
-                  <div className="flex items-center space-x-4 text-xs text-gray-500">
-                    <span>${order.amount.toFixed(2)}</span>
-                    <Badge variant={order.status === 'Completed' ? 'default' : 'secondary'}>
-                      {order.status}
-                    </Badge>
-                    <span>{new Date(order.date).toLocaleDateString()}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Action Buttons */}
         <div className="flex space-x-2 pt-4 border-t border-gray-200">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={() => setEmailDialogOpen(true)}>
             <Mail className="h-4 w-4 mr-2" />
             Send Email
           </Button>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={() => setActivityDialogOpen(true)}>
             <Activity className="h-4 w-4 mr-2" />
             View Activity
           </Button>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={() => handleExportUser(user)} disabled={exporting}>
             <Download className="h-4 w-4 mr-2" />
-            Export Data
+            {exporting ? "Exporting..." : "Export Data"}
           </Button>
         </div>
       </div>
@@ -684,7 +639,7 @@ export function UserManagement() {
                 <TableHead>
                   <input
                     type="checkbox"
-                    checked={selectedUsers.length === filteredUsers.length && filteredUsers.length > 0}
+                    checked={selectedUsers.length === users.length && users.length > 0}
                     onChange={handleSelectAll}
                     className="rounded border-gray-300"
                   />
@@ -699,7 +654,7 @@ export function UserManagement() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredUsers.map((user) => (
+              {users.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell>
                     <input
@@ -748,10 +703,10 @@ export function UserManagement() {
                           <Eye className="mr-2 h-4 w-4" />
                           View Details
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleEditUser(user)}>
+                        {/* <DropdownMenuItem onClick={() => handleEditUser(user)}>
                           <Edit className="mr-2 h-4 w-4" />
                           Edit User
-                        </DropdownMenuItem>
+                        </DropdownMenuItem> */}
                         <DropdownMenuSeparator />
                         {!user.verified && (
                           <DropdownMenuItem onClick={() => handleVerifyUser(user)}>
@@ -813,31 +768,33 @@ export function UserManagement() {
         </CardContent>
       </Card>
 
-      {/* User Details Dialog */}
-      <Dialog open={!!selectedUser} onOpenChange={() => setSelectedUser(null)}>
-        <DialogContent className="max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>User Details</DialogTitle>
-            <DialogDescription>
-              Comprehensive information about the selected user
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="py-4">
-            {selectedUser && renderUserDetails(selectedUser)}
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setSelectedUser(null)}>
-              Close
-            </Button>
-            <Button onClick={() => handleEditUser(selectedUser!)}>
-              <Edit className="h-4 w-4 mr-2" />
-              Edit User
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* User Details Dialog với cleanup triệt để */}
+      {selectedUser && (
+        <Dialog open={true} onOpenChange={(open) => !open && handleDialogClose()}>
+          <DialogContent className="max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>User Details</DialogTitle>
+              <DialogDescription>
+                Comprehensive information about the selected user
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="py-4">
+              {renderUserDetails(selectedUser)}
+            </div>
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={handleDialogClose}>
+                Close
+              </Button>
+              <Button onClick={() => handleEditUser(selectedUser)}>
+                <Edit className="h-4 w-4 mr-2" />
+                Edit User
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* Ban User Dialog */}
       <AlertDialog open={banDialogOpen} onOpenChange={setBanDialogOpen}>
@@ -861,7 +818,7 @@ export function UserManagement() {
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => {
               setBanReason('')
-              setSelectedUser(null)
+              setBanDialogOpen(false)
             }}>
               Cancel
             </AlertDialogCancel>
@@ -885,7 +842,7 @@ export function UserManagement() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setSelectedUser(null)}>
+            <AlertDialogCancel onClick={() => setUnbanDialogOpen(false)}>
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
@@ -917,7 +874,7 @@ export function UserManagement() {
               Ban Selected Users
             </Button>
             <Button
-              variant="outline"
+              variant="outoutline"
               className="w-full justify-start"
               onClick={() => handleBulkAction('unban')}
             >
@@ -940,14 +897,6 @@ export function UserManagement() {
               <Download className="mr-2 h-4 w-4" />
               Export User Data
             </Button>
-            <Button
-              variant="outline"
-              className="w-full justify-start"
-              onClick={() => handleBulkAction('email')}
-            >
-              <Mail className="mr-2 h-4 w-4" />
-              Send Email to Users
-            </Button>
           </div>
           
           <DialogFooter>
@@ -957,6 +906,18 @@ export function UserManagement() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <SendEmailDialog 
+        open={emailDialogOpen} 
+        onOpenChange={setEmailDialogOpen} 
+        user={selectedUser} 
+      />
+      
+      <ActivityDialog 
+        open={activityDialogOpen} 
+        onOpenChange={setActivityDialogOpen} 
+        user={selectedUser} 
+      />
     </div>
   )
 }

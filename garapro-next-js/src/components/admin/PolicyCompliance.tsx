@@ -122,29 +122,37 @@ const mockComplianceStandards: ComplianceStandard[] = [
 ]
 
 const statusColors = {
-  compliant: 'bg-green-100 text-green-800',
-  'non-compliant': 'bg-red-100 text-red-800',
-  pending: 'bg-yellow-100 text-yellow-800',
-  'in-progress': 'bg-blue-100 text-blue-800'
+  compliant: 'bg-green-100 text-green-800 border-green-200',
+  'non-compliant': 'bg-red-100 text-red-800 border-red-200',
+  pending: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+  'in-progress': 'bg-blue-100 text-blue-800 border-blue-200'
 }
 
 const priorityColors = {
-  low: 'bg-gray-100 text-gray-800',
-  medium: 'bg-yellow-100 text-yellow-800',
-  high: 'bg-orange-100 text-orange-800',
-  critical: 'bg-red-100 text-red-800'
+  low: 'bg-gray-100 text-gray-800 border-gray-200',
+  medium: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+  high: 'bg-orange-100 text-orange-800 border-orange-200',
+  critical: 'bg-red-100 text-red-800 border-red-200'
 }
 
 const requirementStatusColors = {
-  met: 'bg-green-100 text-green-800',
-  'not-met': 'bg-red-100 text-red-800',
-  partial: 'bg-yellow-100 text-yellow-800'
+  met: 'bg-green-100 text-green-800 border-green-200',
+  'not-met': 'bg-red-100 text-red-800 border-red-200',
+  partial: 'bg-yellow-100 text-yellow-800 border-yellow-200'
 }
 
 export function PolicyCompliance() {
   const [standards] = useState<ComplianceStandard[]>(mockComplianceStandards)
 
   const overallComplianceRate = standards.reduce((acc, standard) => acc + standard.complianceRate, 0) / standards.length
+
+  // Tính toán số ngày đến audit tiếp theo
+  const daysUntilNextAudit = () => {
+    const nextAudits = standards.map(s => new Date(s.nextAudit).getTime());
+    const closestAudit = Math.min(...nextAudits);
+    const days = Math.ceil((closestAudit - Date.now()) / (1000 * 60 * 60 * 24));
+    return days > 0 ? days : 0;
+  };
 
   const exportComplianceReport = () => {
     const dataStr = JSON.stringify(standards, null, 2)
@@ -225,7 +233,7 @@ export function PolicyCompliance() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {Math.min(...standards.map(s => new Date(s.nextAudit).getTime() - Date.now()) / (1000 * 60 * 60 * 24)).toFixed(0)}
+              {daysUntilNextAudit()}
             </div>
             <p className="text-xs text-muted-foreground">
               days until next audit
@@ -264,8 +272,8 @@ export function PolicyCompliance() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge className={statusColors[standard.status]}>
-                      {standard.status}
+                    <Badge variant="outline" className={statusColors[standard.status]}>
+                      {standard.status.replace('-', ' ')}
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -303,8 +311,8 @@ export function PolicyCompliance() {
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <span>{standard.name} Requirements</span>
-                <Badge className={statusColors[standard.status]}>
-                  {standard.status}
+                <Badge variant="outline" className={statusColors[standard.status]}>
+                  {standard.status.replace('-', ' ')}
                 </Badge>
               </CardTitle>
               <CardDescription>
@@ -332,13 +340,13 @@ export function PolicyCompliance() {
                         <Badge variant="outline">{requirement.category}</Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge className={priorityColors[requirement.priority]}>
+                        <Badge variant="outline" className={priorityColors[requirement.priority]}>
                           {requirement.priority}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge className={requirementStatusColors[requirement.status]}>
-                          {requirement.status}
+                        <Badge variant="outline" className={requirementStatusColors[requirement.status]}>
+                          {requirement.status.replace('-', ' ')}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -356,4 +364,4 @@ export function PolicyCompliance() {
       </div>
     </div>
   )
-} 
+}

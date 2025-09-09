@@ -46,8 +46,6 @@
 :root {
   --header-height: 3.5rem;
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
@@ -77,6 +75,8 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
 }
 
 .dark {
@@ -120,4 +120,20 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+body[data-radix-dialog-overlay-open] {
+  pointer-events: auto !important;
+}
+
+[data-radix-dialog-overlay] {
+  pointer-events: auto !important;
+}
+
+[data-radix-dialog-content] {
+  pointer-events: auto !important;
+}
+
+/* Reset pointer-events when dialog is closed */
+body:not([data-radix-dialog-overlay-open]) {
+  pointer-events: auto !important;
 }

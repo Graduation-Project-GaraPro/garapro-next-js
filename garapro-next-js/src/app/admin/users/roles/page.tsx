@@ -1,4 +1,4 @@
-import { UserRolesManagement } from '@/components/admin/UserRolesManagement'
+import { UserRolesManagement } from '@/components/admin/roles/UserRolesManagement'
 
 export default function UserRolesPage() {
   return (
