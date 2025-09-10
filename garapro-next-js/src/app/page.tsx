@@ -1,5 +1,5 @@
+import ChatBotUI from "@/components/chatbot/ChatBot";
+
 export default function Page() {
-  return (
-    <div></div>
-  )
+  return <ChatBotUI />; // Render the ChatBotUI
 }
