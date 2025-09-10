@@ -1,5 +1,5 @@
-export default function Page() {
-  return (
-    <div></div>
-  )
+import { redirect } from "next/navigation";
+
+export default function Home() {
+  redirect("manager/repairOrderManagement");
 }
