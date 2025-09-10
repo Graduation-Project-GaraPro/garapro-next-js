@@ -14,7 +14,8 @@ import {
 } from '@/components/ui/dialog'
 import { Shield, Users, Edit } from 'lucide-react'
 import { Role, Permission } from '@/services/role-service'
-import { useRoleValidation } from '@/hooks/admin//roles/useRoles'
+import { useRoleValidation } from '@/hooks/admin/roles/useRoles'
+import { User } from '@/services/user-service'
 
 interface RoleDialogsProps {
   // Create dialog
@@ -45,9 +46,19 @@ interface RoleDialogsProps {
   onDuplicateClose: () => void
   onDuplicateSubmit: (newName: string) => void
   
+  // View Users dialog
+  isViewUsersOpen: boolean
+  onViewUsersClose: () => void
+  usersWithRole: User[]
+  loadingUsers: boolean
+  
   // Data
   permissions: Permission[]
   loading: boolean
+
+  // Action handlers
+  onViewUsers: (role: Role) => void
+  onEditRole: (role: Role) => void
 }
 
 export const RoleDialogs = ({
@@ -69,7 +80,13 @@ export const RoleDialogs = ({
   selectedRoleForDuplicate,
   onDuplicateClose,
   onDuplicateSubmit,
+  isViewUsersOpen,
+  onViewUsersClose,
+  usersWithRole,
+  loadingUsers,
   permissions,
+  onViewUsers,        
+  onEditRole,
   loading
 }: RoleDialogsProps) => {
   // Create form state
@@ -90,6 +107,9 @@ export const RoleDialogs = ({
 
   // Duplicate form state
   const [duplicateName, setDuplicateName] = useState('')
+
+  // State to track where edit dialog was opened from
+  const [editOpenedFrom, setEditOpenedFrom] = useState<'quick-action' | 'other' | null>(null)
 
   // Validation
   const createErrors = useRoleValidation(createForm, shouldValidateCreate)
@@ -116,10 +136,14 @@ export const RoleDialogs = ({
 
   useEffect(() => {
     if (!isEditOpen) {
-      setEditForm({ name: '', description: '', permissions: [] })
+      // Only reset form if edit dialog was not opened from quick action
+      if (editOpenedFrom !== 'quick-action') {
+        setEditForm({ name: '', description: '', permissions: [] })
+      }
       setShouldValidateEdit(false)
+      setEditOpenedFrom(null)
     }
-  }, [isEditOpen])
+  }, [isEditOpen, editOpenedFrom])
 
   useEffect(() => {
     if (!isDuplicateOpen) {
@@ -175,6 +199,20 @@ export const RoleDialogs = ({
       permissions: togglePermission(permissionId, prev.permissions)
     }))
   }, [togglePermission])
+
+  // Handlers for Quick Actions buttons
+  const handleViewUsersClick = useCallback(() => {
+    if (selectedRoleForView) {
+      onViewUsers(selectedRoleForView)
+    }
+  }, [selectedRoleForView, onViewUsers])
+
+  const handleEditRoleClick = useCallback(() => {
+    if (selectedRoleForView) {
+      setEditOpenedFrom('quick-action')
+      onEditRole(selectedRoleForView)
+    }
+  }, [selectedRoleForView, onEditRole])
 
   // Group permissions by category
   const groupedPermissions = permissions.reduce((acc, permission) => {
@@ -423,12 +461,20 @@ export const RoleDialogs = ({
               <div>
                 <label className="text-sm font-medium text-gray-600">Quick Actions</label>
                 <div className="flex space-x-2 mt-2">
-                  <Button variant="outline" size="sm">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={handleViewUsersClick}
+                  >
                     <Users className="mr-2 h-4 w-4" />
                     View Users ({selectedRoleForView.users})
                   </Button>
                   {!selectedRoleForView.isDefault && (
-                    <Button variant="outline" size="sm">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={handleEditRoleClick}
+                    >
                       <Edit className="mr-2 h-4 w-4" />
                       Edit Role
                     </Button>
@@ -502,6 +548,72 @@ export const RoleDialogs = ({
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Users Dialog */}
+      <Dialog open={isViewUsersOpen} onOpenChange={onViewUsersClose}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              Users with Role: {selectedRoleForView?.name}
+            </DialogTitle>
+            <DialogDescription>
+              List of users assigned to this role
+            </DialogDescription>
+          </DialogHeader>
+          
+          {loadingUsers ? (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <div className="text-sm text-gray-600">
+                  Total: {usersWithRole.length} users
+                </div>
+              </div>
+              
+              {usersWithRole.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <Users className="mx-auto h-12 w-12 mb-4 opacity-50" />
+                  <p>No users assigned to this role</p>
+                </div>
+              ) : (
+                <div className="border rounded-lg divide-y">
+                  {usersWithRole.map((user) => (
+                    <div key={user.id} className="p-4 flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                          <span className="text-blue-600 font-medium">
+                            {user.name?.charAt(0) || user.email?.charAt(0) || 'U'}
+                          </span>
+                        </div>
+                        <div>
+                          <div className="font-medium">{user.name || 'No name'}</div>
+                          <div className="text-sm text-gray-500">{user.email}</div>
+                        </div>
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        {user.status === 'active' ? (
+                          <Badge className="bg-green-100 text-green-800">Active</Badge>
+                        ) : (
+                          <Badge variant="outline">Inactive</Badge>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={onViewUsersClose}>
+              Close
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>

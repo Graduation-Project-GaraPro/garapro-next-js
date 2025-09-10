@@ -431,7 +431,7 @@ class RoleService {
       },
       {
         id: 3,
-        name: 'Moderator',
+        name: 'Technician',
         description: 'Content moderation and user support',
         users: 12,
         permissions: [
