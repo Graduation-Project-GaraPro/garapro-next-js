@@ -90,8 +90,8 @@ const menuItems = [
     icon: MapPin,
     submenu: [
       { title: 'All Branches', href: '/admin/branches' },
-      { title: 'Create Branch', href: '/admin/branches/create' },
-      { title: 'Branch Management', href: '/admin/branches/management' },
+      { title: 'Create Branch', href: '/admin/branches/create' }
+     
     ]
   }
 ]
