@@ -14,9 +14,10 @@ interface JobCardProps {
   onDragEnd: () => void
   onEdit: () => void
   onDelete: () => void
+  label: { id: number; name: string; color: string } | null
 }
 
-export default function JobCard({ job, onDragStart, onDragEnd, onEdit, onDelete }: JobCardProps) {
+export default function JobCard({ job, onDragStart, onDragEnd, onEdit, onDelete, label }: JobCardProps) {
   const router = useRouter()
 
   const handleCardClick = (e: React.MouseEvent) => {
@@ -53,12 +54,21 @@ export default function JobCard({ job, onDragStart, onDragEnd, onEdit, onDelete 
       <CardHeader className="px-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
-            <Badge
-              variant="outline"
-              className={`text-xs font-medium px-1 py-0 h-4 ${getStatusColor(job.statusText || "Work Not Started")}`}
-            >
-              {job.statusText || "Work Not Started"}
-            </Badge>
+            {label ? (
+              <span
+                className="text-[10px] font-medium px-1 py-0 h-4 rounded border"
+                style={{ backgroundColor: label.color, color: "#fff", borderColor: label.color }}
+              >
+                {label.name}
+              </span>
+            ) : (
+              <Badge
+                variant="outline"
+                className={`text-xs font-medium px-1 py-0 h-4 ${getStatusColor(job.statusText || "Work Not Started")}`}
+              >
+                {job.statusText || "Work Not Started"}
+              </Badge>
+            )}
             <span className="text-xs font-semibold text-blue-600">RO #{job.id || "227"}</span>
             <ExternalLink className="w-3 h-3 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
           </div>

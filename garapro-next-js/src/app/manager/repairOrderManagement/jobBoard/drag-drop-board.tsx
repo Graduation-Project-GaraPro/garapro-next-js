@@ -10,9 +10,10 @@ interface DragDropBoardProps {
   onMoveJob: (jobId: string, newStatus: JobStatus) => void
   onEditJob: (job: Job) => void
   onDeleteJob: (jobId: string) => void
+  labels: { id: number; name: string; color: string }[]
 }
 
-export default function DragDropBoard({ jobs, loading, onMoveJob, onEditJob, onDeleteJob }: DragDropBoardProps) {
+export default function DragDropBoard({ jobs, loading, onMoveJob, onEditJob, onDeleteJob, labels }: DragDropBoardProps) {
   const [draggedJob, setDraggedJob] = useState<Job | null>(null)
 
   const handleDragStart = (job: Job) => {
@@ -96,6 +97,7 @@ export default function DragDropBoard({ jobs, loading, onMoveJob, onEditJob, onD
           onEditJob={onEditJob}
           onDeleteJob={onDeleteJob}
           isDragOver={draggedJob?.status !== column.id}
+          labels={labels}
         />
       ))}
     </div>

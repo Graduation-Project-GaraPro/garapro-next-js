@@ -20,6 +20,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import type { Job, JobStatus } from "@/types/job"
+import { labelService } from "@/services/manager/label-service"
+import type { Label } from "@/types/manager/label"
+import { LABOR_RATES_STORAGE_KEY, type LaborRate } from "@/app/manager/garageSetting/ro-settings/tabs/labor-rates-tab"
 
 interface EditTaskModalProps {
   job: Job | null
@@ -32,10 +35,19 @@ interface EditTaskModalProps {
 export default function EditTaskModal({ job, isOpen, onClose, onSubmit, onDelete }: EditTaskModalProps) {
   const [formData, setFormData] = useState<Job | null>(null)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [labels, setLabels] = useState<Label[]>([])
+  const [rates, setRates] = useState<LaborRate[]>([])
 
   useEffect(() => {
     if (job) {
       setFormData({ ...job })
+    }
+    labelService.getAllLabels().then(setLabels).catch((e) => console.error("Failed to load labels", e))
+    try {
+      const raw = typeof window !== "undefined" ? localStorage.getItem(LABOR_RATES_STORAGE_KEY) : null
+      if (raw) setRates(JSON.parse(raw) as LaborRate[])
+    } catch (e) {
+      console.error("Failed to load rates", e)
     }
   }, [job])
 
@@ -117,6 +129,48 @@ export default function EditTaskModal({ job, isOpen, onClose, onSubmit, onDelete
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+
+            <div>
+              <Label htmlFor="edit-label">RO Label</Label>
+              <Select
+                value={formData.labelId ? String(formData.labelId) : ""}
+                onValueChange={(value: string) =>
+                  setFormData((prev) => (prev ? { ...prev, labelId: value ? Number(value) : undefined } : null))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select label (optional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  {labels.map((l) => (
+                    <SelectItem key={l.id} value={String(l.id)}>
+                      {l.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="edit-rate">Labor Rate</Label>
+              <Select
+                value={formData.laborRateId || ""}
+                onValueChange={(value: string) =>
+                  setFormData((prev) => (prev ? { ...prev, laborRateId: value, laborRate: rates.find((r) => r.id === value)?.rate } : null))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select labor rate" />
+                </SelectTrigger>
+                <SelectContent>
+                  {rates.map((r) => (
+                    <SelectItem key={r.id} value={r.id}>
+                      {r.name} - ${r.rate}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div>

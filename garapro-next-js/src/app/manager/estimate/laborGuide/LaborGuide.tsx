@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import {
   Search,
@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { LABOR_RATES_STORAGE_KEY, type LaborRate } from "@/app/manager/garageSetting/ro-settings/tabs/labor-rates-tab"
 import { Separator } from "@/components/ui/separator"
 
 interface ChildOperation {
@@ -220,6 +221,8 @@ export default function LaborGuide({ onClose, onSave }: { onClose?: () => void; 
   const [selectedSkillLevel, setSelectedSkillLevel] = useState("All")
   const [expandedCategories, setExpandedCategories] = useState<Set<number>>(new Set())
   const [selectedLabors, setSelectedLabors] = useState<SelectedLabor[]>([])
+  const [rates, setRates] = useState<LaborRate[]>([])
+  const [selectedRateId, setSelectedRateId] = useState<string>("")
 
   const filteredOperations = useMemo(() => {
     return laborGuideData.filter((operation) => {
@@ -237,6 +240,20 @@ export default function LaborGuide({ onClose, onSave }: { onClose?: () => void; 
       return matchesSearch && matchesCategory && matchesSkillLevel
     })
   }, [searchTerm, selectedCategory, selectedSkillLevel])
+
+  // Load labor rates from RO Settings
+  useEffect(() => {
+    try {
+      const raw = typeof window !== "undefined" ? localStorage.getItem(LABOR_RATES_STORAGE_KEY) : null
+      if (raw) {
+        const parsed = JSON.parse(raw) as LaborRate[]
+        setRates(parsed)
+        if (parsed[0]) setSelectedRateId(parsed[0].id)
+      }
+    } catch (e) {
+      console.error("Failed to load labor rates", e)
+    }
+  }, [])
 
   const toggleCategory = (categoryId: number) => {
     const newExpanded = new Set(expandedCategories)
@@ -268,7 +285,8 @@ export default function LaborGuide({ onClose, onSave }: { onClose?: () => void; 
   }
 
   const totalHours = selectedLabors.reduce((sum, labor) => sum + labor.laborHours, 0)
-  const totalCost = selectedLabors.reduce((sum, labor) => sum + labor.estimatedCost, 0)
+  const activeRate = rates.find((r) => r.id === selectedRateId)?.rate ?? 0
+  const totalCost = selectedLabors.reduce((sum, labor) => sum + labor.laborHours * activeRate, 0)
 
   const getSkillLevelColor = (level: string) => {
     switch (level) {
@@ -356,6 +374,17 @@ export default function LaborGuide({ onClose, onSave }: { onClose?: () => void; 
                 <SelectItem key={level} value={level}>
                   {level}
                 </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={selectedRateId} onValueChange={setSelectedRateId}>
+            <SelectTrigger className="w-full sm:w-48">
+              <DollarSign className="h-4 w-4 mr-2" />
+              <SelectValue placeholder="Labor Rate" />
+            </SelectTrigger>
+            <SelectContent>
+              {rates.map((r) => (
+                <SelectItem key={r.id} value={r.id}>{r.name} - ${r.rate}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -536,7 +565,7 @@ export default function LaborGuide({ onClose, onSave }: { onClose?: () => void; 
                           <DollarSign className="h-4 w-4 text-muted-foreground" />
                           <span className="text-sm font-medium">Total Labor Cost</span>
                         </div>
-                        <span className="font-semibold text-lg">${totalCost}</span>
+                        <span className="font-semibold text-lg">${totalCost.toFixed(2)}</span>
                       </div>
                     </div>
 
@@ -552,7 +581,12 @@ export default function LaborGuide({ onClose, onSave }: { onClose?: () => void; 
                         className="w-full bg-transparent mb-1"
                         onClick={() => {
                           if (onSave) {
-                            onSave(selectedLabors)
+                            // Return labors with cost computed using selected rate
+                            const laborsWithCost = selectedLabors.map((l) => ({
+                              ...l,
+                              estimatedCost: l.laborHours * activeRate,
+                            }))
+                            onSave(laborsWithCost)
                           }
                           if (onClose) {
                             onClose()

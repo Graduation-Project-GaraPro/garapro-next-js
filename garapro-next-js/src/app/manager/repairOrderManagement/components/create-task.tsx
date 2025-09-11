@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -9,6 +9,9 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Search, Plus, X } from "lucide-react"
 import type { Job } from "@/types/job"
+import { labelService } from "@/services/manager/label-service"
+import type { Label } from "@/types/manager/label"
+import { LABOR_RATES_STORAGE_KEY, type LaborRate } from "@/app/manager/garageSetting/ro-settings/tabs/labor-rates-tab"
 
 interface CreateTaskProps {
   onClose: () => void
@@ -31,11 +34,42 @@ export default function CreateTask({ onClose, onSubmit }: CreateTaskProps) {
 
   const [customerSearch, setCustomerSearch] = useState("")
   const [selectedVehicle, setSelectedVehicle] = useState("")
+  const [labels, setLabels] = useState<Label[]>([])
+  const [selectedLabelId, setSelectedLabelId] = useState<string>("")
+  const [rates, setRates] = useState<LaborRate[]>([])
+  const [selectedRateId, setSelectedRateId] = useState<string>("")
+
+  useEffect(() => {
+    labelService
+      .getAllLabels()
+      .then((ls) => {
+        setLabels(ls)
+        const def = ls.find((l) => l.isDefault)
+        if (def) setSelectedLabelId(String(def.id))
+      })
+      .catch((e) => console.error("Failed to load labels", e))
+  }, [])
+
+  useEffect(() => {
+    try {
+      const raw = typeof window !== "undefined" ? localStorage.getItem(LABOR_RATES_STORAGE_KEY) : null
+      if (raw) {
+        const parsed = JSON.parse(raw) as LaborRate[]
+        setRates(parsed)
+        if (parsed[0]) setSelectedRateId(parsed[0].id)
+      }
+    } catch (e) {
+      console.error("Failed to load labor rates", e)
+    }
+  }, [])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     onSubmit({
       ...formData,
+      labelId: selectedLabelId ? Number(selectedLabelId) : undefined,
+      laborRateId: selectedRateId || undefined,
+      laborRate: rates.find((r) => r.id === selectedRateId)?.rate,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       status: "requires-auth"
@@ -58,6 +92,8 @@ export default function CreateTask({ onClose, onSubmit }: CreateTaskProps) {
     })
     setCustomerSearch("")
     setSelectedVehicle("")
+    setSelectedLabelId("")
+    setSelectedRateId("")
   }
 
   const handleClose = () => {
@@ -160,6 +196,34 @@ export default function CreateTask({ onClose, onSubmit }: CreateTaskProps) {
                   </Label>
                 </div>
               </div>
+            </div>
+            <div>
+              <Label className="text-sm text-gray-600">RO Label</Label>
+              <Select value={selectedLabelId} onValueChange={setSelectedLabelId}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Select label (optional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  {labels.map((l) => (
+                    <SelectItem key={l.id} value={String(l.id)}>
+                      {l.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-sm text-gray-600">Labor Rate</Label>
+              <Select value={selectedRateId} onValueChange={setSelectedRateId}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Select labor rate" />
+                </SelectTrigger>
+                <SelectContent>
+                  {rates.map((r) => (
+                    <SelectItem key={r.id} value={r.id}>{r.name} - ${r.rate}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>

@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Copy, Settings, Search, ClipboardList, PlusCircle, Receipt, Percent, MoreVertical, X, ChevronDown, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -16,6 +16,8 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import LaborGuide from "@/app/manager/estimate/laborGuide/LaborGuide"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { LABOR_RATES_STORAGE_KEY, type LaborRate } from "@/app/manager/garageSetting/ro-settings/tabs/labor-rates-tab"
 
 interface EstimateTabProps {
   orderId: string
@@ -41,9 +43,13 @@ type Status = "critical" | "warning" | "info" | "normal"
 export default function SummaryTab({}: EstimateTabProps) {
   const [isLaborGuideOpen, setIsLaborGuideOpen] = useState(false)
   const [isConcernsExpanded, setIsConcernsExpanded] = useState(true)
-  const [jobs, setJobs] = useState<Array<{ id: string; title: string; hours?: number; cost?: number; parts?: Array<{ id: string; name: string; qty: number; cost: number; retail: number }> }>>([])
+  const [jobs, setJobs] = useState<Array<{ id: string; title: string; hours?: number; cost?: number; laborRate?: number; parts?: Array<{ id: string; name: string; qty: number; cost: number; retail: number }> }>>([])
   const [isJobsExpanded, setIsJobsExpanded] = useState(true)
   const [isRoFeeExpanded, setIsRoFeeExpanded] = useState(true)
+  const [isPartsPickerOpen, setIsPartsPickerOpen] = useState(false)
+  const [partsPickerJobId, setPartsPickerJobId] = useState<string | null>(null)
+  const [rates, setRates] = useState<LaborRate[]>([])
+  const [selectedGlobalRateId, setSelectedGlobalRateId] = useState<string>("")
 
   const [customerConcerns, setCustomerConcerns] = useState<Concern[]>([
     {
@@ -280,6 +286,138 @@ export default function SummaryTab({}: EstimateTabProps) {
     )
   }
 
+  // Load labor rates for selection
+  useEffect(() => {
+    try {
+      const raw = typeof window !== "undefined" ? localStorage.getItem(LABOR_RATES_STORAGE_KEY) : null
+      if (raw) {
+        const parsed = JSON.parse(raw) as LaborRate[]
+        setRates(parsed)
+        if (parsed[0]) setSelectedGlobalRateId(parsed[0].id)
+      }
+    } catch (e) {
+      console.error("Failed to load labor rates", e)
+    }
+  }, [])
+
+  // Simple in-modal Parts Picker for adding parts to a job or via Parts Hub
+  type PartItem = { id: string; name: string; cost: number; retail: number; qty: number }
+  const partsCatalog: Array<Omit<PartItem, "qty">> = [
+    { id: "p1", name: "Front Brake Pads", cost: 40, retail: 65 },
+    { id: "p2", name: "Brake Rotor", cost: 55, retail: 95 },
+    { id: "p3", name: "Engine Oil (1qt)", cost: 4, retail: 9 },
+    { id: "p4", name: "Oil Filter", cost: 6, retail: 14 },
+    { id: "p5", name: "Spark Plug", cost: 5, retail: 12 },
+  ]
+
+  const PartsPicker = ({
+    initialJobId,
+    onCancel,
+    onSave,
+  }: {
+    initialJobId: string | null
+    onCancel: () => void
+    onSave: (jobId: string, parts: PartItem[]) => void
+  }) => {
+    const [selectedJobId, setSelectedJobId] = useState<string | null>(initialJobId)
+    const [selectedParts, setSelectedParts] = useState<Record<string, PartItem>>({})
+
+    const togglePart = (catalogId: string) => {
+      setSelectedParts((prev) => {
+        const next = { ...prev }
+        if (next[catalogId]) {
+          delete next[catalogId]
+        } else {
+          const base = partsCatalog.find((p) => p.id === catalogId)!
+          next[catalogId] = { ...base, qty: 1 }
+        }
+        return next
+      })
+    }
+
+    const updateQty = (catalogId: string, qty: number) => {
+      setSelectedParts((prev) => ({ ...prev, [catalogId]: { ...prev[catalogId], qty } }))
+    }
+
+    const totalRetail = Object.values(selectedParts).reduce((s, p) => s + p.retail * (p.qty || 0), 0)
+
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="font-medium">Select Job</div>
+          <div className="flex-1">
+            <Select value={selectedJobId ?? undefined} onValueChange={(v) => setSelectedJobId(v)}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Choose a job" />
+              </SelectTrigger>
+              <SelectContent>
+                {jobs.map((j) => (
+                  <SelectItem key={j.id} value={j.id}>
+                    {j.title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <div className="border rounded-md">
+          <div className="px-3 py-2 border-b text-sm font-medium bg-gray-50">Parts Catalog</div>
+          <div className="max-h-[40vh] overflow-auto divide-y">
+            {partsCatalog.map((p) => {
+              const selected = !!selectedParts[p.id]
+              const qty = selectedParts[p.id]?.qty ?? 0
+              return (
+                <div key={p.id} className="flex items-center gap-3 px-3 py-2">
+                  <input
+                    type="checkbox"
+                    checked={selected}
+                    onChange={() => togglePart(p.id)}
+                    className="h-4 w-4"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm text-gray-900 truncate">{p.name}</div>
+                    <div className="text-xs text-gray-600">Cost ${p.cost.toFixed(2)} · Retail ${p.retail.toFixed(2)}</div>
+                  </div>
+                  {selected && (
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor={`qty-${p.id}`}>Qty</Label>
+                      <Input
+                        id={`qty-${p.id}`}
+                        type="number"
+                        min={1}
+                        value={qty}
+                        onChange={(e) => updateQty(p.id, Math.max(1, Number(e.target.value) || 1))}
+                        className="w-20 h-8"
+                      />
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-gray-700">Selected Retail Total: ${totalRetail.toFixed(2)}</div>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={onCancel}>Cancel</Button>
+            <Button
+              disabled={!selectedJobId || Object.keys(selectedParts).length === 0}
+              onClick={() => {
+                if (!selectedJobId) return
+                onSave(selectedJobId, Object.values(selectedParts))
+              }}
+              style={{ backgroundColor: "#154c79" }}
+            >
+              Add Parts to Job
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       {/* Vehicle Issues Section */}
@@ -477,6 +615,23 @@ export default function SummaryTab({}: EstimateTabProps) {
             <div className="rounded-lg border bg-white">
               <div className="flex items-center justify-between p-3 border-b bg-gray-100 rounded-t-lg">
                 <h3 className="text-sm font-medium text-gray-900">Jobs</h3>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-600">Global Labor Rate</span>
+                  <Select value={selectedGlobalRateId} onValueChange={(v) => {
+                    setSelectedGlobalRateId(v)
+                    const rate = rates.find((r) => r.id === v)?.rate || 0
+                    setJobs((prev) => prev.map((j) => ({ ...j, laborRate: rate, cost: j.hours ? rate * j.hours : j.cost })))
+                  }}>
+                    <SelectTrigger className="h-8 w-44">
+                      <SelectValue placeholder="Select rate" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {rates.map((r) => (
+                        <SelectItem key={r.id} value={r.id}>{r.name} - ${r.rate}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -543,14 +698,28 @@ export default function SummaryTab({}: EstimateTabProps) {
                               <div className="text-gray-600 text-xs md:text-sm truncate">{job.title}</div>
                             </div>
                             <div className="col-span-1 text-right text-gray-700">{job.hours?.toFixed(2) ?? "-"}</div>
-                            <div className="col-span-1 text-right text-gray-700">{laborRate ? `$${laborRate.toFixed(2)}` : "-"}</div>
+                            <div className="col-span-1 text-right text-gray-700">
+                              <Select value={String(job.laborRate ?? rates.find(r=>r.id===selectedGlobalRateId)?.rate ?? "")} onValueChange={(v) => {
+                                const rate = Number(v)
+                                setJobs((prev) => prev.map((j) => j.id === job.id ? { ...j, laborRate: rate, cost: j.hours ? rate * j.hours : j.cost } : j))
+                              }}>
+                                <SelectTrigger className="h-7 text-xs">
+                                  <SelectValue placeholder={laborRate ? `$${laborRate.toFixed(2)}` : "-"} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {rates.map((r) => (
+                                    <SelectItem key={r.id} value={String(r.rate)}>{r.name} - ${r.rate}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
                             <div className="col-span-2 text-right font-medium">{job.cost ? `$${job.cost.toFixed(2)}` : "$0.00"}</div>
                           </div>
 
                           {/* Parts Table or Warning */}
                           {parts.length === 0 ? (
                             <div className="px-3 py-3 text-sm text-red-600 bg-red-50 border-b">
-                              No parts added, <button className="underline">click here</button> to add parts.
+                              No parts added, <button className="underline" onClick={() => { setPartsPickerJobId(job.id); setIsPartsPickerOpen(true) }}>click here</button> to add parts.
                             </div>
                           ) : (
                             <div className="px-3 py-2 border-b">
@@ -698,7 +867,8 @@ export default function SummaryTab({}: EstimateTabProps) {
                       id: `${l.id}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
                       title: l.operation,
                       hours: l.laborHours,
-                      cost: l.estimatedCost,
+                      laborRate: rates.find((r) => r.id === selectedGlobalRateId)?.rate,
+                      cost: (rates.find((r) => r.id === selectedGlobalRateId)?.rate || 0) * l.laborHours,
                       parts: [],
                     })),
                   ])
@@ -708,7 +878,7 @@ export default function SummaryTab({}: EstimateTabProps) {
             </DialogContent>
           </Dialog>
 
-          <Button variant="outline" className="relative bg-transparent">
+          <Button variant="outline" className="relative bg-transparent" onClick={() => { setPartsPickerJobId(jobs[0]?.id ?? null); setIsPartsPickerOpen(true) }}>
             <Settings className="w-4 h-4 mr-2" />
             PARTS HUB
             <div className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
@@ -717,6 +887,41 @@ export default function SummaryTab({}: EstimateTabProps) {
           </Button>
         </div>
       </div>
+
+      {/* Parts Picker Dialog */}
+      <Dialog open={isPartsPickerOpen} onOpenChange={setIsPartsPickerOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Add Parts</DialogTitle>
+          </DialogHeader>
+          <PartsPicker
+            initialJobId={partsPickerJobId}
+            onCancel={() => setIsPartsPickerOpen(false)}
+            onSave={(jobId, parts) => {
+              setJobs((prev) => prev.map((j) => {
+                if (j.id !== jobId) return j
+                const existingParts = j.parts ?? []
+                // Merge by id: add new or update qty
+                const idToIndex: Record<string, number> = {}
+                existingParts.forEach((p, idx) => { idToIndex[p.id] = idx })
+                const merged = [...existingParts]
+                parts.forEach((p) => {
+                  const hitIdx = idToIndex[p.id]
+                  if (hitIdx != null) {
+                    const hit = merged[hitIdx]
+                    merged[hitIdx] = { ...hit, qty: hit.qty + p.qty, cost: p.cost, retail: p.retail }
+                  } else {
+                    merged.push({ id: p.id, name: p.name, qty: p.qty, cost: p.cost, retail: p.retail })
+                  }
+                })
+                return { ...j, parts: merged }
+              }))
+              setIsPartsPickerOpen(false)
+              setPartsPickerJobId(null)
+            }}
+          />
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={isAddCustomerConcernOpen} onOpenChange={setIsAddCustomerConcernOpen}>
         <DialogContent className="sm:max-w-lg">

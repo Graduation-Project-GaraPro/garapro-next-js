@@ -8,6 +8,8 @@ import EditTaskModal from "@/app/manager/repairOrderManagement/components/edit-t
 import { jobService } from "@/services/manager/job-service"
 import type { Job, JobStatus } from "@/types/job"
 import { SearchForm } from '@/app/manager/components/layout/search-form'
+import { labelService } from "@/services/manager/label-service"
+import type { Label } from "@/types/manager/label"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -15,12 +17,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 export default function BoardPage() {
   const [jobs, setJobs] = useState<Job[]>([])
+  const [labels, setLabels] = useState<Label[]>([])
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [editingJob, setEditingJob] = useState<Job | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     loadJobs()
+    loadLabels()
   }, [])
 
   const loadJobs = async () => {
@@ -32,6 +36,15 @@ export default function BoardPage() {
       console.error("Failed to load jobs:", error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadLabels = async () => {
+    try {
+      const data = await labelService.getAllLabels()
+      setLabels(data)
+    } catch (error) {
+      console.error("Failed to load labels:", error)
     }
   }
 
@@ -175,6 +188,7 @@ export default function BoardPage() {
               onMoveJob={handleMoveJob}
               onEditJob={setEditingJob}
               onDeleteJob={handleDeleteJob}
+              labels={labels}
             />
           </div>
         </>
