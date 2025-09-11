@@ -10,6 +10,59 @@ export interface RevenueReport {
   branchComparison: BranchRevenue[]
   growthRate: number
   previousPeriodRevenue: number
+  // New properties for detailed view
+  detailedServices?: ServiceDetail[]
+  serviceCategories?: ServiceCategory[]
+  serviceTrends?: ServiceTrend[]
+  repairOrders?: RepairOrder[]
+  orderStatusStats?: OrderStatusStat[]
+  orderValueDistribution?: OrderValueDistribution[]
+}
+export interface DetailedRepairOrder {
+  id: string
+  date: string
+  customerName: string
+  customerPhone: string
+  customerEmail: string
+  vehicle: {
+    make: string
+    model: string
+    year: number
+    vin: string
+    licensePlate: string
+    mileage: number
+  }
+  technician: {
+    id: string
+    name: string
+  }
+  services: RepairService[]
+  parts: PartItem[]
+  totalAmount: number
+  status: string
+  notes: string
+  estimatedCompletion: string
+}
+
+export interface RepairService {
+  id: string
+  name: string
+  description: string
+  price: number
+  quantity: number
+  total: number
+  technician: string
+  duration: number
+}
+
+export interface PartItem {
+  id: string
+  name: string
+  description: string
+  price: number
+  quantity: number
+  total: number
+  inStock: boolean
 }
 
 export interface TopService {
@@ -57,6 +110,45 @@ export interface RevenueAnalytics {
   }>
   branchPerformance: BranchRevenue[]
   technicianPerformance: TechnicianRevenue[]
+}
+
+// New interfaces for detailed data
+export interface ServiceDetail {
+  name: string
+  revenue: number
+  orderCount: number
+  averagePrice: number
+}
+
+export interface ServiceCategory {
+  name: string
+  revenue: number
+  percentage: number
+}
+
+export interface ServiceTrend {
+  period: string
+  [key: string]: number
+}
+
+export interface RepairOrder {
+  id: string
+  date: string
+  customerName: string
+  vehicle: string
+  technician: string
+  amount: number
+  status: string
+}
+
+export interface OrderStatusStat {
+  name: string
+  value: number
+}
+
+export interface OrderValueDistribution {
+  range: string
+  count: number
 }
 
 class RevenueService {
@@ -173,6 +265,87 @@ class RevenueService {
     }
   }
 
+  async getRepairOrderDetail(orderId: string): Promise<DetailedRepairOrder> {
+    try {
+      const response = await apiClient.get<DetailedRepairOrder>(`${this.baseUrl}/repair-orders/${orderId}`)
+      return response.data
+    } catch (error) {
+      console.error(`Failed to fetch repair order ${orderId}:`, error)
+      return this.getFallbackRepairOrderDetail(orderId)
+    }
+  }
+  
+  private getFallbackRepairOrderDetail(orderId: string): DetailedRepairOrder {
+    // Fallback data for demonstration
+    return {
+      id: orderId,
+      date: new Date().toISOString().split('T')[0],
+      customerName: 'John Doe',
+      customerPhone: '(555) 123-4567',
+      customerEmail: 'john.doe@example.com',
+      vehicle: {
+        make: 'Toyota',
+        model: 'Camry',
+        year: 2020,
+        vin: '4T1BF1FK5HU680351',
+        licensePlate: 'ABC123',
+        mileage: 32500
+      },
+      technician: {
+        id: 't1',
+        name: 'John Smith'
+      },
+      services: [
+        {
+          id: 's1',
+          name: 'Oil Change',
+          description: 'Synthetic oil change with filter replacement',
+          price: 89.99,
+          quantity: 1,
+          total: 89.99,
+          technician: 'John Smith',
+          duration: 30
+        },
+        {
+          id: 's2',
+          name: 'Brake Inspection',
+          description: 'Complete brake system inspection',
+          price: 29.99,
+          quantity: 1,
+          total: 29.99,
+          technician: 'John Smith',
+          duration: 15
+        }
+      ],
+      parts: [
+        {
+          id: 'p1',
+          name: 'Oil Filter',
+          description: 'Premium oil filter',
+          price: 12.99,
+          quantity: 1,
+          total: 12.99,
+          inStock: true
+        },
+        {
+          id: 'p2',
+          name: 'Synthetic Oil',
+          description: '5W-30 Full Synthetic Oil',
+          price: 39.99,
+          quantity: 5,
+          total: 199.95,
+          inStock: true
+        }
+      ],
+      totalAmount: 332.92,
+      status: 'completed',
+      notes: 'Customer requested extra tire pressure check',
+      estimatedCompletion: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString() // 2 hours from now
+    }
+  }
+
+
+
   // Fallback data methods
   private getFallbackRevenueReport(period: string): RevenueReport {
     const baseRevenue = period === 'daily' ? 5000 : period === 'monthly' ? 150000 : 1800000
@@ -199,7 +372,41 @@ class RevenueService {
         { branchId: 'b3', branchName: 'Suburban', revenue: baseRevenue * 0.2, orderCount: Math.floor(baseOrders * 0.2), growthRate: 8 }
       ],
       growthRate: 12.5,
-      previousPeriodRevenue: baseRevenue * 0.89
+      previousPeriodRevenue: baseRevenue * 0.89,
+      // New fallback data for detailed views
+      detailedServices: [
+        { name: 'Oil Change', revenue: baseRevenue * 0.3, orderCount: Math.floor(baseOrders * 0.4), averagePrice: (baseRevenue * 0.3) / Math.floor(baseOrders * 0.4) },
+        { name: 'Brake Service', revenue: baseRevenue * 0.25, orderCount: Math.floor(baseOrders * 0.2), averagePrice: (baseRevenue * 0.25) / Math.floor(baseOrders * 0.2) },
+        { name: 'Tire Service', revenue: baseRevenue * 0.2, orderCount: Math.floor(baseOrders * 0.15), averagePrice: (baseRevenue * 0.2) / Math.floor(baseOrders * 0.15) }
+      ],
+      serviceCategories: [
+        { name: 'Maintenance', revenue: baseRevenue * 0.4, percentage: 40 },
+        { name: 'Repairs', revenue: baseRevenue * 0.35, percentage: 35 },
+        { name: 'Tires', revenue: baseRevenue * 0.15, percentage: 15 },
+        { name: 'Other', revenue: baseRevenue * 0.1, percentage: 10 }
+      ],
+      serviceTrends: [
+        { period: 'Week 1', 'Oil Change': baseRevenue * 0.08, 'Brake Service': baseRevenue * 0.06, 'Tire Service': baseRevenue * 0.05 },
+        { period: 'Week 2', 'Oil Change': baseRevenue * 0.07, 'Brake Service': baseRevenue * 0.07, 'Tire Service': baseRevenue * 0.05 },
+        { period: 'Week 3', 'Oil Change': baseRevenue * 0.08, 'Brake Service': baseRevenue * 0.06, 'Tire Service': baseRevenue * 0.06 },
+        { period: 'Week 4', 'Oil Change': baseRevenue * 0.07, 'Brake Service': baseRevenue * 0.06, 'Tire Service': baseRevenue * 0.04 }
+      ],
+      repairOrders: [
+        { id: '1001', date: new Date().toISOString().split('T')[0], customerName: 'John Doe', vehicle: 'Toyota Camry', technician: 'John Smith', amount: 200, status: 'completed' },
+        { id: '1002', date: new Date().toISOString().split('T')[0], customerName: 'Jane Smith', vehicle: 'Honda Civic', technician: 'Mike Johnson', amount: 350, status: 'in_progress' },
+        { id: '1003', date: new Date().toISOString().split('T')[0], customerName: 'Robert Brown', vehicle: 'Ford F-150', technician: 'Sarah Wilson', amount: 500, status: 'pending' }
+      ],
+      orderStatusStats: [
+        { name: 'Completed', value: Math.floor(baseOrders * 0.7) },
+        { name: 'In Progress', value: Math.floor(baseOrders * 0.2) },
+        { name: 'Pending', value: Math.floor(baseOrders * 0.1) }
+      ],
+      orderValueDistribution: [
+        { range: '$0-100', count: Math.floor(baseOrders * 0.2) },
+        { range: '$101-250', count: Math.floor(baseOrders * 0.4) },
+        { range: '$251-500', count: Math.floor(baseOrders * 0.3) },
+        { range: '$500+', count: Math.floor(baseOrders * 0.1) }
+      ]
     }
   }
 
