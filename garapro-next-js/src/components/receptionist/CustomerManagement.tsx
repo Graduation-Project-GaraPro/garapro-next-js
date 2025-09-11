@@ -81,10 +81,10 @@ const CustomerManagement: React.FC<CustomerManagementProps> = ({
     const mockCustomers: Customer[] = [
       {
         id: "1",
-        name: "Nguyễn Văn An",
+        name: "Nguyen Van An",
         phone: "0901234567",
         email: "nguyenvanan@email.com",
-        address: "123 Đường ABC, Quận 1, TP.HCM",
+        address: "123 ABC Street, District 1, Ho Chi Minh City",
         vehicles: [
           {
             id: "v1",
@@ -92,7 +92,7 @@ const CustomerManagement: React.FC<CustomerManagementProps> = ({
             brand: "Toyota",
             model: "Camry",
             year: 2020,
-            color: "Trắng",
+            color: "White",
           },
           {
             id: "v1b",
@@ -100,16 +100,16 @@ const CustomerManagement: React.FC<CustomerManagementProps> = ({
             brand: "Honda",
             model: "CR-V",
             year: 2021,
-            color: "Đen",
+            color: "Black",
           },
         ],
       },
       {
         id: "2",
-        name: "Trần Thị Bình",
+        name: "Tran Thi Binh",
         phone: "0907654321",
         email: "tranthibinh@email.com",
-        address: "456 Đường XYZ, Quận 3, TP.HCM",
+        address: "456 XYZ Street, District 3, Ho Chi Minh City",
         vehicles: [
           {
             id: "v2",
@@ -117,16 +117,16 @@ const CustomerManagement: React.FC<CustomerManagementProps> = ({
             brand: "Honda",
             model: "Civic",
             year: 2019,
-            color: "Đen",
+            color: "Black",
           },
         ],
       },
       {
         id: "3",
-        name: "Lê Văn Cường",
+        name: "Le Van Cuong",
         phone: "0912345678",
         email: "levanvuong@email.com",
-        address: "789 Đường DEF, Quận 7, TP.HCM",
+        address: "789 DEF Street, District 7, Ho Chi Minh City",
         vehicles: [
           {
             id: "v3",
@@ -134,7 +134,7 @@ const CustomerManagement: React.FC<CustomerManagementProps> = ({
             brand: "Mazda",
             model: "CX-5",
             year: 2022,
-            color: "Xanh",
+            color: "Blue",
           },
         ],
       },
@@ -159,7 +159,6 @@ const CustomerManagement: React.FC<CustomerManagementProps> = ({
     e.preventDefault();
 
     if (editingCustomer) {
-      // Update existing customer
       setCustomers((prev) =>
         prev.map((customer) =>
           customer.id === editingCustomer.id
@@ -168,7 +167,6 @@ const CustomerManagement: React.FC<CustomerManagementProps> = ({
         )
       );
     } else {
-      // Add new customer
       const newCustomer: Customer = {
         id: `c${Date.now()}`,
         ...customerForm,
@@ -177,7 +175,6 @@ const CustomerManagement: React.FC<CustomerManagementProps> = ({
       setCustomers((prev) => [...prev, newCustomer]);
     }
 
-    // Reset form
     setCustomerForm({ name: "", phone: "", email: "", address: "" });
     setEditingCustomer(null);
     setIsCustomerDialogOpen(false);
@@ -186,11 +183,9 @@ const CustomerManagement: React.FC<CustomerManagementProps> = ({
   // Handle vehicle form
   const handleVehicleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!selectedCustomer) return;
 
     if (editingVehicle) {
-      // Update existing vehicle
       setCustomers((prev) =>
         prev.map((customer) =>
           customer.id === selectedCustomer.id
@@ -206,7 +201,6 @@ const CustomerManagement: React.FC<CustomerManagementProps> = ({
         )
       );
     } else {
-      // Add new vehicle
       const newVehicle: Vehicle = {
         id: `v${Date.now()}`,
         ...vehicleForm,
@@ -221,7 +215,6 @@ const CustomerManagement: React.FC<CustomerManagementProps> = ({
       );
     }
 
-    // Reset form
     setVehicleForm({
       licensePlate: "",
       brand: "",
@@ -296,7 +289,7 @@ const CustomerManagement: React.FC<CustomerManagementProps> = ({
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
           <Input
-            placeholder="Tìm kiếm khách hàng..."
+            placeholder="Search customers..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10 w-80"
@@ -310,27 +303,27 @@ const CustomerManagement: React.FC<CustomerManagementProps> = ({
           }}
         >
           <Plus className="h-4 w-4 mr-2" />
-          Thêm khách hàng
+          Add Customer
         </Button>
       </div>
 
       {/* Customers Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Danh sách khách hàng</CardTitle>
+          <CardTitle>Customer List</CardTitle>
           <CardDescription>
-            Tổng cộng {filteredCustomers.length} khách hàng
+            Total {filteredCustomers.length} customers
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Thông tin khách hàng</TableHead>
-                <TableHead>Liên hệ</TableHead>
-                <TableHead>Địa chỉ</TableHead>
-                <TableHead>Phương tiện</TableHead>
-                <TableHead>Thao tác</TableHead>
+                <TableHead>Customer Info</TableHead>
+                <TableHead>Contact</TableHead>
+                <TableHead>Address</TableHead>
+                <TableHead>Vehicles</TableHead>
+                <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -369,14 +362,14 @@ const CustomerManagement: React.FC<CustomerManagementProps> = ({
                     <div className="flex items-start text-sm">
                       <MapPin className="h-3 w-3 mr-2 text-gray-400 mt-0.5 flex-shrink-0" />
                       <span className="line-clamp-2">
-                        {customer.address || "Chưa cập nhật"}
+                        {customer.address || "Not updated"}
                       </span>
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="space-y-1">
                       {customer.vehicles.length > 0 ? (
-                        customer.vehicles.map((vehicle, index) => (
+                        customer.vehicles.map((vehicle) => (
                           <div
                             key={vehicle.id}
                             className="flex items-center space-x-2"
@@ -391,7 +384,7 @@ const CustomerManagement: React.FC<CustomerManagementProps> = ({
                         ))
                       ) : (
                         <span className="text-sm text-gray-400">
-                          Chưa có xe
+                          No vehicle
                         </span>
                       )}
                       <Button
@@ -400,7 +393,7 @@ const CustomerManagement: React.FC<CustomerManagementProps> = ({
                         className="h-auto p-0 text-xs"
                         onClick={() => handleAddVehicle(customer)}
                       >
-                        + Thêm xe
+                        + Add Vehicle
                       </Button>
                     </div>
                   </TableCell>
@@ -445,30 +438,30 @@ const CustomerManagement: React.FC<CustomerManagementProps> = ({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {editingCustomer ? "Chỉnh sửa khách hàng" : "Thêm khách hàng mới"}
+              {editingCustomer ? "Edit Customer" : "Add New Customer"}
             </DialogTitle>
             <DialogDescription>
-              Nhập thông tin chi tiết của khách hàng
+              Enter detailed customer information
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleCustomerSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="customerName">Họ và tên *</Label>
+              <Label htmlFor="customerName">Full Name *</Label>
               <Input
                 id="customerName"
                 value={customerForm.name}
                 onChange={(e) =>
                   setCustomerForm((prev) => ({ ...prev, name: e.target.value }))
                 }
-                placeholder="Nhập họ và tên"
+                placeholder="Enter full name"
                 required
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="customerPhone">Số điện thoại *</Label>
+                <Label htmlFor="customerPhone">Phone Number *</Label>
                 <Input
                   id="customerPhone"
                   value={customerForm.phone}
@@ -501,7 +494,7 @@ const CustomerManagement: React.FC<CustomerManagementProps> = ({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="customerAddress">Địa chỉ</Label>
+              <Label htmlFor="customerAddress">Address</Label>
               <Input
                 id="customerAddress"
                 value={customerForm.address}
@@ -511,7 +504,7 @@ const CustomerManagement: React.FC<CustomerManagementProps> = ({
                     address: e.target.value,
                   }))
                 }
-                placeholder="Số nhà, đường, quận, thành phố"
+                placeholder="House number, street, district, city"
               />
             </div>
 
@@ -521,10 +514,10 @@ const CustomerManagement: React.FC<CustomerManagementProps> = ({
                 variant="outline"
                 onClick={() => setIsCustomerDialogOpen(false)}
               >
-                Hủy
+                Cancel
               </Button>
               <Button type="submit">
-                {editingCustomer ? "Cập nhật" : "Thêm khách hàng"}
+                {editingCustomer ? "Update" : "Add Customer"}
               </Button>
             </DialogFooter>
           </form>
@@ -536,18 +529,16 @@ const CustomerManagement: React.FC<CustomerManagementProps> = ({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {editingVehicle
-                ? "Chỉnh sửa phương tiện"
-                : "Thêm phương tiện mới"}
+              {editingVehicle ? "Edit Vehicle" : "Add New Vehicle"}
             </DialogTitle>
             <DialogDescription>
-              Thêm phương tiện cho khách hàng: {selectedCustomer?.name}
+              Add vehicle for customer: {selectedCustomer?.name}
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleVehicleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="licensePlate">Biển số xe *</Label>
+              <Label htmlFor="licensePlate">License Plate *</Label>
               <Input
                 id="licensePlate"
                 value={vehicleForm.licensePlate}
@@ -564,7 +555,7 @@ const CustomerManagement: React.FC<CustomerManagementProps> = ({
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="brand">Hãng xe *</Label>
+                <Label htmlFor="brand">Brand *</Label>
                 <Input
                   id="brand"
                   value={vehicleForm.brand}
@@ -580,7 +571,7 @@ const CustomerManagement: React.FC<CustomerManagementProps> = ({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="model">Dòng xe *</Label>
+                <Label htmlFor="model">Model *</Label>
                 <Input
                   id="model"
                   value={vehicleForm.model}
@@ -598,7 +589,7 @@ const CustomerManagement: React.FC<CustomerManagementProps> = ({
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="year">Năm sản xuất *</Label>
+                <Label htmlFor="year">Manufacture Year *</Label>
                 <Input
                   id="year"
                   type="number"
@@ -616,7 +607,7 @@ const CustomerManagement: React.FC<CustomerManagementProps> = ({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="color">Màu sắc</Label>
+                <Label htmlFor="color">Color</Label>
                 <Input
                   id="color"
                   value={vehicleForm.color}
@@ -626,7 +617,7 @@ const CustomerManagement: React.FC<CustomerManagementProps> = ({
                       color: e.target.value,
                     }))
                   }
-                  placeholder="Trắng, Đen, Xanh..."
+                  placeholder="White, Black, Blue..."
                 />
               </div>
             </div>
@@ -637,10 +628,10 @@ const CustomerManagement: React.FC<CustomerManagementProps> = ({
                 variant="outline"
                 onClick={() => setIsVehicleDialogOpen(false)}
               >
-                Hủy
+                Cancel
               </Button>
               <Button type="submit">
-                {editingVehicle ? "Cập nhật" : "Thêm phương tiện"}
+                {editingVehicle ? "Update" : "Add Vehicle"}
               </Button>
             </DialogFooter>
           </form>

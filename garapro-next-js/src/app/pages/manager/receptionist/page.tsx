@@ -21,7 +21,7 @@ import {
   Bell,
 } from "lucide-react";
 
-// Import các component con
+// Import child components
 import ServiceRequestForm from "@/components/receptionist/ServiceRequestForm";
 import CustomerManagement from "@/components/receptionist/CustomerManagement";
 import ProgressTracking from "@/components/receptionist/ProgressTracking";
@@ -95,7 +95,7 @@ export interface Feedback {
 const ReceptionistDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState("overview");
 
-  // Mock data - trong thực tế sẽ fetch từ API
+  // Mock data - in real case fetch from API
   const dashboardStats = {
     pendingRequests: 12,
     inProgress: 8,
@@ -112,16 +112,16 @@ const ReceptionistDashboard: React.FC = () => {
           <div className="flex justify-between items-center py-4">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">
-                Bảng điều khiển Lễ tân
+                Receptionist Dashboard
               </h1>
               <p className="text-sm text-gray-600">
-                Quản lý đơn sửa chữa và khách hàng
+                Manage repair orders and customers
               </p>
             </div>
             <div className="flex items-center space-x-4">
               <Button variant="outline" size="sm">
                 <Bell className="h-4 w-4 mr-2" />
-                Thông báo
+                Notifications
                 {dashboardStats.newFeedback > 0 && (
                   <Badge variant="destructive" className="ml-2">
                     {dashboardStats.newFeedback}
@@ -130,7 +130,7 @@ const ReceptionistDashboard: React.FC = () => {
               </Button>
               <Button variant="outline" size="sm">
                 <Settings className="h-4 w-4 mr-2" />
-                Cài đặt
+                Settings
               </Button>
             </div>
           </div>
@@ -144,21 +144,21 @@ const ReceptionistDashboard: React.FC = () => {
           className="space-y-6"
         >
           <TabsList className="grid w-full grid-cols-6">
-            <TabsTrigger value="overview">Tổng quan</TabsTrigger>
-            <TabsTrigger value="requests">Đơn sửa chữa</TabsTrigger>
-            <TabsTrigger value="customers">Khách hàng</TabsTrigger>
-            <TabsTrigger value="progress">Tiến độ</TabsTrigger>
-            <TabsTrigger value="quotes">Báo giá</TabsTrigger>
-            <TabsTrigger value="feedback">Phản hồi</TabsTrigger>
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="requests">Repair Orders</TabsTrigger>
+            <TabsTrigger value="customers">Customers</TabsTrigger>
+            <TabsTrigger value="progress">Progress</TabsTrigger>
+            <TabsTrigger value="quotes">Quotes</TabsTrigger>
+            <TabsTrigger value="feedback">Feedback</TabsTrigger>
           </TabsList>
 
-          {/* Tổng quan */}
+          {/* Overview */}
           <TabsContent value="overview" className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
-                    Đơn chờ xử lý
+                    Pending Requests
                   </CardTitle>
                   <ClipboardList className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
@@ -167,7 +167,7 @@ const ReceptionistDashboard: React.FC = () => {
                     {dashboardStats.pendingRequests}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Cần xác nhận sớm
+                    Need confirmation soon
                   </p>
                 </CardContent>
               </Card>
@@ -175,7 +175,7 @@ const ReceptionistDashboard: React.FC = () => {
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
-                    Đang sửa chữa
+                    In Progress
                   </CardTitle>
                   <Settings className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
@@ -184,7 +184,7 @@ const ReceptionistDashboard: React.FC = () => {
                     {dashboardStats.inProgress}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Đang thực hiện
+                    Currently being serviced
                   </p>
                 </CardContent>
               </Card>
@@ -192,7 +192,7 @@ const ReceptionistDashboard: React.FC = () => {
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
-                    Hoàn thành hôm nay
+                    Completed Today
                   </CardTitle>
                   <Users className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
@@ -200,14 +200,16 @@ const ReceptionistDashboard: React.FC = () => {
                   <div className="text-2xl font-bold">
                     {dashboardStats.completedToday}
                   </div>
-                  <p className="text-xs text-muted-foreground">Đã giao xe</p>
+                  <p className="text-xs text-muted-foreground">
+                    Vehicles delivered
+                  </p>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
-                    Báo giá chờ duyệt
+                    Pending Quotes
                   </CardTitle>
                   <DollarSign className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
@@ -216,7 +218,7 @@ const ReceptionistDashboard: React.FC = () => {
                     {dashboardStats.pendingQuotes}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Chờ khách xác nhận
+                    Awaiting customer approval
                   </p>
                 </CardContent>
               </Card>
@@ -224,7 +226,7 @@ const ReceptionistDashboard: React.FC = () => {
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
-                    Phản hồi mới
+                    New Feedback
                   </CardTitle>
                   <MessageSquare className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
@@ -232,32 +234,21 @@ const ReceptionistDashboard: React.FC = () => {
                   <div className="text-2xl font-bold">
                     {dashboardStats.newFeedback}
                   </div>
-                  <p className="text-xs text-muted-foreground">Cần phản hồi</p>
+                  <p className="text-xs text-muted-foreground">
+                    Needs response
+                  </p>
                 </CardContent>
               </Card>
             </div>
-
-            {/* Lịch sửa chữa hôm nay */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Lịch sửa chữa hôm nay</CardTitle>
-                <CardDescription>
-                  Danh sách các xe dự kiến hoàn thành trong ngày
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <RepairSchedule viewMode="today" />
-              </CardContent>
-            </Card>
           </TabsContent>
 
-          {/* Đơn sửa chữa */}
+          {/* Repair Orders */}
           <TabsContent value="requests">
             <Card>
               <CardHeader>
-                <CardTitle>Quản lý đơn sửa chữa</CardTitle>
+                <CardTitle>Repair Order Management</CardTitle>
                 <CardDescription>
-                  Tạo mới và quản lý các đơn sửa chữa từ khách hàng
+                  Create and manage customer repair orders
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -266,13 +257,13 @@ const ReceptionistDashboard: React.FC = () => {
             </Card>
           </TabsContent>
 
-          {/* Khách hàng */}
+          {/* Customers */}
           <TabsContent value="customers">
             <Card>
               <CardHeader>
-                <CardTitle>Quản lý khách hàng</CardTitle>
+                <CardTitle>Customer Management</CardTitle>
                 <CardDescription>
-                  Thông tin khách hàng và phương tiện
+                  Manage customer and vehicle information
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -281,13 +272,13 @@ const ReceptionistDashboard: React.FC = () => {
             </Card>
           </TabsContent>
 
-          {/* Tiến độ */}
+          {/* Progress */}
           <TabsContent value="progress">
             <Card>
               <CardHeader>
-                <CardTitle>Theo dõi tiến độ</CardTitle>
+                <CardTitle>Progress Tracking</CardTitle>
                 <CardDescription>
-                  Cập nhật và theo dõi tiến độ sửa chữa từ kỹ thuật viên
+                  Update and track repair progress from technicians
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -296,13 +287,13 @@ const ReceptionistDashboard: React.FC = () => {
             </Card>
           </TabsContent>
 
-          {/* Báo giá */}
+          {/* Quotes */}
           <TabsContent value="quotes">
             <Card>
               <CardHeader>
-                <CardTitle>Quản lý báo giá</CardTitle>
+                <CardTitle>Quote Management</CardTitle>
                 <CardDescription>
-                  Tạo và gửi báo giá cho khách hàng
+                  Create and send quotes to customers
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -311,13 +302,13 @@ const ReceptionistDashboard: React.FC = () => {
             </Card>
           </TabsContent>
 
-          {/* Phản hồi */}
+          {/* Feedback */}
           <TabsContent value="feedback">
             <Card>
               <CardHeader>
-                <CardTitle>Phản hồi khách hàng</CardTitle>
+                <CardTitle>Customer Feedback</CardTitle>
                 <CardDescription>
-                  Xem và phản hồi đánh giá từ khách hàng
+                  View and respond to customer reviews
                 </CardDescription>
               </CardHeader>
               <CardContent>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -65,17 +65,17 @@ const QuoteManagement: React.FC = () => {
   const [quotes, setQuotes] = useState<Quote[]>([
     {
       id: "QT-001",
-      customerName: "Nguyễn Văn A",
+      customerName: "John Doe",
       customerPhone: "0901234567",
-      customerEmail: "nguyenvana@email.com",
+      customerEmail: "johndoe@email.com",
       vehicleInfo: "Honda Civic 2020",
       licensePlate: "29A-12345",
-      issueDescription: "Tiếng kêu từ hệ thống phanh, cần kiểm tra và sửa chữa",
+      issueDescription: "Noise from brake system, needs inspection and repair",
       items: [
         {
           id: "I1",
-          name: "Má phanh trước",
-          description: "Bộ má phanh ceramic cao cấp",
+          name: "Front brake pads",
+          description: "Premium ceramic brake pad set",
           quantity: 1,
           unitPrice: 800000,
           total: 800000,
@@ -83,8 +83,8 @@ const QuoteManagement: React.FC = () => {
         },
         {
           id: "I2",
-          name: "Công thay má phanh",
-          description: "Chi phí nhân công thay má phanh",
+          name: "Brake pad replacement labor",
+          description: "Labor cost for replacing brake pads",
           quantity: 2,
           unitPrice: 200000,
           total: 400000,
@@ -98,21 +98,21 @@ const QuoteManagement: React.FC = () => {
       status: "sent",
       createdDate: "2024-01-15",
       validUntil: "2024-01-25",
-      notes: "Báo giá có hiệu lực 10 ngày",
+      notes: "Quote valid for 10 days",
     },
     {
       id: "QT-002",
-      customerName: "Trần Thị B",
+      customerName: "Jane Smith",
       customerPhone: "0912345678",
-      customerEmail: "tranthib@email.com",
+      customerEmail: "janesmith@email.com",
       vehicleInfo: "Toyota Camry 2019",
       licensePlate: "51G-67890",
-      issueDescription: "Động cơ hoạt động không ổn định",
+      issueDescription: "Engine runs inconsistently",
       items: [
         {
           id: "I3",
-          name: "Chẩn đoán lỗi",
-          description: "Kiểm tra và chẩn đoán hệ thống động cơ",
+          name: "Diagnostics",
+          description: "Check and diagnose engine system",
           quantity: 1,
           unitPrice: 300000,
           total: 300000,
@@ -173,12 +173,6 @@ const QuoteManagement: React.FC = () => {
     }
   };
 
-  const calculateQuoteTotal = (items: QuoteItem[]) => {
-    const subtotal = items.reduce((sum, item) => sum + item.total, 0);
-    const tax = subtotal * 0.1; // 10% tax
-    return { subtotal, tax, total: subtotal + tax };
-  };
-
   const handleCreateQuote = () => {
     if (!newQuote.customerName || !newQuote.vehicleInfo) return;
 
@@ -236,33 +230,32 @@ const QuoteManagement: React.FC = () => {
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("vi-VN", {
+    return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: "VND",
+      minimumFractionDigits: 0,
     }).format(amount);
   };
 
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Quản Lý Báo Giá</h1>
+        <h1 className="text-2xl font-bold">Quote Management</h1>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
             <Button className="flex items-center space-x-2">
               <Plus className="w-4 h-4" />
-              <span>Tạo Báo Giá Mới</span>
+              <span>Create New Quote</span>
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>Tạo Báo Giá Mới</DialogTitle>
+              <DialogTitle>Create New Quote</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium">
-                    Tên khách hàng *
-                  </label>
+                  <label className="text-sm font-medium">Customer Name *</label>
                   <Input
                     value={newQuote.customerName || ""}
                     onChange={(e) =>
@@ -271,11 +264,11 @@ const QuoteManagement: React.FC = () => {
                         customerName: e.target.value,
                       }))
                     }
-                    placeholder="Nhập tên khách hàng"
+                    placeholder="Enter customer name"
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium">Số điện thoại</label>
+                  <label className="text-sm font-medium">Phone</label>
                   <Input
                     value={newQuote.customerPhone || ""}
                     onChange={(e) =>
@@ -284,7 +277,7 @@ const QuoteManagement: React.FC = () => {
                         customerPhone: e.target.value,
                       }))
                     }
-                    placeholder="Nhập số điện thoại"
+                    placeholder="Enter phone number"
                   />
                 </div>
               </div>
@@ -300,13 +293,13 @@ const QuoteManagement: React.FC = () => {
                       customerEmail: e.target.value,
                     }))
                   }
-                  placeholder="Nhập email"
+                  placeholder="Enter email"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium">Thông tin xe *</label>
+                  <label className="text-sm font-medium">Vehicle Info *</label>
                   <Input
                     value={newQuote.vehicleInfo || ""}
                     onChange={(e) =>
@@ -315,11 +308,11 @@ const QuoteManagement: React.FC = () => {
                         vehicleInfo: e.target.value,
                       }))
                     }
-                    placeholder="VD: Honda Civic 2020"
+                    placeholder="e.g. Honda Civic 2020"
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium">Biển số xe</label>
+                  <label className="text-sm font-medium">License Plate</label>
                   <Input
                     value={newQuote.licensePlate || ""}
                     onChange={(e) =>
@@ -328,13 +321,13 @@ const QuoteManagement: React.FC = () => {
                         licensePlate: e.target.value,
                       }))
                     }
-                    placeholder="VD: 29A-12345"
+                    placeholder="e.g. 29A-12345"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="text-sm font-medium">Mô tả vấn đề</label>
+                <label className="text-sm font-medium">Issue Description</label>
                 <Textarea
                   value={newQuote.issueDescription || ""}
                   onChange={(e) =>
@@ -343,19 +336,19 @@ const QuoteManagement: React.FC = () => {
                       issueDescription: e.target.value,
                     }))
                   }
-                  placeholder="Mô tả chi tiết vấn đề cần sửa chữa"
+                  placeholder="Describe the issue in detail"
                   rows={3}
                 />
               </div>
 
               <div>
-                <label className="text-sm font-medium">Ghi chú</label>
+                <label className="text-sm font-medium">Notes</label>
                 <Textarea
                   value={newQuote.notes || ""}
                   onChange={(e) =>
                     setNewQuote((prev) => ({ ...prev, notes: e.target.value }))
                   }
-                  placeholder="Ghi chú thêm"
+                  placeholder="Additional notes"
                   rows={2}
                 />
               </div>
@@ -365,9 +358,9 @@ const QuoteManagement: React.FC = () => {
                   variant="outline"
                   onClick={() => setIsCreateDialogOpen(false)}
                 >
-                  Hủy
+                  Cancel
                 </Button>
-                <Button onClick={handleCreateQuote}>Tạo Báo Giá</Button>
+                <Button onClick={handleCreateQuote}>Create Quote</Button>
               </div>
             </div>
           </DialogContent>
@@ -377,22 +370,22 @@ const QuoteManagement: React.FC = () => {
       <div className="flex items-center space-x-4">
         <div className="flex-1">
           <Input
-            placeholder="Tìm kiếm theo tên khách hàng, biển số, mã báo giá..."
+            placeholder="Search by customer name, license plate, or quote ID..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-48">
-            <SelectValue placeholder="Lọc theo trạng thái" />
+            <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Tất cả</SelectItem>
-            <SelectItem value="draft">Nháp</SelectItem>
-            <SelectItem value="sent">Đã gửi</SelectItem>
-            <SelectItem value="approved">Đã duyệt</SelectItem>
-            <SelectItem value="rejected">Từ chối</SelectItem>
-            <SelectItem value="expired">Hết hạn</SelectItem>
+            <SelectItem value="all">All</SelectItem>
+            <SelectItem value="draft">Draft</SelectItem>
+            <SelectItem value="sent">Sent</SelectItem>
+            <SelectItem value="approved">Approved</SelectItem>
+            <SelectItem value="rejected">Rejected</SelectItem>
+            <SelectItem value="expired">Expired</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -442,7 +435,7 @@ const QuoteManagement: React.FC = () => {
 
               <div className="border-t pt-4">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium">Tổng tiền:</span>
+                  <span className="text-sm font-medium">Total:</span>
                   <span className="text-lg font-bold text-blue-600">
                     {formatCurrency(quote.total)}
                   </span>
@@ -451,9 +444,9 @@ const QuoteManagement: React.FC = () => {
                 <div className="flex items-center justify-between text-sm text-gray-600">
                   <div className="flex items-center space-x-1">
                     <Calendar className="w-4 h-4" />
-                    <span>Tạo: {quote.createdDate}</span>
+                    <span>Created: {quote.createdDate}</span>
                   </div>
-                  <span>HH: {quote.validUntil}</span>
+                  <span>Valid Until: {quote.validUntil}</span>
                 </div>
               </div>
 
@@ -468,20 +461,20 @@ const QuoteManagement: React.FC = () => {
                   className="flex-1"
                 >
                   <Eye className="w-4 h-4 mr-1" />
-                  Xem
+                  View
                 </Button>
 
                 <Select
                   onValueChange={(value) => handleStatusChange(quote.id, value)}
                 >
                   <SelectTrigger className="flex-1">
-                    <SelectValue placeholder="Trạng thái" />
+                    <SelectValue placeholder="Status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="draft">Nháp</SelectItem>
-                    <SelectItem value="sent">Đã gửi</SelectItem>
-                    <SelectItem value="approved">Đã duyệt</SelectItem>
-                    <SelectItem value="rejected">Từ chối</SelectItem>
+                    <SelectItem value="draft">Draft</SelectItem>
+                    <SelectItem value="sent">Sent</SelectItem>
+                    <SelectItem value="approved">Approved</SelectItem>
+                    <SelectItem value="rejected">Rejected</SelectItem>
                   </SelectContent>
                 </Select>
 
@@ -503,13 +496,13 @@ const QuoteManagement: React.FC = () => {
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Chi Tiết Báo Giá - {selectedQuote?.id}</DialogTitle>
+            <DialogTitle>Quote Details - {selectedQuote?.id}</DialogTitle>
           </DialogHeader>
           {selectedQuote && (
             <div className="space-y-6">
               <div className="grid grid-cols-2 gap-6">
                 <div>
-                  <h3 className="font-semibold mb-3">Thông tin khách hàng</h3>
+                  <h3 className="font-semibold mb-3">Customer Information</h3>
                   <div className="space-y-2 text-sm">
                     <div className="flex items-center space-x-2">
                       <User className="w-4 h-4 text-gray-500" />
@@ -531,7 +524,7 @@ const QuoteManagement: React.FC = () => {
                 </div>
 
                 <div>
-                  <h3 className="font-semibold mb-3">Thông tin xe</h3>
+                  <h3 className="font-semibold mb-3">Vehicle Information</h3>
                   <div className="space-y-2 text-sm">
                     <div className="flex items-center space-x-2">
                       <Car className="w-4 h-4 text-gray-500" />
@@ -540,7 +533,7 @@ const QuoteManagement: React.FC = () => {
                     {selectedQuote.licensePlate && (
                       <div className="flex items-center space-x-2">
                         <span className="w-4 h-4 text-center font-bold">•</span>
-                        <span>Biển số: {selectedQuote.licensePlate}</span>
+                        <span>License Plate: {selectedQuote.licensePlate}</span>
                       </div>
                     )}
                   </div>
@@ -549,7 +542,7 @@ const QuoteManagement: React.FC = () => {
 
               {selectedQuote.issueDescription && (
                 <div>
-                  <h3 className="font-semibold mb-2">Mô tả vấn đề</h3>
+                  <h3 className="font-semibold mb-2">Issue Description</h3>
                   <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded">
                     {selectedQuote.issueDescription}
                   </p>
@@ -557,25 +550,25 @@ const QuoteManagement: React.FC = () => {
               )}
 
               <div>
-                <h3 className="font-semibold mb-3">Chi tiết báo giá</h3>
+                <h3 className="font-semibold mb-3">Quote Details</h3>
                 <div className="border rounded-lg overflow-hidden">
                   <table className="w-full">
                     <thead className="bg-gray-50">
                       <tr>
                         <th className="text-left p-3 text-sm font-medium">
-                          Hạng mục
+                          Item
                         </th>
                         <th className="text-left p-3 text-sm font-medium">
-                          Mô tả
+                          Description
                         </th>
                         <th className="text-right p-3 text-sm font-medium">
-                          SL
+                          Qty
                         </th>
                         <th className="text-right p-3 text-sm font-medium">
-                          Đơn giá
+                          Unit Price
                         </th>
                         <th className="text-right p-3 text-sm font-medium">
-                          Thành tiền
+                          Amount
                         </th>
                       </tr>
                     </thead>
@@ -603,59 +596,59 @@ const QuoteManagement: React.FC = () => {
 
                 <div className="mt-4 space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span>Tạm tính:</span>
+                    <span>Subtotal:</span>
                     <span>{formatCurrency(selectedQuote.subtotal)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span>Thuế (10%):</span>
+                    <span>Tax (10%):</span>
                     <span>{formatCurrency(selectedQuote.tax)}</span>
                   </div>
                   {selectedQuote.discount > 0 && (
                     <div className="flex justify-between text-sm text-green-600">
-                      <span>Giảm giá:</span>
+                      <span>Discount:</span>
                       <span>-{formatCurrency(selectedQuote.discount)}</span>
                     </div>
                   )}
                   <div className="flex justify-between text-lg font-bold border-t pt-2">
-                    <span>Tổng cộng:</span>
+                    <span>Total:</span>
                     <span className="text-blue-600">
                       {formatCurrency(selectedQuote.total)}
                     </span>
                   </div>
                 </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
-                <div>
-                  <span className="font-medium">Ngày tạo:</span>{" "}
-                  {selectedQuote.createdDate}
+                <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
+                  <div>
+                    <span className="font-medium">Created Date:</span>{" "}
+                    {selectedQuote.createdDate}
+                  </div>
+                  <div>
+                    <span className="font-medium">Valid Until:</span>{" "}
+                    {selectedQuote.validUntil}
+                  </div>
                 </div>
-                <div>
-                  <span className="font-medium">Có hiệu lực đến:</span>{" "}
-                  {selectedQuote.validUntil}
-                </div>
-              </div>
 
-              {selectedQuote.notes && (
-                <div>
-                  <h3 className="font-semibold mb-2">Ghi chú</h3>
-                  <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded">
-                    {selectedQuote.notes}
-                  </p>
-                </div>
-              )}
+                {selectedQuote.notes && (
+                  <div>
+                    <h3 className="font-semibold mb-2">Notes</h3>
+                    <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded">
+                      {selectedQuote.notes}
+                    </p>
+                  </div>
+                )}
 
-              <div className="flex justify-end space-x-2 pt-4 border-t">
-                <Button
-                  variant="outline"
-                  onClick={() => setIsViewDialogOpen(false)}
-                >
-                  Đóng
-                </Button>
-                <Button>
-                  <FileText className="w-4 h-4 mr-2" />
-                  Xuất PDF
-                </Button>
+                <div className="flex justify-end space-x-2 pt-4 border-t">
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsViewDialogOpen(false)}
+                  >
+                    Close
+                  </Button>
+                  <Button>
+                    <FileText className="w-4 h-4 mr-2" />
+                    Export PDF
+                  </Button>
+                </div>
               </div>
             </div>
           )}
