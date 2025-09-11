@@ -19,7 +19,7 @@ import {
   LayoutDashboard,
 } from "lucide-react"
 
-import { NavMain } from "@/components/layout/nav-main"
+import { NavMain } from "@/app/manager/components/layout/nav-main"
 import {
   Sidebar,
   SidebarContent,
@@ -36,12 +36,12 @@ const data = {
   topNav: [
     {
       title: "Job Board",
-      url: "/pages/manager/repairOrderManagement",
+      url: "/manager/repairOrderManagement/jobBoard",
       icon: Calendar,
     },
     {
       title: "Tech Board",
-      url: "/tech-board",
+      url: "/manager/tech-board",
       icon: CircuitBoard,
     },
   ],
@@ -49,22 +49,22 @@ const data = {
   mainNav: [
     {
       title: "Appointments",
-      url: "/appointments",
+      url: "/manager/appointments",
       icon: CalendarDays,
     },
     {
       title: "Inventory",
-      url: "/inventory",
+      url: "/manager/inventory",
       icon: Package,
     },
     {
       title: "Orders",
-      url: "/orders",
+      url: "/manager/orders",
       icon: FileText,
     },
     {
       title: "Reports",
-      url: "/reports",
+      url: "/manager/reports",
       icon: BarChart3,
     },
   ],
@@ -72,22 +72,22 @@ const data = {
   manageNav: [
     {
       title: "Customers",
-      url: "/customers",
+      url: "/manager/customers",
       icon: Users,
     },
     {
       title: "Vendors",
-      url: "/vendors",
+      url: "/manager/vendors",
       icon: Truck,
     },
     {
       title: "Canned Jobs",
-      url: "/canned-jobs",
+      url: "/manager/canned-jobs",
       icon: Star,
     },
     {
       title: "Inspections",
-      url: "/inspections",
+      url: "/manager/inspections",
       icon: ClipboardCheck,
     },
   ],
@@ -95,17 +95,17 @@ const data = {
   adminNav: [
     {
       title: "Employees",
-      url: "/pages/manager/accountManagement",
+      url: "/manager/accountManagement",
       icon: Users,
     },
     {
       title: "Garage Settings",
-      url: "/pages/manager/garageSetting",
+      url: "/manager/garageSetting",
       icon: Settings,
     },
     {
       title: "Billing",
-      url: "/billing",
+      url: "/manager/billing",
       icon: CreditCard,
     },
   ],
@@ -119,7 +119,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarMenu >
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" className="px-2 pl-2" asChild>
-              <a href="/pages/manager/dashboard">
+              <a href="/manager/dashboard">
                 <div className="flex aspect-square size-6 items-center justify-center rounded-sm bg-[#ae2621] text-sidebar-primary-foreground">
                   <LayoutDashboard className="size-4" />
                 </div>

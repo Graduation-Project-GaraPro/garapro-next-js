@@ -4,7 +4,7 @@ import { Bell, PanelLeft, Settings, User } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 
-import { SearchForm } from "@/components/layout/search-form"
+import { SearchForm } from "@/app/manager/components/layout/search-form"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { useSidebar } from "@/components/ui/sidebar"
