@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import ChatBotUI from "@/components/chatbot/ChatBot";
 
-export default function Home() {
-  redirect("manager/repairOrderManagement");
+export default function Page() {
+  return <ChatBotUI />; // Render the ChatBotUI
 }
