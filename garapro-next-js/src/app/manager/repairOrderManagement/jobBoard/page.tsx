@@ -5,19 +5,16 @@ import { Plus, Filter, LayoutGrid, List, Link } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import DragDropBoard from "./drag-drop-board"
 import EditTaskModal from "@/app/manager/repairOrderManagement/components/edit-task-modal"
+import CreateTask from "@/app/manager/repairOrderManagement/components/create-task"
 import { jobService } from "@/services/manager/job-service"
 import type { Job, JobStatus } from "@/types/job"
 import { SearchForm } from '@/app/manager/components/layout/search-form'
 import { labelService } from "@/services/manager/label-service"
-import type { Label } from "@/types/manager/label"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import type { Label as LabelType } from "@/types/manager/label"
 
 export default function BoardPage() {
   const [jobs, setJobs] = useState<Job[]>([])
-  const [labels, setLabels] = useState<Label[]>([])
+  const [labels, setLabels] = useState<LabelType[]>([])
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [editingJob, setEditingJob] = useState<Job | null>(null)
   const [loading, setLoading] = useState(true)
@@ -90,47 +87,6 @@ export default function BoardPage() {
     }
   }
 
-  // Inline Create Task Form State
-  const [formData, setFormData] = useState({
-    title: "",
-    company: "",
-    contact: "",
-    location: "",
-    description: "",
-    status: "requires-auth" as JobStatus,
-    progress: 0,
-    statusText: "",
-    dueDate: "",
-  })
-
-  const handleCreateFormSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    handleCreateJob({
-      ...formData,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    })
-    handleCreateFormReset()
-  }
-
-  const handleCreateFormReset = () => {
-    setFormData({
-      title: "",
-      company: "",
-      contact: "",
-      location: "",
-      description: "",
-      status: "requires-auth",
-      progress: 0,
-      statusText: "",
-      dueDate: "",
-    })
-  }
-
-  const handleCreateFormCancel = () => {
-    handleCreateFormReset()
-    setShowCreateForm(false)
-  }
 
   return (
     <div className="h-full flex flex-col bg-gray-50">
@@ -138,7 +94,12 @@ export default function BoardPage() {
       <div className="bg-white border-b px-6 py-[9.5px] flex items-center justify-between shrink-0">
         <h1 className="text-lg font-semibold text-gray-900">Job Board</h1>
       </div>
-      {!showCreateForm ? (
+      {showCreateForm ? (
+        <CreateTask
+          onClose={() => setShowCreateForm(false)}
+          onSubmit={handleCreateJob}
+        />
+      ) : (
         <>
           {/* sub Header */}
           <div className="bg-white border-b px-6 py-1.5 flex flex-col gap-2 shrink-0">
@@ -192,101 +153,6 @@ export default function BoardPage() {
             />
           </div>
         </>
-      ) : (
-        <div className="flex-1 flex items-center justify-center bg-gray-50">
-          <form onSubmit={handleCreateFormSubmit} className="bg-white rounded-lg shadow p-8 w-full max-w-xl space-y-4">
-            <h2 className="text-xl font-semibold mb-4">Create New Repair Order</h2>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="title">Job Title *</Label>
-                <Input
-                  id="title"
-                  value={formData.title}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="company">Company *</Label>
-                <Input
-                  id="company"
-                  value={formData.company}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, company: e.target.value }))}
-                  required
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="contact">Contact</Label>
-                <Input
-                  id="contact"
-                  value={formData.contact}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, contact: e.target.value }))}
-                />
-              </div>
-              <div>
-                <Label htmlFor="status">Status</Label>
-                <Select
-                  value={formData.status}
-                  onValueChange={(value: JobStatus) => setFormData((prev) => ({ ...prev, status: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="requires-auth">Requires Authorization</SelectItem>
-                    <SelectItem value="in-progress">In Progress</SelectItem>
-                    <SelectItem value="ready-to-start">Ready to Start</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div>
-              <Label htmlFor="location">Location</Label>
-              <Input
-                id="location"
-                value={formData.location}
-                onChange={(e) => setFormData((prev) => ({ ...prev, location: e.target.value }))}
-              />
-            </div>
-            <div>
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
-                rows={3}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="statusText">Status Text</Label>
-                <Input
-                  id="statusText"
-                  value={formData.statusText}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, statusText: e.target.value }))}
-                  placeholder="e.g., No created 2 hours ago"
-                />
-              </div>
-              <div>
-                <Label htmlFor="dueDate">Due Date</Label>
-                <Input
-                  id="dueDate"
-                  type="date"
-                  value={formData.dueDate}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, dueDate: e.target.value }))}
-                />
-              </div>
-            </div>
-            <div className="flex justify-end gap-2 pt-4">
-              <Button type="button" variant="outline" onClick={handleCreateFormCancel}>
-                Cancel
-              </Button>
-              <Button type="submit">Create Job</Button>
-            </div>
-          </form>
-        </div>
       )}
 
       {/* Edit Modal */}

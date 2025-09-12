@@ -10,7 +10,7 @@ interface DragDropBoardProps {
   onMoveJob: (jobId: string, newStatus: JobStatus) => void
   onEditJob: (job: Job) => void
   onDeleteJob: (jobId: string) => void
-  labels: { id: number; name: string; color: string }[]
+  labels?: { id: number; name: string; color: string }[]
 }
 
 export default function DragDropBoard({ jobs, loading, onMoveJob, onEditJob, onDeleteJob, labels }: DragDropBoardProps) {

@@ -18,7 +18,7 @@ interface JobColumnProps {
   onEditJob: (job: Job) => void
   onDeleteJob: (jobId: string) => void
   isDragOver: boolean
-  labels: { id: number; name: string; color: string }[]
+  labels?: { id: number; name: string; color: string }[]
 }
 
 export default function JobColumn({
@@ -65,7 +65,7 @@ export default function JobColumn({
             onDragEnd={onDragEnd}
             onEdit={() => onEditJob(job)}
             onDelete={() => onDeleteJob(job.id)}
-            label={labels.find((l) => l.id === job.labelId) || null}
+            label={labels?.find((l) => l.id === job.labelId) || null}
           />
         ))}
 

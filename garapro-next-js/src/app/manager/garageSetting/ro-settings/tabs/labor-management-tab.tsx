@@ -1,437 +1,409 @@
 "use client"
 
-import type React from "react"
-
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Search, Edit, Trash2, Clock, DollarSign, Wrench } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Plus, Edit, Trash2, Users, Clock, DollarSign } from "lucide-react"
 
-export type LaborItem = {
+interface Employee {
+  id: string
+  name: string
+  role: string
+  hourlyRate: number
+  isActive: boolean
+  skills: string[]
+}
+
+interface LaborCategory {
   id: string
   name: string
   description: string
-  estimatedHours: number
-  laborRate: number
-  category: "engine" | "transmission" | "brakes" | "electrical" | "suspension" | "other"
-  difficulty: "easy" | "medium" | "hard"
-  createdAt: Date
-  status: "active" | "inactive"
+  hourlyRate: number
+  isActive: boolean
 }
 
-export const LABOR_ITEMS_STORAGE_KEY = "garagepro.laborItems"
-
 export default function LaborManagementTab() {
-  const [laborItems, setLaborItems] = useState<LaborItem[]>([])
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
-  const [editingItem, setEditingItem] = useState<LaborItem | null>(null)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [selectedCategory, setSelectedCategory] = useState<string>("all")
-  const [saving, setSaving] = useState(false)
-
-  useEffect(() => {
-    try {
-      const raw = typeof window !== "undefined" ? localStorage.getItem(LABOR_ITEMS_STORAGE_KEY) : null
-      if (raw) {
-        const parsed = JSON.parse(raw) as LaborItem[]
-        setLaborItems(parsed.map((item) => ({ ...item, createdAt: new Date(item.createdAt) })))
-      } else {
-        // Sample data
-        setLaborItems([
-          {
-            id: crypto.randomUUID(),
-            name: "Oil Change",
-            description: "Standard oil and filter change service",
-            estimatedHours: 0.5,
-            laborRate: 125,
-            category: "engine",
-            difficulty: "easy",
-            createdAt: new Date(),
-            status: "active",
-          },
-          {
-            id: crypto.randomUUID(),
-            name: "Brake Pad Replacement",
-            description: "Replace front brake pads and inspect rotors",
-            estimatedHours: 2.0,
-            laborRate: 125,
-            category: "brakes",
-            difficulty: "medium",
-            createdAt: new Date(),
-            status: "active",
-          },
-          {
-            id: crypto.randomUUID(),
-            name: "Transmission Service",
-            description: "Complete transmission fluid change and filter replacement",
-            estimatedHours: 3.5,
-            laborRate: 155,
-            category: "transmission",
-            difficulty: "hard",
-            createdAt: new Date(),
-            status: "active",
-          },
-        ])
-      }
-    } catch (e) {
-      console.error("Failed to load labor items", e)
+  const [employees, setEmployees] = useState<Employee[]>([
+    {
+      id: "1",
+      name: "John Smith",
+      role: "Senior Technician",
+      hourlyRate: 45.00,
+      isActive: true,
+      skills: ["Engine Repair", "Transmission", "Diagnostics"]
+    },
+    {
+      id: "2", 
+      name: "Sarah Johnson",
+      role: "Technician",
+      hourlyRate: 35.00,
+      isActive: true,
+      skills: ["Brake Service", "Oil Change", "Tire Service"]
+    },
+    {
+      id: "3",
+      name: "Mike Wilson",
+      role: "Apprentice",
+      hourlyRate: 20.00,
+      isActive: true,
+      skills: ["Basic Maintenance"]
     }
-  }, [])
+  ])
 
-  const handleSave = () => {
-    try {
-      setSaving(true)
-      localStorage.setItem(LABOR_ITEMS_STORAGE_KEY, JSON.stringify(laborItems))
-    } finally {
-      setSaving(false)
+  const [laborCategories, setLaborCategories] = useState<LaborCategory[]>([
+    {
+      id: "1",
+      name: "Diagnostic Work",
+      description: "Computer diagnostics and troubleshooting",
+      hourlyRate: 125.00,
+      isActive: true
+    },
+    {
+      id: "2",
+      name: "Engine Repair",
+      description: "Engine rebuilds and major repairs",
+      hourlyRate: 150.00,
+      isActive: true
+    },
+    {
+      id: "3",
+      name: "General Service",
+      description: "Oil changes, filters, and basic maintenance",
+      hourlyRate: 95.00,
+      isActive: true
     }
-  }
+  ])
 
-  const addLaborItem = (itemData: Omit<LaborItem, "id" | "createdAt">) => {
-    const newItem: LaborItem = {
-      ...itemData,
-      id: crypto.randomUUID(),
-      createdAt: new Date(),
-    }
-    setLaborItems((prev) => [...prev, newItem])
-    setIsAddDialogOpen(false)
-  }
+  const [showEmployeeForm, setShowEmployeeForm] = useState(false)
+  const [showCategoryForm, setShowCategoryForm] = useState(false)
+  const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null)
+  const [editingCategory, setEditingCategory] = useState<LaborCategory | null>(null)
 
-  const updateLaborItem = (id: string, itemData: Omit<LaborItem, "id" | "createdAt">) => {
-    setLaborItems((prev) => prev.map((item) => (item.id === id ? { ...item, ...itemData } : item)))
-    setEditingItem(null)
-  }
-
-  const deleteLaborItem = (id: string) => {
-    setLaborItems((prev) => prev.filter((item) => item.id !== id))
-  }
-
-  const filteredItems = laborItems.filter((item) => {
-    const matchesSearch =
-      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.description.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesCategory = selectedCategory === "all" || item.category === selectedCategory
-    return matchesSearch && matchesCategory
+  const [employeeForm, setEmployeeForm] = useState({
+    name: "",
+    role: "",
+    hourlyRate: 0,
+    skills: ""
   })
 
-  const getCategoryIcon = (category: string) => {
-    switch (category) {
-      case "engine":
-        return "🔧"
-      case "transmission":
-        return "⚙️"
-      case "brakes":
-        return "🛑"
-      case "electrical":
-        return "⚡"
-      case "suspension":
-        return "🔩"
-      default:
-        return "🔧"
-    }
-  }
+  const [categoryForm, setCategoryForm] = useState({
+    name: "",
+    description: "",
+    hourlyRate: 0
+  })
 
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty) {
-      case "easy":
-        return "bg-green-100 text-green-800"
-      case "medium":
-        return "bg-yellow-100 text-yellow-800"
-      case "hard":
-        return "bg-red-100 text-red-800"
-      default:
-        return "bg-gray-100 text-gray-800"
-    }
-  }
-
-  const LaborItemForm = ({
-    onSubmit,
-    onCancel,
-    initialData,
-  }: {
-    onSubmit: (data: Omit<LaborItem, "id" | "createdAt">) => void
-    onCancel: () => void
-    initialData?: Omit<LaborItem, "id" | "createdAt">
-  }) => {
-    const [formData, setFormData] = useState<Omit<LaborItem, "id" | "createdAt">>(
-      initialData || {
-        name: "",
-        description: "",
-        estimatedHours: 0,
-        laborRate: 125,
-        category: "other",
-        difficulty: "medium",
-        status: "active",
-      },
-    )
-
-    const handleSubmit = (e: React.FormEvent) => {
-      e.preventDefault()
-      if (formData.name.trim() && formData.description.trim()) {
-        onSubmit(formData)
+  const handleAddEmployee = () => {
+    if (editingEmployee) {
+      setEmployees(prev => prev.map(emp => 
+        emp.id === editingEmployee.id 
+          ? { ...emp, ...employeeForm, skills: employeeForm.skills.split(',').map(s => s.trim()) }
+          : emp
+      ))
+    } else {
+      const newEmployee: Employee = {
+        id: Date.now().toString(),
+        name: employeeForm.name,
+        role: employeeForm.role,
+        hourlyRate: employeeForm.hourlyRate,
+        isActive: true,
+        skills: employeeForm.skills.split(',').map(s => s.trim())
       }
+      setEmployees(prev => [...prev, newEmployee])
     }
+    setShowEmployeeForm(false)
+    setEditingEmployee(null)
+    setEmployeeForm({ name: "", role: "", hourlyRate: 0, skills: "" })
+  }
 
-    return (
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <Label htmlFor="name">Labor Item Name</Label>
-          <Input
-            id="name"
-            value={formData.name}
-            onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
-            placeholder="Enter labor item name"
-            required
-          />
-        </div>
+  const handleAddCategory = () => {
+    if (editingCategory) {
+      setLaborCategories(prev => prev.map(cat => 
+        cat.id === editingCategory.id 
+          ? { ...cat, ...categoryForm }
+          : cat
+      ))
+    } else {
+      const newCategory: LaborCategory = {
+        id: Date.now().toString(),
+        name: categoryForm.name,
+        description: categoryForm.description,
+        hourlyRate: categoryForm.hourlyRate,
+        isActive: true
+      }
+      setLaborCategories(prev => [...prev, newCategory])
+    }
+    setShowCategoryForm(false)
+    setEditingCategory(null)
+    setCategoryForm({ name: "", description: "", hourlyRate: 0 })
+  }
 
-        <div>
-          <Label htmlFor="description">Description</Label>
-          <Textarea
-            id="description"
-            value={formData.description}
-            onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
-            placeholder="Describe the labor work in detail"
-            rows={3}
-            required
-          />
-        </div>
+  const handleEditEmployee = (employee: Employee) => {
+    setEditingEmployee(employee)
+    setEmployeeForm({
+      name: employee.name,
+      role: employee.role,
+      hourlyRate: employee.hourlyRate,
+      skills: employee.skills.join(', ')
+    })
+    setShowEmployeeForm(true)
+  }
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="estimatedHours">Estimated Hours</Label>
-            <Input
-              id="estimatedHours"
-              type="number"
-              min="0"
-              step="0.1"
-              value={formData.estimatedHours}
-              onChange={(e) => setFormData((prev) => ({ ...prev, estimatedHours: Number(e.target.value) || 0 }))}
-              required
-            />
-          </div>
+  const handleEditCategory = (category: LaborCategory) => {
+    setEditingCategory(category)
+    setCategoryForm({
+      name: category.name,
+      description: category.description,
+      hourlyRate: category.hourlyRate
+    })
+    setShowCategoryForm(true)
+  }
 
-          <div>
-            <Label htmlFor="laborRate">Labor Rate ($)</Label>
-            <Input
-              id="laborRate"
-              type="number"
-              min="0"
-              step="0.01"
-              value={formData.laborRate}
-              onChange={(e) => setFormData((prev) => ({ ...prev, laborRate: Number(e.target.value) || 0 }))}
-              required
-            />
-          </div>
-        </div>
+  const handleDeleteEmployee = (id: string) => {
+    setEmployees(prev => prev.filter(emp => emp.id !== id))
+  }
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="category">Category</Label>
-            <select
-              id="category"
-              value={formData.category}
-              onChange={(e) => setFormData((prev) => ({ ...prev, category: e.target.value as any }))}
-              className="w-full p-2 border border-gray-300 rounded-md"
-            >
-              <option value="engine">Engine</option>
-              <option value="transmission">Transmission</option>
-              <option value="brakes">Brakes</option>
-              <option value="electrical">Electrical</option>
-              <option value="suspension">Suspension</option>
-              <option value="other">Other</option>
-            </select>
-          </div>
-
-          <div>
-            <Label htmlFor="difficulty">Difficulty</Label>
-            <select
-              id="difficulty"
-              value={formData.difficulty}
-              onChange={(e) => setFormData((prev) => ({ ...prev, difficulty: e.target.value as any }))}
-              className="w-full p-2 border border-gray-300 rounded-md"
-            >
-              <option value="easy">Easy</option>
-              <option value="medium">Medium</option>
-              <option value="hard">Hard</option>
-            </select>
-          </div>
-        </div>
-
-        <div>
-          <Label htmlFor="status">Status</Label>
-          <select
-            id="status"
-            value={formData.status}
-            onChange={(e) => setFormData((prev) => ({ ...prev, status: e.target.value as any }))}
-            className="w-full p-2 border border-gray-300 rounded-md"
-          >
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-          </select>
-        </div>
-
-        <div className="flex justify-end space-x-2 pt-4">
-          <Button type="button" variant="outline" onClick={onCancel}>
-            Cancel
-          </Button>
-          <Button type="submit" className="bg-[#154c79] hover:bg-[#123a5c]">
-            {initialData ? "Update" : "Add"} Labor Item
-          </Button>
-        </div>
-      </form>
-    )
+  const handleDeleteCategory = (id: string) => {
+    setLaborCategories(prev => prev.filter(cat => cat.id !== id))
   }
 
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-lg border">
-        <div className="p-6 border-b">
-          <h3 className="text-lg font-semibold mb-4">Labor Management</h3>
-          <p className="text-gray-600 mb-6">
-            Manage your labor items, rates, and estimated times. Create standardized labor operations for consistent
-            pricing and time estimates.
-          </p>
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">Labor Management</h1>
+        <p className="text-gray-600 mt-2">
+          Manage your employees, labor categories, and hourly rates for different types of work.
+        </p>
+      </div>
 
-          {/* Search and Filter Controls */}
-          <div className="flex gap-4 mb-6">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+      {/* Employees Section */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <Users className="w-5 h-5" />
+            Employees
+          </CardTitle>
+          <Button onClick={() => setShowEmployeeForm(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Add Employee
+          </Button>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {employees.map((employee) => (
+              <div key={employee.id} className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3">
+                    <h3 className="font-semibold text-gray-900">{employee.name}</h3>
+                    <Badge variant={employee.isActive ? "default" : "secondary"}>
+                      {employee.isActive ? "Active" : "Inactive"}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-gray-600">{employee.role}</p>
+                  <div className="flex items-center gap-4 mt-2">
+                    <div className="flex items-center gap-1">
+                      <DollarSign className="w-4 h-4 text-green-600" />
+                      <span className="text-sm font-medium">${employee.hourlyRate.toFixed(2)}/hr</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {employee.skills.map((skill, index) => (
+                        <Badge key={index} variant="outline" className="text-xs">
+                          {skill}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleEditEmployee(employee)}
+                  >
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleDeleteEmployee(employee.id)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Labor Categories Section */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="w-5 h-5" />
+            Labor Categories
+          </CardTitle>
+          <Button onClick={() => setShowCategoryForm(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Add Category
+          </Button>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {laborCategories.map((category) => (
+              <div key={category.id} className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3">
+                    <h3 className="font-semibold text-gray-900">{category.name}</h3>
+                    <Badge variant={category.isActive ? "default" : "secondary"}>
+                      {category.isActive ? "Active" : "Inactive"}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-gray-600 mt-1">{category.description}</p>
+                  <div className="flex items-center gap-1 mt-2">
+                    <DollarSign className="w-4 h-4 text-green-600" />
+                    <span className="text-sm font-medium">${category.hourlyRate.toFixed(2)}/hr</span>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleEditCategory(category)}
+                  >
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleDeleteCategory(category.id)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Employee Form Modal */}
+      {showEmployeeForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold mb-4">
+              {editingEmployee ? "Edit Employee" : "Add Employee"}
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="emp-name">Name</Label>
                 <Input
-                  placeholder="Search labor items..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  id="emp-name"
+                  value={employeeForm.name}
+                  onChange={(e) => setEmployeeForm(prev => ({ ...prev, name: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label htmlFor="emp-role">Role</Label>
+                <Input
+                  id="emp-role"
+                  value={employeeForm.role}
+                  onChange={(e) => setEmployeeForm(prev => ({ ...prev, role: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label htmlFor="emp-rate">Hourly Rate</Label>
+                <Input
+                  id="emp-rate"
+                  type="number"
+                  step="0.01"
+                  value={employeeForm.hourlyRate}
+                  onChange={(e) => setEmployeeForm(prev => ({ ...prev, hourlyRate: parseFloat(e.target.value) || 0 }))}
+                />
+              </div>
+              <div>
+                <Label htmlFor="emp-skills">Skills (comma-separated)</Label>
+                <Input
+                  id="emp-skills"
+                  value={employeeForm.skills}
+                  onChange={(e) => setEmployeeForm(prev => ({ ...prev, skills: e.target.value }))}
+                  placeholder="Engine Repair, Diagnostics, Brake Service"
                 />
               </div>
             </div>
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-md"
-            >
-              <option value="all">All Categories</option>
-              <option value="engine">Engine</option>
-              <option value="transmission">Transmission</option>
-              <option value="brakes">Brakes</option>
-              <option value="electrical">Electrical</option>
-              <option value="suspension">Suspension</option>
-              <option value="other">Other</option>
-            </select>
-            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="bg-[#154c79] hover:bg-[#123a5c]">+ Add Labor Item</Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>Add New Labor Item</DialogTitle>
-                </DialogHeader>
-                <LaborItemForm onSubmit={addLaborItem} onCancel={() => setIsAddDialogOpen(false)} />
-              </DialogContent>
-            </Dialog>
+            <div className="flex gap-2 mt-6">
+              <Button onClick={handleAddEmployee} className="flex-1">
+                {editingEmployee ? "Update" : "Add"} Employee
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowEmployeeForm(false)
+                  setEditingEmployee(null)
+                  setEmployeeForm({ name: "", role: "", hourlyRate: 0, skills: "" })
+                }}
+              >
+                Cancel
+              </Button>
+            </div>
           </div>
         </div>
+      )}
 
-        {/* Labor Items List */}
-        <div className="divide-y">
-          {filteredItems.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">
-              <Wrench className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-              <p>No labor items found. Add your first labor item to get started.</p>
-            </div>
-          ) : (
-            filteredItems.map((item) => (
-              <div key={item.id} className="p-4 hover:bg-gray-50">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className="text-lg">{getCategoryIcon(item.category)}</span>
-                      <h4 className="font-medium text-gray-900">{item.name}</h4>
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColor(item.difficulty)}`}
-                      >
-                        {item.difficulty}
-                      </span>
-                      {item.status === "inactive" && (
-                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-                          Inactive
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-sm text-gray-600 mb-3">{item.description}</p>
-                    <div className="flex items-center gap-6 text-sm text-gray-500">
-                      <div className="flex items-center gap-1">
-                        <Clock className="w-4 h-4" />
-                        <span>{item.estimatedHours} hrs</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <DollarSign className="w-4 h-4" />
-                        <span>${item.laborRate}/hr</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <span className="font-medium">Total: ${(item.estimatedHours * item.laborRate).toFixed(2)}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="sm" onClick={() => setEditingItem(item)} className="h-8 w-8 p-0">
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => deleteLaborItem(item.id)}
-                      className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
+      {/* Category Form Modal */}
+      {showCategoryForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold mb-4">
+              {editingCategory ? "Edit Category" : "Add Category"}
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="cat-name">Category Name</Label>
+                <Input
+                  id="cat-name"
+                  value={categoryForm.name}
+                  onChange={(e) => setCategoryForm(prev => ({ ...prev, name: e.target.value }))}
+                />
               </div>
-            ))
-          )}
-        </div>
-
-        {/* Summary and Save */}
-        <div className="p-6 border-t bg-gray-50">
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-gray-600">
-              <span className="font-medium">{filteredItems.length}</span> labor items
-              {searchTerm && ` matching "${searchTerm}"`}
+              <div>
+                <Label htmlFor="cat-description">Description</Label>
+                <Input
+                  id="cat-description"
+                  value={categoryForm.description}
+                  onChange={(e) => setCategoryForm(prev => ({ ...prev, description: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label htmlFor="cat-rate">Hourly Rate</Label>
+                <Input
+                  id="cat-rate"
+                  type="number"
+                  step="0.01"
+                  value={categoryForm.hourlyRate}
+                  onChange={(e) => setCategoryForm(prev => ({ ...prev, hourlyRate: parseFloat(e.target.value) || 0 }))}
+                />
+              </div>
             </div>
-            <Button onClick={handleSave} className="bg-[#154c79] hover:bg-[#123a5c]" disabled={saving}>
-              {saving ? "Saving..." : "Save Changes"}
-            </Button>
+            <div className="flex gap-2 mt-6">
+              <Button onClick={handleAddCategory} className="flex-1">
+                {editingCategory ? "Update" : "Add"} Category
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowCategoryForm(false)
+                  setEditingCategory(null)
+                  setCategoryForm({ name: "", description: "", hourlyRate: 0 })
+                }}
+              >
+                Cancel
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
-
-      {/* Edit Dialog */}
-      {editingItem && (
-        <Dialog open={!!editingItem} onOpenChange={() => setEditingItem(null)}>
-          <DialogContent className="sm:max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Edit Labor Item</DialogTitle>
-            </DialogHeader>
-            <LaborItemForm
-              initialData={{
-                name: editingItem.name,
-                description: editingItem.description,
-                estimatedHours: editingItem.estimatedHours,
-                laborRate: editingItem.laborRate,
-                category: editingItem.category,
-                difficulty: editingItem.difficulty,
-                status: editingItem.status,
-              }}
-              onSubmit={(data) => updateLaborItem(editingItem.id, data)}
-              onCancel={() => setEditingItem(null)}
-            />
-          </DialogContent>
-        </Dialog>
       )}
     </div>
   )
