@@ -48,7 +48,7 @@ const ProgressTracking: React.FC = () => {
   const [repairOrders, setRepairOrders] = useState<RepairOrder[]>([
     {
       id: "RO-001",
-      customerName: "Nguyễn Văn A",
+      customerName: "John Smith",
       vehicleInfo: "Honda Civic 2020",
       licensePlate: "29A-12345",
       startDate: "2024-01-15",
@@ -58,47 +58,47 @@ const ProgressTracking: React.FC = () => {
       tasks: [
         {
           id: "T1",
-          name: "Kiểm tra hệ thống phanh",
+          name: "Brake system inspection",
           status: "completed",
           progress: 100,
           estimatedTime: 2,
           actualTime: 1.5,
-          assignedTo: "Thợ A",
+          assignedTo: "Technician A",
           priority: "high",
         },
         {
           id: "T2",
-          name: "Thay dầu động cơ",
+          name: "Engine oil change",
           status: "completed",
           progress: 100,
           estimatedTime: 1,
           actualTime: 1,
-          assignedTo: "Thợ B",
+          assignedTo: "Technician B",
           priority: "medium",
         },
         {
           id: "T3",
-          name: "Sửa hệ thống điều hòa",
+          name: "Air conditioning repair",
           status: "in-progress",
           progress: 60,
           estimatedTime: 4,
-          assignedTo: "Thợ C",
+          assignedTo: "Technician C",
           priority: "medium",
         },
         {
           id: "T4",
-          name: "Kiểm tra tổng thể",
+          name: "General inspection",
           status: "pending",
           progress: 0,
           estimatedTime: 1,
-          assignedTo: "Thợ A",
+          assignedTo: "Technician A",
           priority: "low",
         },
       ],
     },
     {
       id: "RO-002",
-      customerName: "Trần Thị B",
+      customerName: "Jane Doe",
       vehicleInfo: "Toyota Camry 2019",
       licensePlate: "51G-67890",
       startDate: "2024-01-16",
@@ -108,21 +108,21 @@ const ProgressTracking: React.FC = () => {
       tasks: [
         {
           id: "T5",
-          name: "Chẩn đoán lỗi động cơ",
+          name: "Engine diagnostics",
           status: "completed",
           progress: 100,
           estimatedTime: 2,
           actualTime: 2.5,
-          assignedTo: "Thợ D",
+          assignedTo: "Technician D",
           priority: "high",
         },
         {
           id: "T6",
-          name: "Thay phụ tùng động cơ",
+          name: "Replace engine parts",
           status: "pending",
           progress: 0,
           estimatedTime: 6,
-          assignedTo: "Thợ D",
+          assignedTo: "Technician D",
           priority: "high",
         },
       ],
@@ -178,16 +178,18 @@ const ProgressTracking: React.FC = () => {
     orderId: string,
     taskId: string,
     newProgress: number
-  ) => {};
+  ) => {
+    // Update logic goes here
+  };
 
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Theo Dõi Tiến Độ Sửa Chữa</h1>
+        <h1 className="text-2xl font-bold">Repair Progress Tracking</h1>
         <div className="flex items-center space-x-2">
           <Car className="w-5 h-5" />
           <span className="text-sm text-gray-600">
-            {repairOrders.length} đơn hàng đang xử lý
+            {repairOrders.length} active orders
           </span>
         </div>
       </div>
@@ -225,7 +227,7 @@ const ProgressTracking: React.FC = () => {
             <CardContent className="space-y-4">
               <div>
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm font-medium">Tiến độ tổng thể</span>
+                  <span className="text-sm font-medium">Overall progress</span>
                   <span className="text-sm text-gray-600">
                     {order.overallProgress}%
                   </span>
@@ -236,16 +238,16 @@ const ProgressTracking: React.FC = () => {
               <div className="flex items-center justify-between text-sm text-gray-600">
                 <div className="flex items-center space-x-1">
                   <Calendar className="w-4 h-4" />
-                  <span>Bắt đầu: {order.startDate}</span>
+                  <span>Start: {order.startDate}</span>
                 </div>
                 <div className="flex items-center space-x-1">
                   <Clock className="w-4 h-4" />
-                  <span>Dự kiến: {order.estimatedCompletion}</span>
+                  <span>Estimated: {order.estimatedCompletion}</span>
                 </div>
               </div>
 
               <div className="space-y-3">
-                <h4 className="font-medium text-sm">Danh sách công việc:</h4>
+                <h4 className="font-medium text-sm">Task list:</h4>
                 {order.tasks.map((task) => (
                   <div
                     key={task.id}
@@ -280,9 +282,9 @@ const ProgressTracking: React.FC = () => {
                     </div>
 
                     <div className="flex items-center justify-between text-xs text-gray-500">
-                      <span>Dự kiến: {task.estimatedTime}h</span>
+                      <span>Estimated: {task.estimatedTime}h</span>
                       {task.actualTime && (
-                        <span>Thực tế: {task.actualTime}h</span>
+                        <span>Actual: {task.actualTime}h</span>
                       )}
                     </div>
 
@@ -310,7 +312,7 @@ const ProgressTracking: React.FC = () => {
                           }
                           className="text-xs"
                         >
-                          Hoàn thành
+                          Complete
                         </Button>
                       </div>
                     )}

@@ -60,33 +60,33 @@ const CustomerFeedback: React.FC = () => {
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([
     {
       id: "FB-001",
-      customerName: "Nguyễn Văn A",
+      customerName: "Nguyen Van A",
       vehicleInfo: "Honda Civic 2020",
       licensePlate: "29A-12345",
       serviceDate: "2024-01-15",
       rating: 5,
-      serviceType: "Bảo dưỡng định kỳ",
+      serviceType: "Regular maintenance",
       comment:
-        "Dịch vụ rất tốt, nhân viên thân thiện và chuyên nghiệp. Xe được chăm sóc kỹ lưỡng. Tôi rất hài lòng và sẽ quay lại lần sau.",
+        "Excellent service, friendly and professional staff. The car was carefully taken care of. I am very satisfied and will come back next time.",
       category: "service-quality",
       status: "responded",
       response:
-        "Cảm ơn anh đã tin tưởng dịch vụ của chúng tôi. Chúng tôi luôn cố gắng mang đến trải nghiệm tốt nhất cho khách hàng.",
+        "Thank you for trusting our service. We always strive to provide the best experience for our customers.",
       responseDate: "2024-01-16",
-      respondedBy: "Quản lý dịch vụ",
+      respondedBy: "Service Manager",
       isRecommended: true,
       tags: ["excellent-service", "professional-staff"],
     },
     {
       id: "FB-002",
-      customerName: "Trần Thị B",
+      customerName: "Tran Thi B",
       vehicleInfo: "Toyota Camry 2019",
       licensePlate: "51G-67890",
       serviceDate: "2024-01-16",
       rating: 3,
-      serviceType: "Sửa chữa động cơ",
+      serviceType: "Engine repair",
       comment:
-        "Chất lượng sửa chữa ổn nhưng thời gian chờ hơi lâu. Hy vọng lần sau sẽ nhanh hơn.",
+        "Repair quality is fine but the waiting time was a bit long. Hope it will be faster next time.",
       category: "waiting-time",
       status: "new",
       isRecommended: false,
@@ -94,14 +94,14 @@ const CustomerFeedback: React.FC = () => {
     },
     {
       id: "FB-003",
-      customerName: "Lê Văn C",
+      customerName: "Le Van C",
       vehicleInfo: "BMW 320i 2021",
       licensePlate: "30H-11111",
       serviceDate: "2024-01-14",
       rating: 2,
-      serviceType: "Kiểm tra định kỳ",
+      serviceType: "Periodic check",
       comment:
-        "Giá cả hơi cao so với mặt bằng chung. Staff cần được đào tạo thêm về cách giao tiếp.",
+        "The price is a bit high compared to the market. Staff need more training in communication.",
       category: "pricing",
       status: "reviewed",
       isRecommended: false,
@@ -109,14 +109,14 @@ const CustomerFeedback: React.FC = () => {
     },
     {
       id: "FB-004",
-      customerName: "Phạm Thị D",
+      customerName: "Pham Thi D",
       vehicleInfo: "Mazda CX-5 2022",
       licensePlate: "43C-98765",
       serviceDate: "2024-01-17",
       rating: 4,
-      serviceType: "Thay dầu và bảo dưỡng",
+      serviceType: "Oil change & maintenance",
       comment:
-        "Nhìn chung khá hài lòng. Cơ sở vật chất hiện đại, nhân viên nhiệt tình. Chỉ có điều bãi đỗ xe hơi chật.",
+        "Overall quite satisfied. Modern facilities, enthusiastic staff. Only the parking lot is a bit tight.",
       category: "facility",
       status: "new",
       isRecommended: true,
@@ -162,7 +162,6 @@ const CustomerFeedback: React.FC = () => {
 
   const handleResponse = () => {
     if (!selectedFeedback || !responseText.trim()) return;
-
     const today = new Date().toISOString().split("T")[0];
 
     setFeedbacks((prev) =>
@@ -172,7 +171,7 @@ const CustomerFeedback: React.FC = () => {
               ...feedback,
               response: responseText,
               responseDate: today,
-              respondedBy: "Quản lý dịch vụ",
+              respondedBy: "Service Manager",
               status: "responded" as const,
             }
           : feedback
@@ -220,12 +219,12 @@ const CustomerFeedback: React.FC = () => {
 
   const getCategoryLabel = (category: string) => {
     const labels = {
-      "service-quality": "Chất lượng dịch vụ",
-      "staff-attitude": "Thái độ nhân viên",
-      pricing: "Giá cả",
-      facility: "Cơ sở vật chất",
-      "waiting-time": "Thời gian chờ",
-      other: "Khác",
+      "service-quality": "Service Quality",
+      "staff-attitude": "Staff Attitude",
+      pricing: "Pricing",
+      facility: "Facility",
+      "waiting-time": "Waiting Time",
+      other: "Other",
     };
     return labels[category as keyof typeof labels] || category;
   };
@@ -244,16 +243,16 @@ const CustomerFeedback: React.FC = () => {
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Phản Hồi Khách Hàng</h1>
+        <h1 className="text-2xl font-bold">Customer Feedback</h1>
         <div className="flex items-center space-x-4">
           <div className="text-sm text-gray-600">
-            {feedbacks.length} phản hồi | Trung bình:{" "}
+            {feedbacks.length} feedback | Average:{" "}
             {stats.averageRating.toFixed(1)} ⭐
           </div>
         </div>
       </div>
 
-      {/* Statistics Cards */}
+      {/* Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
@@ -261,7 +260,7 @@ const CustomerFeedback: React.FC = () => {
               <MessageSquare className="w-8 h-8 text-blue-600" />
               <div>
                 <p className="text-2xl font-bold">{stats.totalFeedbacks}</p>
-                <p className="text-sm text-gray-600">Tổng phản hồi</p>
+                <p className="text-sm text-gray-600">Total Feedback</p>
               </div>
             </div>
           </CardContent>
@@ -275,7 +274,7 @@ const CustomerFeedback: React.FC = () => {
                 <p className="text-2xl font-bold">
                   {stats.averageRating.toFixed(1)}
                 </p>
-                <p className="text-sm text-gray-600">Điểm trung bình</p>
+                <p className="text-sm text-gray-600">Average Rating</p>
               </div>
             </div>
           </CardContent>
@@ -287,7 +286,7 @@ const CustomerFeedback: React.FC = () => {
               <ThumbsUp className="w-8 h-8 text-green-600" />
               <div>
                 <p className="text-2xl font-bold">{stats.positiveCount}</p>
-                <p className="text-sm text-gray-600">Đánh giá tích cực</p>
+                <p className="text-sm text-gray-600">Positive Reviews</p>
               </div>
             </div>
           </CardContent>
@@ -301,7 +300,7 @@ const CustomerFeedback: React.FC = () => {
                 <p className="text-2xl font-bold">
                   {stats.responseRate.toFixed(0)}%
                 </p>
-                <p className="text-sm text-gray-600">Tỷ lệ phản hồi</p>
+                <p className="text-sm text-gray-600">Response Rate</p>
               </div>
             </div>
           </CardContent>
@@ -312,46 +311,46 @@ const CustomerFeedback: React.FC = () => {
       <div className="flex items-center space-x-4">
         <div className="flex items-center space-x-2">
           <Filter className="w-4 h-4" />
-          <span className="text-sm font-medium">Lọc:</span>
+          <span className="text-sm font-medium">Filter:</span>
         </div>
 
         <Select value={filterRating} onValueChange={setFilterRating}>
           <SelectTrigger className="w-40">
-            <SelectValue placeholder="Đánh giá" />
+            <SelectValue placeholder="Rating" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Tất cả</SelectItem>
-            <SelectItem value="positive">Tích cực (4-5 sao)</SelectItem>
-            <SelectItem value="neutral">Trung tính (3 sao)</SelectItem>
-            <SelectItem value="negative">Tiêu cực (1-2 sao)</SelectItem>
+            <SelectItem value="all">All</SelectItem>
+            <SelectItem value="positive">Positive (4-5 stars)</SelectItem>
+            <SelectItem value="neutral">Neutral (3 stars)</SelectItem>
+            <SelectItem value="negative">Negative (1-2 stars)</SelectItem>
           </SelectContent>
         </Select>
 
         <Select value={filterStatus} onValueChange={setFilterStatus}>
           <SelectTrigger className="w-40">
-            <SelectValue placeholder="Trạng thái" />
+            <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Tất cả</SelectItem>
-            <SelectItem value="new">Mới</SelectItem>
-            <SelectItem value="reviewed">Đã xem</SelectItem>
-            <SelectItem value="responded">Đã phản hồi</SelectItem>
-            <SelectItem value="resolved">Đã giải quyết</SelectItem>
+            <SelectItem value="all">All</SelectItem>
+            <SelectItem value="new">New</SelectItem>
+            <SelectItem value="reviewed">Reviewed</SelectItem>
+            <SelectItem value="responded">Responded</SelectItem>
+            <SelectItem value="resolved">Resolved</SelectItem>
           </SelectContent>
         </Select>
 
         <Select value={filterCategory} onValueChange={setFilterCategory}>
           <SelectTrigger className="w-48">
-            <SelectValue placeholder="Danh mục" />
+            <SelectValue placeholder="Category" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Tất cả danh mục</SelectItem>
-            <SelectItem value="service-quality">Chất lượng dịch vụ</SelectItem>
-            <SelectItem value="staff-attitude">Thái độ nhân viên</SelectItem>
-            <SelectItem value="pricing">Giá cả</SelectItem>
-            <SelectItem value="facility">Cơ sở vật chất</SelectItem>
-            <SelectItem value="waiting-time">Thời gian chờ</SelectItem>
-            <SelectItem value="other">Khác</SelectItem>
+            <SelectItem value="all">All Categories</SelectItem>
+            <SelectItem value="service-quality">Service Quality</SelectItem>
+            <SelectItem value="staff-attitude">Staff Attitude</SelectItem>
+            <SelectItem value="pricing">Pricing</SelectItem>
+            <SelectItem value="facility">Facility</SelectItem>
+            <SelectItem value="waiting-time">Waiting Time</SelectItem>
+            <SelectItem value="other">Other</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -371,7 +370,7 @@ const CustomerFeedback: React.FC = () => {
                     {feedback.isRecommended && (
                       <Award
                         className="w-4 h-4 text-yellow-600"
-                        xlinkTitle="Khách hàng giới thiệu"
+                        xlinkTitle="Recommended Customer"
                       />
                     )}
                   </CardTitle>
@@ -384,15 +383,15 @@ const CustomerFeedback: React.FC = () => {
                 </div>
                 <div className="flex flex-col items-end space-y-2">
                   <Badge variant={getStatusColor(feedback.status)}>
-                    {feedback.status === "new" && "Mới"}
-                    {feedback.status === "reviewed" && "Đã xem"}
-                    {feedback.status === "responded" && "Đã phản hồi"}
-                    {feedback.status === "resolved" && "Đã giải quyết"}
+                    {feedback.status === "new" && "New"}
+                    {feedback.status === "reviewed" && "Reviewed"}
+                    {feedback.status === "responded" && "Responded"}
+                    {feedback.status === "resolved" && "Resolved"}
                   </Badge>
                   {feedback.rating <= 2 && (
                     <AlertTriangle
                       className="w-4 h-4 text-red-500"
-                      xlinkTitle="Cần chú ý"
+                      xlinkTitle="Needs Attention"
                     />
                   )}
                 </div>
@@ -444,7 +443,7 @@ const CustomerFeedback: React.FC = () => {
                   <div className="flex items-center space-x-2 mb-2">
                     <Reply className="w-4 h-4 text-blue-600" />
                     <span className="text-sm font-medium text-blue-900">
-                      Phản hồi từ {feedback.respondedBy}
+                      Response from {feedback.respondedBy}
                     </span>
                     <span className="text-xs text-blue-600">
                       {feedback.responseDate}
@@ -461,7 +460,7 @@ const CustomerFeedback: React.FC = () => {
                     variant="outline"
                     onClick={() => handleStatusChange(feedback.id, "reviewed")}
                   >
-                    Đánh dấu đã xem
+                    Mark as Reviewed
                   </Button>
                 )}
 
@@ -474,7 +473,7 @@ const CustomerFeedback: React.FC = () => {
                     }}
                   >
                     <Reply className="w-4 h-4 mr-1" />
-                    Phản hồi
+                    Respond
                   </Button>
                 )}
 
@@ -484,7 +483,7 @@ const CustomerFeedback: React.FC = () => {
                     variant="outline"
                     onClick={() => handleStatusChange(feedback.id, "resolved")}
                   >
-                    Đánh dấu đã giải quyết
+                    Mark as Resolved
                   </Button>
                 )}
               </div>
@@ -500,7 +499,7 @@ const CustomerFeedback: React.FC = () => {
       >
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Phản Hồi Khách Hàng</DialogTitle>
+            <DialogTitle>Customer Response</DialogTitle>
           </DialogHeader>
 
           {selectedFeedback && (
@@ -522,12 +521,12 @@ const CustomerFeedback: React.FC = () => {
 
               <div>
                 <label className="text-sm font-medium mb-2 block">
-                  Phản hồi của bạn:
+                  Your response:
                 </label>
                 <Textarea
                   value={responseText}
                   onChange={(e) => setResponseText(e.target.value)}
-                  placeholder="Nhập phản hồi cho khách hàng..."
+                  placeholder="Enter your response to the customer..."
                   rows={4}
                 />
               </div>
@@ -541,13 +540,13 @@ const CustomerFeedback: React.FC = () => {
                     setSelectedFeedback(null);
                   }}
                 >
-                  Hủy
+                  Cancel
                 </Button>
                 <Button
                   onClick={handleResponse}
                   disabled={!responseText.trim()}
                 >
-                  Gửi Phản Hồi
+                  Send Response
                 </Button>
               </div>
             </div>

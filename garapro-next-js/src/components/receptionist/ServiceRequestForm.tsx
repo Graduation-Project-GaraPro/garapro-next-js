@@ -78,15 +78,15 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
     notes: "",
   });
 
-  // Mock data - trong thực tế sẽ fetch từ API
+  // Mock data – in real use, fetch from API
   useEffect(() => {
     const mockCustomers: Customer[] = [
       {
         id: "1",
-        name: "Nguyễn Văn An",
+        name: "Nguyen Van An",
         phone: "0901234567",
         email: "nguyenvanan@email.com",
-        address: "123 Đường ABC, Quận 1, TP.HCM",
+        address: "123 ABC Street, District 1, HCMC",
         vehicles: [
           {
             id: "v1",
@@ -94,16 +94,16 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
             brand: "Toyota",
             model: "Camry",
             year: 2020,
-            color: "Trắng",
+            color: "White",
           },
         ],
       },
       {
         id: "2",
-        name: "Trần Thị Bình",
+        name: "Tran Thi Binh",
         phone: "0907654321",
         email: "tranthibinh@email.com",
-        address: "456 Đường XYZ, Quận 3, TP.HCM",
+        address: "456 XYZ Street, District 3, HCMC",
         vehicles: [
           {
             id: "v2",
@@ -111,7 +111,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
             brand: "Honda",
             model: "Civic",
             year: 2019,
-            color: "Đen",
+            color: "Black",
           },
         ],
       },
@@ -122,7 +122,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
         id: "sr1",
         customerId: "1",
         vehicleId: "v1",
-        description: "Thay dầu máy và kiểm tra phanh",
+        description: "Oil change and brake inspection",
         priority: "medium",
         status: "pending",
         createdAt: new Date("2024-01-15"),
@@ -132,7 +132,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
         id: "sr2",
         customerId: "2",
         vehicleId: "v2",
-        description: "Sửa điều hòa không lạnh",
+        description: "Repair air conditioner (not cooling)",
         priority: "high",
         status: "in-progress",
         createdAt: new Date("2024-01-14"),
@@ -263,7 +263,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <Input
-              placeholder="Tìm kiếm theo tên, SĐT, biển số..."
+              placeholder="Search by name, phone, license plate..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 w-80"
@@ -283,30 +283,30 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
           }}
         >
           <Plus className="h-4 w-4 mr-2" />
-          Tạo đơn mới
+          New Request
         </Button>
       </div>
 
       {/* Service Requests Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Danh sách đơn sửa chữa</CardTitle>
+          <CardTitle>Service Request List</CardTitle>
           <CardDescription>
-            Tổng cộng {filteredRequests.length} đơn sửa chữa
+            Total {filteredRequests.length} service requests
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Khách hàng</TableHead>
-                <TableHead>Phương tiện</TableHead>
-                <TableHead>Mô tả</TableHead>
-                <TableHead>Ưu tiên</TableHead>
-                <TableHead>Trạng thái</TableHead>
-                <TableHead>Ngày tạo</TableHead>
-                <TableHead>Dự kiến hoàn thành</TableHead>
-                <TableHead>Thao tác</TableHead>
+                <TableHead>Customer</TableHead>
+                <TableHead>Vehicle</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead>Priority</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Created At</TableHead>
+                <TableHead>Estimated Completion</TableHead>
+                <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -350,33 +350,33 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
                     <TableCell>
                       <Badge className={getPriorityColor(request.priority)}>
                         {request.priority === "urgent"
-                          ? "Khẩn cấp"
+                          ? "Urgent"
                           : request.priority === "high"
-                          ? "Cao"
+                          ? "High"
                           : request.priority === "medium"
-                          ? "Trung bình"
-                          : "Thấp"}
+                          ? "Medium"
+                          : "Low"}
                       </Badge>
                     </TableCell>
                     <TableCell>
                       <Badge className={getStatusColor(request.status)}>
                         {request.status === "pending"
-                          ? "Chờ xử lý"
+                          ? "Pending"
                           : request.status === "confirmed"
-                          ? "Đã xác nhận"
+                          ? "Confirmed"
                           : request.status === "in-progress"
-                          ? "Đang thực hiện"
+                          ? "In Progress"
                           : request.status === "completed"
-                          ? "Hoàn thành"
-                          : "Đã hủy"}
+                          ? "Completed"
+                          : "Cancelled"}
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {request.createdAt.toLocaleDateString("vi-VN")}
+                      {request.createdAt.toLocaleDateString("en-US")}
                     </TableCell>
                     <TableCell>
                       {request.estimatedCompletionDate?.toLocaleDateString(
-                        "vi-VN"
+                        "en-US"
                       ) || "-"}
                     </TableCell>
                     <TableCell>
@@ -415,18 +415,18 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
           <DialogHeader>
             <DialogTitle>
               {editingRequest
-                ? "Chỉnh sửa đơn sửa chữa"
-                : "Tạo đơn sửa chữa mới"}
+                ? "Edit Service Request"
+                : "Create New Service Request"}
             </DialogTitle>
             <DialogDescription>
-              Nhập thông tin chi tiết về yêu cầu sửa chữa
+              Enter detailed information about the service request
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="customer">Khách hàng</Label>
+                <Label htmlFor="customer">Customer</Label>
                 <Select
                   value={selectedCustomer?.id || ""}
                   onValueChange={(value) => {
@@ -436,7 +436,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
                   }}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Chọn khách hàng" />
+                    <SelectValue placeholder="Select customer" />
                   </SelectTrigger>
                   <SelectContent>
                     {customers.map((customer) => (
@@ -454,7 +454,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="vehicle">Phương tiện</Label>
+                <Label htmlFor="vehicle">Vehicle</Label>
                 <Select
                   value={selectedVehicle?.id || ""}
                   onValueChange={(value) => {
@@ -466,7 +466,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
                   disabled={!selectedCustomer}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Chọn phương tiện" />
+                    <SelectValue placeholder="Select vehicle" />
                   </SelectTrigger>
                   <SelectContent>
                     {selectedCustomer?.vehicles.map((vehicle) => (
@@ -485,7 +485,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description">Mô tả vấn đề</Label>
+              <Label htmlFor="description">Problem Description</Label>
               <Textarea
                 id="description"
                 value={formData.description}
@@ -495,7 +495,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
                     description: e.target.value,
                   }))
                 }
-                placeholder="Mô tả chi tiết vấn đề cần sửa chữa..."
+                placeholder="Describe the issue in detail..."
                 required
                 rows={3}
               />
@@ -503,7 +503,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="priority">Mức độ ưu tiên</Label>
+                <Label htmlFor="priority">Priority</Label>
                 <Select
                   value={formData.priority}
                   onValueChange={(value: any) =>
@@ -514,16 +514,16 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="low">Thấp</SelectItem>
-                    <SelectItem value="medium">Trung bình</SelectItem>
-                    <SelectItem value="high">Cao</SelectItem>
-                    <SelectItem value="urgent">Khẩn cấp</SelectItem>
+                    <SelectItem value="low">Low</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                    <SelectItem value="urgent">Urgent</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="estimatedDate">Dự kiến hoàn thành</Label>
+                <Label htmlFor="estimatedDate">Estimated Completion</Label>
                 <Input
                   id="estimatedDate"
                   type="date"
@@ -539,14 +539,14 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="notes">Ghi chú</Label>
+              <Label htmlFor="notes">Notes</Label>
               <Textarea
                 id="notes"
                 value={formData.notes}
                 onChange={(e) =>
                   setFormData((prev) => ({ ...prev, notes: e.target.value }))
                 }
-                placeholder="Ghi chú thêm (nếu có)..."
+                placeholder="Additional notes (if any)..."
                 rows={2}
               />
             </div>
@@ -557,7 +557,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
                 variant="outline"
                 onClick={() => setIsFormVisible(false)}
               >
-                Hủy
+                Cancel
               </Button>
               <Button
                 type="submit"
@@ -565,7 +565,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
                   !selectedCustomer || !selectedVehicle || !formData.description
                 }
               >
-                {editingRequest ? "Cập nhật" : "Tạo đơn"}
+                {editingRequest ? "Update" : "Create Request"}
               </Button>
             </DialogFooter>
           </form>
