@@ -27,11 +27,38 @@ import {
   RefreshCw,
   Loader2,
   DollarSign,
-  Server,
-  XCircle
+  Building,
+  XCircle,
+  MapPin,
+  Phone,
+  Mail,
+  User,
+  Clock,
+  Wrench
 } from 'lucide-react'
 import { MetricData } from '@/types/statistics'
 import { statisticsService } from '@/services/statistics-service'
+
+// Define the GarageBranch interface
+export interface GarageBranch {
+  id: string
+  name: string
+  address: string
+  city: string
+  state: string
+  zipCode: string
+  country: string
+  phone: string
+  email: string
+  managerId: string
+  managerName: string
+  services: string[]
+  staff: number
+  operatingHours: string
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+}
 
 // Default metrics configuration
 const defaultMetrics: MetricData[] = [
@@ -78,25 +105,86 @@ const defaultMetrics: MetricData[] = [
     }
   },
   {
-    id: 'system-uptime',
-    title: 'System Uptime',
-    value: '99.9%',
-    change: '+0.1%',
+    id: 'garage-branches',
+    title: 'Garage Branches',
+    value: '15',
+    change: '+3',
     changeType: 'positive',
-    icon: Server,
+    icon: Building,
     color: 'text-purple-600',
     bgColor: 'bg-purple-50',
-    trend: [99.7, 99.8, 99.9, 99.8, 99.9, 99.9],
+    trend: [10, 11, 12, 13, 14, 15],
     details: {
-      currentUptime: '99.9%',
-      lastDowntime: '2024-02-15 03:30-04:15',
-      totalDowntime: '2h 15m',
-      avgResponseTime: '245ms',
-      serverLoad: '67%',
-      databaseConnections: '1,234',
-      activeProcesses: '456',
-      backupStatus: 'Last backup: 2 hours ago'
-    }
+      totalBranches: '15',
+      activeBranches: '14',
+      inactiveBranches: '1',
+      newThisMonth: '3',
+      topLocations: ['New York', 'Los Angeles', 'Chicago', 'Houston', 'Miami'],
+      totalStaff: '245',
+      totalServices: '18',
+      avgStaffPerBranch: '16.3',
+      upcomingOpenings: '2'
+    },
+    // Add garage branches data
+    branches: [
+      {
+        id: 'branch-1',
+        name: 'AutoFix Downtown',
+        address: '123 Main St',
+        city: 'New York',
+        state: 'NY',
+        zipCode: '10001',
+        country: 'USA',
+        phone: '+1 (555) 123-4567',
+        email: 'downtown@autofix.com',
+        managerId: 'mgr-001',
+        managerName: 'John Smith',
+        services: ['Oil Change', 'Brake Service', 'Tire Rotation', 'Engine Repair'],
+        staff: 18,
+        operatingHours: 'Mon-Fri: 8am-6pm, Sat: 9am-4pm',
+        isActive: true,
+        createdAt: '2023-01-15',
+        updatedAt: '2024-02-20'
+      },
+      {
+        id: 'branch-2',
+        name: 'AutoFix Westside',
+        address: '456 Oak Ave',
+        city: 'Los Angeles',
+        state: 'CA',
+        zipCode: '90001',
+        country: 'USA',
+        phone: '+1 (555) 987-6543',
+        email: 'westside@autofix.com',
+        managerId: 'mgr-002',
+        managerName: 'Maria Garcia',
+        services: ['Oil Change', 'Tire Service', 'AC Repair', 'Transmission'],
+        staff: 22,
+        operatingHours: 'Mon-Sat: 7:30am-7pm',
+        isActive: true,
+        createdAt: '2023-03-10',
+        updatedAt: '2024-01-15'
+      },
+      {
+        id: 'branch-3',
+        name: 'AutoFix Chicago Central',
+        address: '789 Michigan Ave',
+        city: 'Chicago',
+        state: 'IL',
+        zipCode: '60007',
+        country: 'USA',
+        phone: '+1 (555) 456-7890',
+        email: 'chicago@autofix.com',
+        managerId: 'mgr-003',
+        managerName: 'Robert Johnson',
+        services: ['Oil Change', 'Brake Service', 'Tire Rotation', 'Engine Repair', 'AC Repair'],
+        staff: 22,
+        operatingHours: 'Mon-Fri: 7:30am-5:30pm, Sat: 9am-2pm',
+        isActive: true,
+        createdAt: '2023-05-20',
+        updatedAt: '2024-02-10'
+      }
+    ]
   },
   {
     id: 'security-alerts',
@@ -149,59 +237,7 @@ export function DashboardOverview() {
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date())
-
-  // Load initial data
-  useEffect(() => {
-    loadMetrics()
-  }, [])
-
-  // Set up real-time updates
-  useEffect(() => {
-    let unsubscribe: (() => void) | null = null
-
-    try {
-      // Subscribe to real-time updates
-      unsubscribe = statisticsService.subscribeToRealTimeUpdates((data) => {
-        if (data.type === 'metrics_update' && data.metrics) {
-          setMetrics(data.metrics)
-          setLastUpdated(new Date())
-          setError(null) // Clear any previous errors
-        }
-      })
-    } catch (error) {
-      console.warn('Real-time updates not available:', error)
-    }
-
-    // Cleanup subscription on unmount
-    return () => {
-      if (unsubscribe) {
-        unsubscribe()
-      }
-    }
-  }, [])
-
-  const loadMetrics = useCallback(async () => {
-    try {
-      setIsLoading(true)
-      setError(null)
-      
-      // Fetch data from service (will return fallback data if API unavailable)
-      const data = await statisticsService.getMetrics()
-      setMetrics(data)
-      setLastUpdated(new Date())
-    } catch (err) {
-      console.warn('Unexpected error loading metrics:', err)
-      setError('Failed to load metrics. Using cached data.')
-      // Keep existing metrics instead of resetting to defaults
-    } finally {
-      setIsLoading(false)
-    }
-  }, [])
-
-  const handleMetricClick = useCallback((metric: MetricData) => {
-    setSelectedMetric(metric)
-  }, [])
-
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
   const handleRefreshData = useCallback(async () => {
     try {
       setIsRefreshing(true)
@@ -219,6 +255,39 @@ export function DashboardOverview() {
     }
   }, [])
 
+  // Load initial data
+  useEffect(() => {
+    const loadMetrics = async () => {
+      try {
+        setIsLoading(true)
+        setError(null)
+        
+        // Fetch data from service (will return fallback data if API unavailable)
+        const data = await statisticsService.getMetrics()
+        setMetrics(data)
+        setLastUpdated(new Date())
+      } catch (err) {
+        console.warn('Unexpected error loading metrics:', err)
+        setError('Failed to load metrics. Using cached data.')
+        // Keep existing metrics instead of resetting to defaults
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadMetrics()
+  }, [])
+
+  const handleMetricClick = useCallback((metric: MetricData) => {
+    setSelectedMetric(metric)
+    setIsDialogOpen(true) // Open dialog when metric is clicked
+  }, [])
+
+  const handleCloseDialog = useCallback(() => {
+    setIsDialogOpen(false) // Close dialog
+    setSelectedMetric(null) // Reset selected metric
+  }, [])
+
   const handleExportData = useCallback(async () => {
     try {
       const blob = await statisticsService.exportStatistics('metrics')
@@ -233,6 +302,47 @@ export function DashboardOverview() {
     } catch (error) {
       console.error('Export failed:', error)
       setError('Failed to export data. Please try again.')
+    }
+  }, [])
+
+  const handleExportMetric = useCallback(async (metricId: string) => {
+    try {
+      const blob = await statisticsService.exportStatistics(metricId)
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${metricId}-data-${new Date().toISOString().split('T')[0]}.csv`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (error) {
+      console.error('Export failed:', error)
+      setError(`Failed to export ${metricId} data. Please try again.`)
+    }
+  }, [])
+
+  const handleViewAnalytics = useCallback(async (metricId: string) => {
+    try {
+      // Get detailed analytics for the specific metric
+      const chartData = await statisticsService.getChartData(metricId, {
+        period: '30d',
+        metric: metricId
+      })
+      
+      // Navigate to analytics view or show detailed modal
+      // For now, we'll show an info message
+      console.log('Analytics data for', metricId, chartData)
+      
+      // You could implement navigation to a detailed analytics page here
+      // or show a more detailed modal with charts
+      setError(`Analytics for ${metricId} - Feature coming soon!`)
+      
+      // Clear the message after a few seconds
+      setTimeout(() => setError(null), 3000)
+    } catch (error) {
+      console.error('Analytics failed:', error)
+      setError(`Failed to load analytics for ${metricId}. Please try again.`)
     }
   }, [])
 
@@ -300,36 +410,93 @@ export function DashboardOverview() {
           </div>
         )}
 
-        {/* Details Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {Object.entries(metric.details).map(([key, value]) => (
-            <div key={key} className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-700 capitalize">
-                  {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
-                </span>
-                {typeof value === 'string' && value.includes('%') && (
-                  <div className="w-16">
-                    <Progress value={parseInt(value)} className="h-2" />
+        {/* Special handling for Garage Branches */}
+        {metric.id === 'garage-branches' && metric.branches ? (
+          <div className="space-y-4">
+            <h4 className="font-medium text-gray-900">Branch Details</h4>
+            <div className="grid grid-cols-1 gap-4">
+              {metric.branches.map((branch: GarageBranch) => (
+                <div key={branch.id} className="p-4 border rounded-lg">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h5 className="font-medium text-gray-900">{branch.name}</h5>
+                      <p className="text-sm text-gray-500">{branch.address}, {branch.city}, {branch.state} {branch.zipCode}</p>
+                    </div>
+                    <Badge variant={branch.isActive ? "default" : "secondary"}>
+                      {branch.isActive ? "Active" : "Inactive"}
+                    </Badge>
                   </div>
-                )}
-              </div>
-              <div className="p-3 bg-gray-50 rounded-lg">
-                <span className="text-sm text-gray-900">
-                  {Array.isArray(value) ? value.join(', ') : String(value)}
-                </span>
-              </div>
+                  <div className="grid grid-cols-2 gap-2 mt-3 text-sm">
+                    <div className="flex items-center">
+                      <User className="h-4 w-4 mr-2 text-gray-500" />
+                      <span className="font-medium">Manager:</span> {branch.managerName}
+                    </div>
+                    <div className="flex items-center">
+                      <Phone className="h-4 w-4 mr-2 text-gray-500" />
+                      <span className="font-medium">Phone:</span> {branch.phone}
+                    </div>
+                    <div className="flex items-center">
+                      <Mail className="h-4 w-4 mr-2 text-gray-500" />
+                      <span className="font-medium">Email:</span> {branch.email}
+                    </div>
+                    <div className="flex items-center">
+                      <Users className="h-4 w-4 mr-2 text-gray-500" />
+                      <span className="font-medium">Staff:</span> {branch.staff}
+                    </div>
+                    <div className="col-span-2 flex items-start">
+                      <Wrench className="h-4 w-4 mr-2 text-gray-500 mt-1" />
+                      <div>
+                        <span className="font-medium">Services:</span> 
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {branch.services.map((service, index) => (
+                            <Badge key={index} variant="outline" className="text-xs">
+                              {service}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="col-span-2 flex items-center">
+                      <Clock className="h-4 w-4 mr-2 text-gray-500" />
+                      <span className="font-medium">Hours:</span> {branch.operatingHours}
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </div>
+        ) : (
+          /* Standard details grid for other metrics */
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {Object.entries(metric.details).map(([key, value]) => (
+              <div key={key} className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-700 capitalize">
+                    {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                  </span>
+                  {typeof value === 'string' && value.includes('%') && (
+                    <div className="w-16">
+                      <Progress value={parseInt(value)} className="h-2" />
+                    </div>
+                  )}
+                </div>
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <span className="text-sm text-gray-900">
+                    {Array.isArray(value) ? value.join(', ') : String(value)}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Action Buttons */}
         <div className="flex space-x-2 pt-4 border-t border-gray-200">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={() => handleViewAnalytics(metric.id)}>
             <BarChart3 className="h-4 w-4 mr-2" />
             View Analytics
           </Button>
-          <Button variant="outline" size="sm" onClick={handleExportData}>
+          <Button variant="outline" size="sm" onClick={() => handleExportMetric(metric.id)}>
             <Download className="h-4 w-4 mr-2" />
             Export Data
           </Button>
@@ -344,7 +511,7 @@ export function DashboardOverview() {
         </div>
       </div>
     )
-  }, [handleRefreshData, handleExportData])
+  }, [handleRefreshData, handleExportMetric, handleViewAnalytics, isRefreshing])
 
   // Show loading state
   if (isLoading && metrics.length === 0) {
@@ -359,7 +526,7 @@ export function DashboardOverview() {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[...Array(6)].map((_, index) => (
+          {[...Array(5)].map((_, index) => (
             <Card key={index} className="animate-pulse">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <div className="h-4 bg-gray-200 rounded w-24"></div>
@@ -439,7 +606,15 @@ export function DashboardOverview() {
         {metrics.map((metric) => {
           const Icon = metric.icon
           return (
-            <Dialog key={metric.id} open={selectedMetric?.id === metric.id} onOpenChange={() => setSelectedMetric(null)}>
+            <Dialog 
+              key={metric.id} 
+              open={isDialogOpen && selectedMetric?.id === metric.id} // Control dialog open state
+              onOpenChange={(open) => {
+                if (!open) {
+                  handleCloseDialog(); // Close dialog when onOpenChange is called with false
+                }
+              }}
+            >
               <DialogTrigger asChild>
                 <Card 
                   className="hover:shadow-md transition-shadow cursor-pointer group"
@@ -495,7 +670,7 @@ export function DashboardOverview() {
                 </div>
                 
                 <DialogFooter>
-                  <Button variant="outline" onClick={() => setSelectedMetric(null)}>
+                  <Button variant="outline" onClick={handleCloseDialog}>
                     Close
                   </Button>
                   <Button onClick={handleRefreshData} disabled={isRefreshing}>
@@ -519,4 +694,4 @@ export function DashboardOverview() {
       </div>
     </div>
   )
-} 
+}
