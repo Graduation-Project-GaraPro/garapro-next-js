@@ -16,7 +16,7 @@ export default function Header() {
       message: 'Dịch vụ bảo dưỡng định kỳ đã hoàn thành. Bạn có thể đến lấy xe.',
       time: '2 giờ trước',
       read: false,
-      target: '/request-detail?requestId=1'
+      target: '/customer/request-detail?requestId=1'
     },
     {
       id: 2,
@@ -25,7 +25,7 @@ export default function Header() {
       message: 'Lịch hẹn sửa chữa phanh lúc 9:00 sáng ngày mai.',
       time: '1 ngày trước',
       read: false,
-      target: '/appointments'
+      target: '/customer/appointments'
     },
     {
       id: 3,
@@ -34,7 +34,7 @@ export default function Header() {
       message: 'Báo giá cho dịch vụ sửa chữa điều hòa đã được gửi qua email.',
       time: '3 giờ trước',
       read: false,
-      target: '/notifications'
+      target: '/customer/notifications'
     },
     {
       id: 4,
@@ -43,7 +43,7 @@ export default function Header() {
       message: 'Thanh toán cho dịch vụ thay lốp đã được xử lý thành công.',
       time: '1 tuần trước',
       read: true,
-      target: '/history'
+      target: '/customer/history'
     }
   ]);
 
@@ -184,7 +184,7 @@ export default function Header() {
                   
                   <div className="p-4 border-t border-gray-200">
                     <Link
-                      href="/notifications"
+                      href="/customer/notifications"
                       className="block text-center text-blue-600 hover:text-blue-800 font-medium"
                       onClick={() => setShowNotifications(false)}
                     >
@@ -198,7 +198,7 @@ export default function Header() {
             {/* Profile */}
             <div className="flex items-center space-x-2">
               <button
-                onClick={() => router.push('/account')}
+                onClick={() => router.push('/customer/account')}
                 className="flex items-center space-x-2"
                 title="Tài khoản"
               >

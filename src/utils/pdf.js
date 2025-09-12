@@ -142,5 +142,3 @@ export function buildQuotationHtml({ brand = 'Garage PRO', contact = 'Hotline: 1
     <div style="margin-top:24px; font-size:12px; color:#6b7280;">Cảm ơn quý khách đã tin tưởng ${brand}!</div>
   `;
 }
-
-

@@ -44,19 +44,21 @@ export default function Sidebar() {
   }, []);
 
   const pathname = usePathname();
+ const base = "/customer";
 
-  const navItems = [
-    { id: 'dashboard', label: 'Tổng quan', icon: Car, path: '/' },
-    { id: 'submit-request', label: 'Gửi yêu cầu', icon: Plus, path: '/submit-request' },
-    { id: 'progress', label: 'Tiến độ', icon: Clock, path: '/progress' },
-    { id: 'ai-chat', label: 'AI Chẩn đoán', icon: MessageCircle, path: '/ai-chat' },
-    { id: 'appointments', label: 'Lịch hẹn', icon: Calendar, path: '/appointments' },
-    { id: 'history', label: 'Lịch sử', icon: History, path: '/history' },
-    { id: 'reviews', label: 'Đánh giá', icon: Star, path: '/reviews' },
-    { id: 'emergency', label: 'Cứu hộ', icon: AlertTriangle, path: '/emergency' },
-    { id: 'notifications', label: 'Thông báo', icon: Bell, path: '/notifications' },
-    { id: 'account', label: 'Tài khoản', icon: User, path: '/account' },
-  ];
+const navItems = [
+  { id: 'dashboard', label: 'Tổng quan', icon: Car, path: `/` },
+  { id: 'submit-request', label: 'Gửi yêu cầu', icon: Plus, path: `${base}/submit-request` },
+  { id: 'progress', label: 'Tiến độ', icon: Clock, path: `${base}/progress` },
+  { id: 'ai-chat', label: 'AI Chẩn đoán', icon: MessageCircle, path: `${base}/ai-chat` },
+  { id: 'appointments', label: 'Lịch hẹn', icon: Calendar, path: `${base}/appointments` },
+  { id: 'history', label: 'Lịch sử', icon: History, path: `${base}/history` },
+  { id: 'reviews', label: 'Đánh giá', icon: Star, path: `${base}/reviews` },
+  { id: 'emergency', label: 'Cứu hộ', icon: AlertTriangle, path: `${base}/emergency` },
+  { id: 'notifications', label: 'Thông báo', icon: Bell, path: `${base}/notifications` },
+  { id: 'account', label: 'Tài khoản', icon: User, path: `${base}/account` },
+];
+
 
   return (
     <div className="w-64 bg-slate-900 h-screen sticky top-0 border-r border-slate-800">

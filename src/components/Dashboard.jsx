@@ -64,7 +64,7 @@ export default function Dashboard() {
           </div>
         </div>
         </Link>
-        <Link href="/history" className="block">
+        <Link href="customer/history" className="block">
         <div className="bg-gradient-to-r from-green-500 to-green-600 text-white p-6 rounded-xl shadow-lg hover:opacity-95 transition h-28">
           <div className="flex items-center justify-between">
             <div>
@@ -75,7 +75,7 @@ export default function Dashboard() {
           </div>
         </div>
         </Link>
-        <Link href="/appointments" className="block">
+        <Link href="customer/appointments" className="block">
         <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white p-6 rounded-xl shadow-lg hover:opacity-95 transition h-28">
           <div className="flex items-center justify-between">
             <div>
@@ -86,7 +86,7 @@ export default function Dashboard() {
           </div>
         </div>
         </Link>
-        <Link href="/reviews" className="block">
+        <Link href="customer/reviews" className="block">
         <div className="bg-gradient-to-r from-purple-500 to-purple-600 text-white p-6 rounded-xl shadow-lg hover:opacity-95 transition h-28">
           <div className="flex items-center justify-between">
             <div>
@@ -97,7 +97,7 @@ export default function Dashboard() {
           </div>
         </div>
         </Link>
-        <Link href="/notifications" className="block">
+        <Link href="customer/notifications" className="block">
         <div className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white p-6 rounded-xl shadow-lg hover:opacity-95 transition h-28">
           <div className="flex items-center justify-between">
             <div>
@@ -150,7 +150,7 @@ export default function Dashboard() {
           ) : (
             <div className="space-y-4">
               {appointments.map((appointment) => (
-                <Link href={`/appointments?appointmentId=${appointment.id}`} key={appointment.id} className="block">
+                <Link href={`customer/appointments?appointmentId=${appointment.id}`} key={appointment.id} className="block">
                   <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
                     <div className="flex items-center space-x-3">
                       <Calendar className="h-5 w-5 text-gray-500" />
