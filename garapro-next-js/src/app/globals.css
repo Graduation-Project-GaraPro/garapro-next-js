@@ -137,3 +137,28 @@ body[data-radix-dialog-overlay-open] {
 body:not([data-radix-dialog-overlay-open]) {
   pointer-events: auto !important;
 }
+
+/*Thanh Cuộn*/
+.rounded-scroll::-webkit-scrollbar {
+  width: 8px; /* Độ rộng của thanh cuộn */
+}
+
+.rounded-scroll::-webkit-scrollbar-track {
+  background: #f1f1f1; /* Màu nền của thanh cuộn */
+  border-radius: 80px; /* Bo tròn viền thanh cuộn */
+}
+
+.rounded-scroll::-webkit-scrollbar-thumb {
+  background: #888; /* Màu của thanh kéo */
+  border-radius: 15px; /* Bo tròn thanh kéo */
+}
+
+.rounded-scroll::-webkit-scrollbar-thumb:hover {
+  background: #555; /* Màu khi hover */
+}
+
+/* Hỗ trợ Firefox */
+.rounded-scroll {
+  scrollbar-width: thin; /* Độ mỏng của thanh cuộn */
+  scrollbar-color: #888 #f1f1f1; /* Màu thanh kéo và nền */
+}

@@ -7,7 +7,6 @@ import { cn } from '@/lib/utils'
 import {
   LayoutDashboard,
   Users,
-  Settings,
   BarChart3,
   FileText,
   UserCheck,
