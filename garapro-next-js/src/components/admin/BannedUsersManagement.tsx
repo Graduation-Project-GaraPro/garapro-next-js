@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import SendEmailDialog from '@/components/admin/users/SendEmailDialog'
 import {
   Table,
   TableBody,
@@ -89,7 +90,10 @@ const bannedUsers = [
     avatar: 'LB'
   }
 ]
-
+const handleCall = () => {
+  // Ví dụ gọi đến số +84 123 456 789
+  window.location.href = "tel:+84123456789"
+}
 const getBanTypeBadge = (type: string) => {
   switch (type) {
     case 'permanent':
@@ -120,6 +124,7 @@ export function BannedUsersManagement() {
   const [selectedUser, setSelectedUser] = useState<any>(null)
   const [isUnbanDialogOpen, setIsUnbanDialogOpen] = useState(false)
   const [isViewDetailsDialogOpen, setIsViewDetailsDialogOpen] = useState(false)
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false)
 
   const filteredUsers = bannedUsers.filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -320,11 +325,13 @@ export function BannedUsersManagement() {
               <div>
                 <label className="text-sm font-medium text-gray-600">Actions</label>
                 <div className="flex space-x-2 mt-2">
-                  <Button variant="outline" size="sm">
-                    <Mail className="mr-2 h-4 w-4" />
+                  
+                  <Button variant="outline" size="sm" onClick={() => setEmailDialogOpen(true)}>
+                    <Mail className="h-4 w-4 mr-2" />
                     Send Email
                   </Button>
-                  <Button variant="outline" size="sm">
+
+                  <Button variant="outline" size="sm" onClick={handleCall}>
                     <Phone className="mr-2 h-4 w-4" />
                     Call User
                   </Button>
@@ -338,6 +345,12 @@ export function BannedUsersManagement() {
           )}
         </DialogContent>
       </Dialog>
+
+      <SendEmailDialog 
+        open={emailDialogOpen} 
+        onOpenChange={setEmailDialogOpen} 
+        user={selectedUser} 
+      />
     </div>
   )
 } 

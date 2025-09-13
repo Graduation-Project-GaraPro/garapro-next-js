@@ -275,11 +275,13 @@ interface EditPolicyDialogProps {
 }
 
 export function EditPolicyDialog({ open, onOpenChange, policy, onSubmit, loading, categories, tags }: EditPolicyDialogProps) {
-  const [formData, setFormData] = useState(policy)
+  const [formData, setFormData] = useState<Policy>(policy)
+  const [selectedTag, setSelectedTag] = useState('')
 
   useEffect(() => {
     if (open) {
       setFormData(policy)
+      setSelectedTag('')
     }
   }, [open, policy])
 
@@ -287,8 +289,6 @@ export function EditPolicyDialog({ open, onOpenChange, policy, onSubmit, loading
     e.preventDefault()
     onSubmit(formData)
   }
-
-  const [selectedTag, setSelectedTag] = useState('')
 
   const addTag = () => {
     if (selectedTag && !formData.tags.includes(selectedTag)) {
@@ -317,7 +317,169 @@ export function EditPolicyDialog({ open, onOpenChange, policy, onSubmit, loading
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Form fields tương tự CreatePolicyDialog nhưng với giá trị từ formData */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Policy Name *</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="category">Category *</Label>
+              <Select
+                value={formData.category}
+                onValueChange={(value: Policy['category']) => setFormData(prev => ({ ...prev, category: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map(category => (
+                    <SelectItem key={category} value={category}>{category}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="description">Description *</Label>
+            <Textarea
+              id="description"
+              value={formData.description}
+              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              required
+              rows={3}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="status">Status *</Label>
+              <Select
+                value={formData.status}
+                onValueChange={(value: Policy['status']) => setFormData(prev => ({ ...prev, status: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                  <SelectItem value="draft">Draft</SelectItem>
+                  <SelectItem value="archived">Archived</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="priority">Priority *</Label>
+              <Select
+                value={formData.priority}
+                onValueChange={(value: Policy['priority']) => setFormData(prev => ({ ...prev, priority: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">Low</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="high">High</SelectItem>
+                  <SelectItem value="critical">Critical</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="effectiveDate">Effective Date *</Label>
+              <Input
+                id="effectiveDate"
+                type="date"
+                value={new Date(formData.effectiveDate).toISOString().split('T')[0]}
+                onChange={(e) => setFormData(prev => ({ 
+                  ...prev, 
+                  effectiveDate: new Date(e.target.value).toISOString() 
+                }))}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="expiryDate">Expiry Date (Optional)</Label>
+              <Input
+                id="expiryDate"
+                type="date"
+                value={formData.expiryDate ? new Date(formData.expiryDate).toISOString().split('T')[0] : ''}
+                onChange={(e) => setFormData(prev => ({ 
+                  ...prev, 
+                  expiryDate: e.target.value ? new Date(e.target.value).toISOString() : '' 
+                }))}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Tags</Label>
+            <div className="flex gap-2">
+              <Select value={selectedTag} onValueChange={setSelectedTag}>
+                <SelectTrigger className="flex-1">
+                  <SelectValue placeholder="Select a tag" />
+                </SelectTrigger>
+                <SelectContent>
+                  {tags.map(tag => (
+                    <SelectItem key={tag} value={tag}>{tag}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button type="button" onClick={addTag}>Add Tag</Button>
+            </div>
+            <div className="flex flex-wrap gap-2 mt-2">
+              {formData.tags.map(tag => (
+                <Badge key={tag} variant="secondary" className="flex items-center gap-1">
+                  {tag}
+                  <button
+                    type="button"
+                    onClick={() => removeTag(tag)}
+                    className="ml-1 hover:text-red-600"
+                  >
+                    ×
+                  </button>
+                </Badge>
+              ))}
+            </div>
+          </div>
+
+          <Separator />
+
+          <div className="space-y-4">
+            <Label className="text-lg font-semibold">Compliance Standards</Label>
+            <div className="grid grid-cols-2 gap-4">
+              {Object.entries(formData.compliance).map(([standard, enabled]) => (
+                <div key={standard} className="flex items-center space-x-2">
+                  <Switch
+                    checked={enabled}
+                    onCheckedChange={(checked) => setFormData(prev => ({
+                      ...prev,
+                      compliance: { ...prev.compliance, [standard]: checked }
+                    }))}
+                  />
+                  <Label className="text-sm font-medium capitalize">{standard}</Label>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? 'Updating...' : 'Update Policy'}
+            </Button>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>

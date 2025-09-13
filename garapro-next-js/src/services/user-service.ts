@@ -323,6 +323,30 @@ class UserService {
     }
   }
 
+  async getUserByRoleId(roleId: number): Promise<User[]> {
+    try {
+      const response = await apiClient.get<User[]>(`${this.baseUrl}/role/${roleId}`)
+      return response.data
+    } catch (error) {
+      console.error(`Failed to fetch users by role ID ${roleId}:`, error)
+      
+      // Fallback: map role IDs to role names and filter users
+      const roleMapping: Record<number, 'user' | 'admin' | 'manager'> = {
+        1: 'user',
+        2: 'admin', 
+        3: 'manager'
+      }
+      
+      const roleName = roleMapping[roleId]
+      if (!roleName) {
+        throw new Error(`Invalid role ID: ${roleId}`)
+      }
+      
+      const res = await this.getUsers({ role: roleName, limit: 1000 })
+      return res.users
+    }
+  }
+
   // Change user role
   async changeUserRole(id: number, role: 'user' | 'admin' | 'manager'): Promise<void> {
     try {

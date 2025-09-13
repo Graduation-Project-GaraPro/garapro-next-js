@@ -9,6 +9,27 @@ export interface MetricData {
   bgColor: string
   trend: number[]
   details: Record<string, any>
+  branches?: GarageBranch[] // Add optional branches property
+}
+
+export interface GarageBranch {
+  id: string
+  name: string
+  address: string
+  city: string
+  state: string
+  zipCode: string
+  country: string
+  phone: string
+  email: string
+  managerId: string
+  managerName: string
+  services: string[] // Simplified from BranchServiceType[]
+  staff: number // Simplified from BranchStaff[]
+  operatingHours: string // Simplified from OperatingHours
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
 }
 
 export interface ChartData {
@@ -122,4 +143,4 @@ export interface AnalyticsData {
   }>
   geographicData: GeographicData[]
   performanceMetrics: PerformanceMetric[]
-} 
+}

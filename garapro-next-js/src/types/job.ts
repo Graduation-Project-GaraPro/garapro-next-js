@@ -10,6 +10,11 @@ export interface Job {
   status: JobStatus
   progress: number
   statusText?: string
+  // Link to RO Label settings
+  labelId?: number
+  // Selected labor rate snapshot
+  laborRateId?: string
+  laborRate?: number
   dueDate?: string
   createdAt: string
   updatedAt: string

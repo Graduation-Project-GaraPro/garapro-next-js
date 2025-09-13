@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { CheckCircleIcon } from "@heroicons/react/24/solid"
+
 import {
   Dialog,
   DialogContent,
@@ -209,9 +211,16 @@ const getStatusIcon = (status: string) => {
 export function RecentActivity() {
   const [selectedActivity, setSelectedActivity] = useState<any>(null)
   const [copiedField, setCopiedField] = useState<string | null>(null)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
 
   const handleViewDetails = (activity: any) => {
     setSelectedActivity(activity)
+    setIsDialogOpen(true)
+  }
+
+  const handleCloseDialog = () => {
+    setIsDialogOpen(false)
+    setSelectedActivity(null)
   }
 
   const handleCopyToClipboard = async (text: string, fieldName: string) => {
@@ -292,7 +301,7 @@ export function RecentActivity() {
           {activity.type === 'user_banned' && (
             <>
               <Button variant="outline" size="sm">
-                <CheckCircle className="h-4 w-4 mr-2" />
+                <CheckCircleIcon className="h-4 w-4 mr-2" />
                 Unban User
               </Button>
               <Button variant="outline" size="sm">
@@ -348,7 +357,7 @@ export function RecentActivity() {
                 Download Backup
               </Button>
               <Button variant="outline" size="sm">
-                <CheckCircle className="h-4 w-4 mr-2" />
+                <CheckCircleIcon className="h-4 w-4 mr-2" />
                 Verify Backup
               </Button>
             </>
@@ -359,88 +368,92 @@ export function RecentActivity() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center space-x-2">
-          <Activity className="h-5 w-5" />
-          <span>Recent Activity</span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {activities.map((activity) => {
-            const Icon = activity.icon
-            return (
-              <Dialog key={activity.id} open={selectedActivity?.id === activity.id} onOpenChange={() => setSelectedActivity(null)}>
-                <DialogTrigger asChild>
-                  <div className="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback className="text-xs">
-                        {activity.user}
-                      </AvatarFallback>
-                    </Avatar>
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Activity className="h-5 w-5" />
+            <span>Recent Activity</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {activities.map((activity) => {
+              const Icon = activity.icon
+              return (
+                <div
+                  key={activity.id}
+                  className="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                  onClick={() => handleViewDetails(activity)}
+                >
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback className="text-xs">
+                      {activity.user}
+                    </AvatarFallback>
+                  </Avatar>
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <Icon className="h-4 w-4 text-gray-500" />
+                        <span className="text-sm font-medium text-gray-900">
+                          {activity.title}
+                        </span>
+                      </div>
+                      <Badge className={`text-xs ${getStatusColor(activity.status)}`}>
+                        {activity.status}
+                      </Badge>
+                    </div>
                     
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <Icon className="h-4 w-4 text-gray-500" />
-                          <span className="text-sm font-medium text-gray-900">
-                            {activity.title}
-                          </span>
-                        </div>
-                        <Badge className={`text-xs ${getStatusColor(activity.status)}`}>
-                          {activity.status}
-                        </Badge>
+                    <p className="text-sm text-gray-600 mt-1">
+                      {activity.description}
+                    </p>
+                    
+                    <div className="flex items-center justify-between mt-2">
+                      <div className="flex items-center space-x-1">
+                        <Clock className="h-3 w-3 text-gray-400" />
+                        <span className="text-xs text-gray-500">
+                          {activity.time}
+                        </span>
                       </div>
-                      
-                      <p className="text-sm text-gray-600 mt-1">
-                        {activity.description}
-                      </p>
-                      
-                      <div className="flex items-center justify-between mt-2">
-                        <div className="flex items-center space-x-1">
-                          <Clock className="h-3 w-3 text-gray-400" />
-                          <span className="text-xs text-gray-500">
-                            {activity.time}
-                          </span>
-                        </div>
-                        <Button variant="ghost" size="sm" className="h-6 px-2">
-                          <Eye className="h-3 w-3" />
-                        </Button>
-                      </div>
+                      <Button variant="ghost" size="sm" className="h-6 px-2">
+                        <Eye className="h-3 w-3" />
+                      </Button>
                     </div>
                   </div>
-                </DialogTrigger>
-                
-                <DialogContent className="max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>Activity Details</DialogTitle>
-                    <DialogDescription>
-                      Detailed information about this activity
-                    </DialogDescription>
-                  </DialogHeader>
-                  
-                  <div className="py-4">
-                    {selectedActivity && renderActivityDetails(selectedActivity)}
-                  </div>
-                  
-                  <DialogFooter>
-                    <Button variant="outline" onClick={() => setSelectedActivity(null)}>
-                      Close
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            )
-          })}
-        </div>
-        
-        <div className="mt-4 pt-4 border-t border-gray-200">
-          <Button variant="ghost" className="text-sm text-blue-600 hover:text-blue-800 font-medium">
-            View all activity →
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+                </div>
+              )
+            })}
+          </div>
+          
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <Button variant="ghost" className="text-sm text-blue-600 hover:text-blue-800 font-medium">
+              View all activity →
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Activity Details</DialogTitle>
+            <DialogDescription>
+              Detailed information about this activity
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            {selectedActivity && renderActivityDetails(selectedActivity)}
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={handleCloseDialog}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   )
-} 
+}

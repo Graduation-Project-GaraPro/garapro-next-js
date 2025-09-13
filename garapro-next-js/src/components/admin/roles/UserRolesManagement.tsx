@@ -4,7 +4,7 @@ import { useState, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Search, Plus } from 'lucide-react'
+import { Search, Plus, Users, Edit } from 'lucide-react'
 import { toast } from 'sonner'
 
 // Import components and hooks
@@ -12,7 +12,7 @@ import { RoleTable } from '@/components/admin/roles/RoleTables'
 import { RoleDialogs } from '@/components/admin/roles/RoleDialogs'
 import { useRoles, usePermissions, useRoleOperations, useDebounce } from '@/hooks/admin/roles/useRoles'
 import { Role } from '@/services/role-service'
-
+import { userService } from '@/services/user-service'
 export function UserRolesManagement() {
   // Search state
   const [searchTerm, setSearchTerm] = useState('')
@@ -28,6 +28,9 @@ export function UserRolesManagement() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isViewDetailsDialogOpen, setIsViewDetailsDialogOpen] = useState(false)
   const [isDuplicateDialogOpen, setIsDuplicateDialogOpen] = useState(false)
+  const [isViewUsersDialogOpen, setIsViewUsersDialogOpen] = useState(false)
+  const [usersWithRole, setUsersWithRole] = useState<any[]>([])
+  const [loadingUsers, setLoadingUsers] = useState(false)
 
   // Data hooks
   const { roles, loading, refetch } = useRoles({ 
@@ -49,6 +52,30 @@ export function UserRolesManagement() {
   const handleEditRole = useCallback((role: Role) => {
     setSelectedRole(role)
     setIsEditDialogOpen(true)
+    // Close view dialog if open
+    if (isViewDetailsDialogOpen) {
+      setIsViewDetailsDialogOpen(false)
+    }
+  }, [isViewDetailsDialogOpen])
+
+  const handleViewUsers = useCallback(async (role: Role) => {
+    setSelectedRoleForView(role)
+    setIsViewUsersDialogOpen(true)
+    setLoadingUsers(true)
+    
+
+
+    try {
+      // Simulate API call to get users with this role
+      // In real application, you would call your API here
+      const users = await userService.getUserByRoleId(role.id);
+      setUsersWithRole(users);
+    } catch (error) {
+      toast.error('Failed to load users')
+      console.error('Error loading users:', error)
+    } finally {
+      setLoadingUsers(false)
+    }
   }, [])
 
   const handleDeleteRole = useCallback((role: Role) => {
@@ -136,7 +163,11 @@ export function UserRolesManagement() {
   const handleEditClose = useCallback(() => {
     setIsEditDialogOpen(false)
     setSelectedRole(null)
-  }, [])
+    // Reopen view dialog if it was opened before edit
+    if (selectedRoleForView) {
+      setIsViewDetailsDialogOpen(true)
+    }
+  }, [selectedRoleForView])
 
   const handleDeleteClose = useCallback(() => {
     setIsDeleteDialogOpen(false)
@@ -146,6 +177,11 @@ export function UserRolesManagement() {
   const handleViewClose = useCallback(() => {
     setIsViewDetailsDialogOpen(false)
     setSelectedRoleForView(null)
+  }, [])
+
+  const handleViewUsersClose = useCallback(() => {
+    setIsViewUsersDialogOpen(false)
+    setUsersWithRole([])
   }, [])
 
   const handleDuplicateClose = useCallback(() => {
@@ -224,8 +260,16 @@ export function UserRolesManagement() {
         onDuplicateClose={handleDuplicateClose}
         onDuplicateSubmit={handleDuplicateSubmit}
         
+        // View Users dialog
+        isViewUsersOpen={isViewUsersDialogOpen}
+        onViewUsersClose={handleViewUsersClose}
+        usersWithRole={usersWithRole}
+        loadingUsers={loadingUsers}
+        
         // Data
         permissions={permissions}
+        onViewUsers={handleViewUsers}
+        onEditRole={handleEditRole}
         loading={operationLoading || permissionsLoading}
       />
     </div>
