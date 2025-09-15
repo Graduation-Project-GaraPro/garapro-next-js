@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useParams, useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -23,9 +22,11 @@ import {
   Car,
   Clock,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react'
-import { RevenueReport, revenueService, RevenueFilters, ServiceDetail, RepairOrder, DetailedRepairOrder } from '@/services/revenue-service'
+import { RevenueReport, revenueService, RevenueFilters, DetailedRepairOrder } from '@/services/revenue-service'
 import {
   BarChart,
   Bar,
@@ -49,11 +50,12 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Calendar as CalendarComponent } from '@/components/ui/calendar'
+import { format } from 'date-fns'
+import { DateRange } from 'react-day-picker'
+
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#FF6B6B', '#48DBFB', '#1DD1A1']
-
-
-
-
 
 // Format currency
 const formatCurrency = (value: number) => {
@@ -98,36 +100,62 @@ const StatusBadge = ({ status }: { status: string }) => {
   )
 }
 
-export default function DetailedRevenueReport() {
-  const params = useParams()
-  const router = useRouter()
-  const period = params.period as string
+// Custom Date Picker Component
+const DateRangePicker = ({ date, onDateChange }: { date: DateRange | undefined, onDateChange: (date: DateRange | undefined) => void }) => {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          className="w-[240px] justify-start text-left font-normal"
+        >
+          <Calendar className="mr-2 h-4 w-4" />
+          {date?.from ? (
+            date.to ? (
+              <>
+                {format(date.from, "LLL dd, y")} - {format(date.to, "LLL dd, y")}
+              </>
+            ) : (
+              format(date.from, "LLL dd, y")
+            )
+          ) : (
+            <span>Pick a date range</span>
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <CalendarComponent
+          initialFocus
+          mode="range"
+          defaultMonth={date?.from}
+          selected={date}
+          onSelect={onDateChange}
+          numberOfMonths={2}
+        />
+      </PopoverContent>
+    </Popover>
+  )
+}
+
+export default function RevenuePage() {
   const [report, setReport] = useState<RevenueReport | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isExporting, setIsExporting] = useState(false)
   const [selectedBranch, setSelectedBranch] = useState<string>('all')
-  const [dateRange, setDateRange] = useState<string>('thisWeek')
+  const [period, setPeriod] = useState<string>('monthly')
+  const [dateRange, setDateRange] = useState<DateRange | undefined>()
   const [refreshing, setRefreshing] = useState(false)
   const [activeTab, setActiveTab] = useState('overview')
+  const [selectedOrder, setSelectedOrder] = useState<DetailedRepairOrder | null>(null)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [isLoadingOrder, setIsLoadingOrder] = useState(false)
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+    summary: true,
+    charts: true,
+    services: true,
+    orders: true
+  })
 
-  // Add this state to the component
-const [selectedOrder, setSelectedOrder] = useState<DetailedRepairOrder | null>(null)
-const [isDialogOpen, setIsDialogOpen] = useState(false)
-const [isLoadingOrder, setIsLoadingOrder] = useState(false)
-
-// Add this function to handle order click
-const handleOrderClick = async (orderId: string) => {
-  setIsLoadingOrder(true)
-  setIsDialogOpen(true)
-  try {
-    const orderDetail = await revenueService.getRepairOrderDetail(orderId)
-    setSelectedOrder(orderDetail)
-  } catch (error) {
-    console.error('Failed to fetch order details:', error)
-  } finally {
-    setIsLoadingOrder(false)
-  }
-}
   // Fetch report data
   const fetchReport = async () => {
     setIsLoading(true)
@@ -138,33 +166,16 @@ const handleOrderClick = async (orderId: string) => {
         filters.branchId = selectedBranch
       }
       
-      // Add date range filtering based on selection
-      if (dateRange === 'lastWeek') {
-        const lastWeek = new Date()
-        lastWeek.setDate(lastWeek.getDate() - 7)
-        filters.startDate = lastWeek.toISOString().split('T')[0]
-      } else if (dateRange === 'lastMonth') {
-        const lastMonth = new Date()
-        lastMonth.setMonth(lastMonth.getMonth() - 1)
-        filters.startDate = lastMonth.toISOString().split('T')[0]
+      // Add date range filtering if selected
+      if (dateRange?.from) {
+        filters.startDate = dateRange.from.toISOString().split('T')[0]
       }
       
-      let data: RevenueReport
-      
-      if (period === 'daily') {
-        const today = new Date()
-        const dateStr = today.toISOString().split('T')[0]
-        data = await revenueService.getDailyRevenue(dateStr)
-      } else if (period === 'monthly') {
-        const today = new Date()
-        data = await revenueService.getMonthlyRevenue(today.getFullYear(), today.getMonth() + 1)
-      } else if (period === 'yearly') {
-        const today = new Date()
-        data = await revenueService.getYearlyRevenue(today.getFullYear())
-      } else {
-        data = await revenueService.getRevenueReport(filters)
+      if (dateRange?.to) {
+        filters.endDate = dateRange.to.toISOString().split('T')[0]
       }
       
+      const data = await revenueService.getRevenueReport(filters)
       setReport(data)
     } catch (error) {
       console.error('Failed to fetch revenue report:', error)
@@ -176,7 +187,13 @@ const handleOrderClick = async (orderId: string) => {
 
   useEffect(() => {
     fetchReport()
-  }, [period, selectedBranch, dateRange])
+  }, [period, selectedBranch])
+
+  useEffect(() => {
+    if (dateRange?.from && dateRange.to) {
+      fetchReport()
+    }
+  }, [dateRange])
 
   const handleExport = async (format: 'csv' | 'excel') => {
     setIsExporting(true)
@@ -187,6 +204,14 @@ const handleOrderClick = async (orderId: string) => {
       
       if (selectedBranch !== 'all') {
         filters.branchId = selectedBranch
+      }
+      
+      if (dateRange?.from) {
+        filters.startDate = dateRange.from.toISOString().split('T')[0]
+      }
+      
+      if (dateRange?.to) {
+        filters.endDate = dateRange.to.toISOString().split('T')[0]
       }
       
       const blob = await revenueService.exportRevenueReport(filters, format)
@@ -213,8 +238,24 @@ const handleOrderClick = async (orderId: string) => {
     fetchReport()
   }
 
-  const handlePeriodChange = (newPeriod: string) => {
-    router.push(`/revenue/${newPeriod}`)
+  const handleOrderClick = async (orderId: string) => {
+    setIsLoadingOrder(true)
+    setIsDialogOpen(true)
+    try {
+      const orderDetail = await revenueService.getRepairOrderDetail(orderId)
+      setSelectedOrder(orderDetail)
+    } catch (error) {
+      console.error('Failed to fetch order details:', error)
+    } finally {
+      setIsLoadingOrder(false)
+    }
+  }
+
+  const toggleSection = (section: string) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }))
   }
 
   // Loading state
@@ -282,19 +323,18 @@ const handleOrderClick = async (orderId: string) => {
 
   return (
     <div className="container mx-auto py-6 space-y-6">
+      {/* Header Section */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">
-            {period.charAt(0).toUpperCase() + period.slice(1)} Revenue Report
-          </h1>
+          <h1 className="text-3xl font-bold">Revenue Analytics Dashboard</h1>
           <p className="text-muted-foreground mt-1">
-            Detailed analysis of your business revenue performance
+            Comprehensive analysis of your garage's financial performance
           </p>
         </div>
         
         <div className="flex flex-col sm:flex-row gap-2">
           <div className="flex gap-2">
-            <Select value={period} onValueChange={handlePeriodChange}>
+            <Select value={period} onValueChange={setPeriod}>
               <SelectTrigger className="w-[130px]">
                 <SelectValue placeholder="Period" />
               </SelectTrigger>
@@ -303,6 +343,7 @@ const handleOrderClick = async (orderId: string) => {
                 <SelectItem value="weekly">Weekly</SelectItem>
                 <SelectItem value="monthly">Monthly</SelectItem>
                 <SelectItem value="yearly">Yearly</SelectItem>
+                <SelectItem value="custom">Custom</SelectItem>
               </SelectContent>
             </Select>
 
@@ -318,17 +359,9 @@ const handleOrderClick = async (orderId: string) => {
               </SelectContent>
             </Select>
 
-            <Select value={dateRange} onValueChange={setDateRange}>
-              <SelectTrigger className="w-[130px]">
-                <SelectValue placeholder="Date Range" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="thisWeek">This Week</SelectItem>
-                <SelectItem value="lastWeek">Last Week</SelectItem>
-                <SelectItem value="thisMonth">This Month</SelectItem>
-                <SelectItem value="lastMonth">Last Month</SelectItem>
-              </SelectContent>
-            </Select>
+            {period === 'custom' && (
+              <DateRangePicker date={dateRange} onDateChange={setDateRange} />
+            )}
           </div>
 
           <div className="flex gap-2">
@@ -359,301 +392,409 @@ const handleOrderClick = async (orderId: string) => {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(report.totalRevenue)}</div>
-            <div className="flex items-center text-xs text-muted-foreground mt-1">
-              {report.growthRate >= 0 ? (
-                <ArrowUp className="h-3 w-3 text-green-600 mr-1" />
-              ) : (
-                <ArrowDown className="h-3 w-3 text-red-600 mr-1" />
-              )}
-              <span className={report.growthRate >= 0 ? 'text-green-600' : 'text-red-600'}>
-                {formatPercentage(report.growthRate)} from previous period
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{report.totalOrders.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {Math.round(report.totalOrders / (period === 'daily' ? 1 : period === 'monthly' ? 30 : 365))} avg per day
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Order Value</CardTitle>
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {formatCurrency(report.averageOrderValue)}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {(report.totalRevenue / report.totalOrders).toLocaleString(undefined, { maximumFractionDigits: 2 })} per order
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Growth Rate</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className={`text-2xl font-bold ${report.growthRate >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {report.growthRate >= 0 ? '+' : ''}{report.growthRate}%
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Compared to previous period
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Main Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="services">Services</TabsTrigger>
-          <TabsTrigger value="orders">Repair Orders</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="overview" className="space-y-6">
-          {/* Charts Section */}
-          <div className="grid gap-4 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Revenue by Service</CardTitle>
-                <CardDescription>Top revenue generating services</CardDescription>
-              </CardHeader>
-              <CardContent className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={report.topServices}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ serviceName, percentageOfTotal }) => `${serviceName}: ${percentageOfTotal}%`}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="revenue"
-                      nameKey="serviceName"
-                    >
-                      {report.topServices.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value) => [formatCurrency(Number(value)), 'Revenue']} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Technician Performance</CardTitle>
-                <CardDescription>Revenue by technician</CardDescription>
-              </CardHeader>
-              <CardContent className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={report.revenueByTechnician}
-                    margin={{
-                      top: 20,
-                      right: 30,
-                      left: 20,
-                      bottom: 60,
-                    }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="technicianName" angle={-45} textAnchor="end" />
-                    <YAxis />
-                    <Tooltip formatter={(value) => [formatCurrency(Number(value)), 'Revenue']} />
-                    <Legend />
-                    <Bar dataKey="revenue" name="Revenue" fill="#8884d8" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
+      <Card>
+        <CardHeader className="pb-3">
+          <div 
+            className="flex items-center justify-between cursor-pointer"
+            onClick={() => toggleSection('summary')}
+          >
+            <CardTitle className="text-xl">Performance Summary</CardTitle>
+            {expandedSections.summary ? <ChevronUp /> : <ChevronDown />}
           </div>
+          <CardDescription>Key revenue metrics for the selected period</CardDescription>
+        </CardHeader>
+        {expandedSections.summary && (
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{formatCurrency(report.totalRevenue)}</div>
+                  <div className="flex items-center text-xs text-muted-foreground mt-1">
+                    {report.growthRate >= 0 ? (
+                      <ArrowUp className="h-3 w-3 text-green-600 mr-1" />
+                    ) : (
+                      <ArrowDown className="h-3 w-3 text-red-600 mr-1" />
+                    )}
+                    <span className={report.growthRate >= 0 ? 'text-green-600' : 'text-red-600'}>
+                      {formatPercentage(report.growthRate)} from previous period
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
 
-          {/* Branch Comparison */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Branch Performance Comparison</CardTitle>
-              <CardDescription>Revenue metrics across all branches</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="rounded-md border">
-                <div className="grid grid-cols-12 gap-4 p-4 font-medium border-b">
-                  <div className="col-span-4">Branch</div>
-                  <div className="col-span-2 text-right">Revenue</div>
-                  <div className="col-span-2 text-right">Orders</div>
-                  <div className="col-span-2 text-right">Avg Order</div>
-                  <div className="col-span-2 text-right">Growth</div>
-                </div>
-                {report.branchComparison.map((branch) => (
-                  <div key={branch.branchId} className="grid grid-cols-12 gap-4 p-4 border-b last:border-b-0">
-                    <div className="col-span-4 font-medium flex items-center">
-                      <Building className="h-4 w-4 mr-2 text-muted-foreground" />
-                      {branch.branchName}
-                    </div>
-                    <div className="col-span-2 text-right">{formatCurrency(branch.revenue)}</div>
-                    <div className="col-span-2 text-right">{branch.orderCount.toLocaleString()}</div>
-                    <div className="col-span-2 text-right">
-                      {formatCurrency(branch.revenue / branch.orderCount)}
-                    </div>
-                    <div className="col-span-2 text-right">
-                      <div className={`flex items-center justify-end ${branch.growthRate >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {branch.growthRate >= 0 ? (
-                          <ArrowUp className="h-3 w-3 mr-1" />
-                        ) : (
-                          <ArrowDown className="h-3 w-3 mr-1" />
-                        )}
-                        {Math.abs(branch.growthRate)}%
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{report.totalOrders.toLocaleString()}</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {Math.round(report.totalOrders / (period === 'daily' ? 1 : period === 'monthly' ? 30 : 365))} avg per day
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Avg Order Value</CardTitle>
+                  <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {formatCurrency(report.averageOrderValue)}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {(report.totalRevenue / report.totalOrders).toLocaleString(undefined, { maximumFractionDigits: 2 })} per order
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Growth Rate</CardTitle>
+                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className={`text-2xl font-bold ${report.growthRate >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {report.growthRate >= 0 ? '+' : ''}{report.growthRate}%
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Compared to previous period
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </CardContent>
+        )}
+      </Card>
+
+      {/* Charts Section */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div 
+            className="flex items-center justify-between cursor-pointer"
+            onClick={() => toggleSection('charts')}
+          >
+            <CardTitle className="text-xl">Performance Visualization</CardTitle>
+            {expandedSections.charts ? <ChevronUp /> : <ChevronDown />}
+          </div>
+          <CardDescription>Visual representation of revenue data</CardDescription>
+        </CardHeader>
+        {expandedSections.charts && (
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Revenue by Service</CardTitle>
+                  <CardDescription>Top revenue generating services</CardDescription>
+                </CardHeader>
+                <CardContent className="h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={report.topServices}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ serviceName, percentageOfTotal }) => `${serviceName}: ${percentageOfTotal}%`}
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="revenue"
+                        nameKey="serviceName"
+                      >
+                        {report.topServices.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value) => [formatCurrency(Number(value)), 'Revenue']} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Technician Performance</CardTitle>
+                  <CardDescription>Revenue by technician</CardDescription>
+                </CardHeader>
+                <CardContent className="h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={report.revenueByTechnician}
+                      margin={{
+                        top: 20,
+                        right: 30,
+                        left: 20,
+                        bottom: 60,
+                      }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="technicianName" angle={-45} textAnchor="end" />
+                      <YAxis />
+                      <Tooltip formatter={(value) => [formatCurrency(Number(value)), 'Revenue']} />
+                      <Legend />
+                      <Bar dataKey="revenue" name="Revenue" fill="#8884d8" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Branch Comparison */}
+            <Card className="mt-4">
+              <CardHeader>
+                <CardTitle>Branch Performance Comparison</CardTitle>
+                <CardDescription>Revenue metrics across all branches</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-md border">
+                  <div className="grid grid-cols-12 gap-4 p-4 font-medium border-b">
+                    <div className="col-span-4">Branch</div>
+                    <div className="col-span-2 text-right">Revenue</div>
+                    <div className="col-span-2 text-right">Orders</div>
+                    <div className="col-span-2 text-right">Avg Order</div>
+                    <div className="col-span-2 text-right">Growth</div>
+                  </div>
+                  {report.branchComparison.map((branch) => (
+                    <div key={branch.branchId} className="grid grid-cols-12 gap-4 p-4 border-b last:border-b-0">
+                      <div className="col-span-4 font-medium flex items-center">
+                        <Building className="h-4 w-4 mr-2 text-muted-foreground" />
+                        {branch.branchName}
+                      </div>
+                      <div className="col-span-2 text-right">{formatCurrency(branch.revenue)}</div>
+                      <div className="col-span-2 text-right">{branch.orderCount.toLocaleString()}</div>
+                      <div className="col-span-2 text-right">
+                        {formatCurrency(branch.revenue / branch.orderCount)}
+                      </div>
+                      <div className="col-span-2 text-right">
+                        <div className={`flex items-center justify-end ${branch.growthRate >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {branch.growthRate >= 0 ? (
+                            <ArrowUp className="h-3 w-3 mr-1" />
+                          ) : (
+                            <ArrowDown className="h-3 w-3 mr-1" />
+                          )}
+                          {Math.abs(branch.growthRate)}%
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="services" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Service Details</CardTitle>
-              <CardDescription>Detailed breakdown of all services performed</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="rounded-md border">
-                <div className="grid grid-cols-12 gap-4 p-4 font-medium border-b">
-                  <div className="col-span-5">Service</div>
-                  <div className="col-span-2 text-right">Revenue</div>
-                  <div className="col-span-2 text-right">Orders</div>
-                  <div className="col-span-3 text-right">Avg. Price</div>
+                  ))}
                 </div>
-                {report.detailedServices && report.detailedServices.length > 0 ? (
-                  report.detailedServices.map((service, index) => (
-                    <div key={index} className="grid grid-cols-12 gap-4 p-4 border-b last:border-b-0">
-                      <div className="col-span-5 font-medium flex items-center">
-                        <Wrench className="h-4 w-4 mr-2 text-muted-foreground" />
-                        {service.name}
-                      </div>
-                      <div className="col-span-2 text-right">{formatCurrency(service.revenue)}</div>
-                      <div className="col-span-2 text-right">{service.orderCount}</div>
-                      <div className="col-span-3 text-right">{formatCurrency(service.averagePrice)}</div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="p-4 text-center text-muted-foreground">
-                    No service data available
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Service Categories</CardTitle>
-                <CardDescription>Revenue by service category</CardDescription>
-              </CardHeader>
-              <CardContent className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={report.serviceCategories}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percentage }) => `${name}: ${percentage}%`}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="revenue"
-                      nameKey="name"
-                    >
-                      {report.serviceCategories.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value) => [formatCurrency(Number(value)), 'Revenue']} />
-                  </PieChart>
-                </ResponsiveContainer>
               </CardContent>
             </Card>
+          </CardContent>
+        )}
+      </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Service Trends</CardTitle>
-                <CardDescription>Service performance over time</CardDescription>
-              </CardHeader>
-              <CardContent className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={report.serviceTrends}
-                    margin={{
-                      top: 20,
-                      right: 30,
-                      left: 20,
-                      bottom: 60,
-                    }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="period" angle={-45} textAnchor="end" />
-                    <YAxis />
-                    <Tooltip formatter={(value) => [formatCurrency(Number(value)), 'Revenue']} />
-                    <Legend />
-                    {report.topServices.slice(0, 3).map((service, index) => (
-                      <Bar 
-                        key={service.serviceName} 
-                        dataKey={service.serviceName} 
-                        name={service.serviceName} 
-                        fill={COLORS[index % COLORS.length]} 
-                      />
-                    ))}
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
+      {/* Services Section */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div 
+            className="flex items-center justify-between cursor-pointer"
+            onClick={() => toggleSection('services')}
+          >
+            <CardTitle className="text-xl">Service Analytics</CardTitle>
+            {expandedSections.services ? <ChevronUp /> : <ChevronDown />}
           </div>
-        </TabsContent>
-        
-        <TabsContent value="orders" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Repair Orders</CardTitle>
-              <CardDescription>Detailed list of all repair orders</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="rounded-md border">
-                <div className="grid grid-cols-12 gap-4 p-4 font-medium border-b">
-                  <div className="col-span-2">Order ID</div>
-                  <div className="col-span-2">Date</div>
-                  <div className="col-span-2">Customer</div>
-                  <div className="col-span-2">Vehicle</div>
-                  <div className="col-span-2">Technician</div>
-                  <div className="col-span-1 text-right">Amount</div>
-                  <div className="col-span-1 text-right">Status</div>
+          <CardDescription>Detailed breakdown of services performance</CardDescription>
+        </CardHeader>
+        {expandedSections.services && (
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Service Categories</CardTitle>
+                  <CardDescription>Revenue by service category</CardDescription>
+                </CardHeader>
+                <CardContent className="h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={report.serviceCategories}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ name, percentage }) => `${name}: ${percentage}%`}
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="revenue"
+                        nameKey="name"
+                      >
+                        {report.serviceCategories.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value) => [formatCurrency(Number(value)), 'Revenue']} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Service Trends</CardTitle>
+                  <CardDescription>Service performance over time</CardDescription>
+                </CardHeader>
+                <CardContent className="h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={report.serviceTrends}
+                      margin={{
+                        top: 20,
+                        right: 30,
+                        left: 20,
+                        bottom: 60,
+                      }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="period" angle={-45} textAnchor="end" />
+                      <YAxis />
+                      <Tooltip formatter={(value) => [formatCurrency(Number(value)), 'Revenue']} />
+                      <Legend />
+                      {report.topServices.slice(0, 3).map((service, index) => (
+                        <Bar 
+                          key={service.serviceName} 
+                          dataKey={service.serviceName} 
+                          name={service.serviceName} 
+                          fill={COLORS[index % COLORS.length]} 
+                        />
+                      ))}
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card className="mt-4">
+              <CardHeader>
+                <CardTitle>Service Details</CardTitle>
+                <CardDescription>Detailed breakdown of all services performed</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-md border">
+                  <div className="grid grid-cols-12 gap-4 p-4 font-medium border-b">
+                    <div className="col-span-5">Service</div>
+                    <div className="col-span-2 text-right">Revenue</div>
+                    <div className="col-span-2 text-right">Orders</div>
+                    <div className="col-span-3 text-right">Avg. Price</div>
+                  </div>
+                  {report.detailedServices && report.detailedServices.length > 0 ? (
+                    report.detailedServices.map((service, index) => (
+                      <div key={index} className="grid grid-cols-12 gap-4 p-4 border-b last:border-b-0">
+                        <div className="col-span-5 font-medium flex items-center">
+                          <Wrench className="h-4 w-4 mr-2 text-muted-foreground" />
+                          {service.name}
+                        </div>
+                        <div className="col-span-2 text-right">{formatCurrency(service.revenue)}</div>
+                        <div className="col-span-2 text-right">{service.orderCount}</div>
+                        <div className="col-span-3 text-right">{formatCurrency(service.averagePrice)}</div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-4 text-center text-muted-foreground">
+                      No service data available
+                    </div>
+                  )}
                 </div>
-                {report.repairOrders && report.repairOrders.length > 0 ? (
+              </CardContent>
+            </Card>
+          </CardContent>
+        )}
+      </Card>
+
+      {/* Orders Section */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div 
+            className="flex items-center justify-between cursor-pointer"
+            onClick={() => toggleSection('orders')}
+          >
+            <CardTitle className="text-xl">Repair Orders</CardTitle>
+            {expandedSections.orders ? <ChevronUp /> : <ChevronDown />}
+          </div>
+          <CardDescription>Detailed list of all repair orders</CardDescription>
+        </CardHeader>
+        {expandedSections.orders && (
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Order Status Distribution</CardTitle>
+                  <CardDescription>Breakdown of orders by status</CardDescription>
+                </CardHeader>
+                <CardContent className="h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={report.orderStatusStats}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ name, value }) => `${name}: ${value}`}
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="value"
+                        nameKey="name"
+                      >
+                        {report.orderStatusStats.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Order Value Distribution</CardTitle>
+                  <CardDescription>Distribution of order values</CardDescription>
+                </CardHeader>
+                <CardContent className="h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={report.orderValueDistribution}
+                      margin={{
+                        top: 20,
+                        right: 30,
+                        left: 20,
+                        bottom: 60,
+                      }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="range" />
+                      <YAxis />
+                      <Tooltip formatter={(value) => [value, 'Number of Orders']} />
+                      <Legend />
+                      <Bar dataKey="count" name="Orders" fill="#8884d8" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card className="mt-4">
+              <CardHeader>
+                <CardTitle>Repair Orders List</CardTitle>
+                <CardDescription>Detailed list of all repair orders</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-md border">
+                  <div className="grid grid-cols-12 gap-4 p-4 font-medium border-b">
+                    <div className="col-span-2">Order ID</div>
+                    <div className="col-span-2">Date</div>
+                    <div className="col-span-2">Customer</div>
+                    <div className="col-span-2">Vehicle</div>
+                    <div className="col-span-2">Technician</div>
+                    <div className="col-span-1 text-right">Amount</div>
+                    <div className="col-span-1 text-right">Status</div>
+                  </div>
+                  {report.repairOrders && report.repairOrders.length > 0 ? (
                     report.repairOrders.map((order) => (
                       <div 
                         key={order.id} 
@@ -679,261 +820,201 @@ const handleOrderClick = async (orderId: string) => {
                       No order data available
                     </div>
                   )}
-              </div>
-            </CardContent>
-          </Card>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Order Status Distribution</CardTitle>
-                <CardDescription>Breakdown of orders by status</CardDescription>
-              </CardHeader>
-              <CardContent className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={report.orderStatusStats}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, value }) => `${name}: ${value}`}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                      nameKey="name"
-                    >
-                      {report.orderStatusStats.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
+                </div>
               </CardContent>
             </Card>
+          </CardContent>
+        )}
+      </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Order Value Distribution</CardTitle>
-                <CardDescription>Distribution of order values</CardDescription>
-              </CardHeader>
-              <CardContent className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={report.orderValueDistribution}
-                    margin={{
-                      top: 20,
-                      right: 30,
-                      left: 20,
-                      bottom: 60,
-                    }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="range" />
-                    <YAxis />
-                    <Tooltip formatter={(value) => [value, 'Number of Orders']} />
-                    <Legend />
-                    <Bar dataKey="count" name="Orders" fill="#8884d8" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-      </Tabs>
-
-
-
-<Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-      <DialogContent className="max-w-4xl max-h-[90vh]">
-        {isLoadingOrder ? (
-          <div className="flex items-center justify-center h-40">
-            <RefreshCw className="h-8 w-8 animate-spin" />
-          </div>
-        ) : selectedOrder ? (
-          <>
-            <DialogHeader>
-              <DialogTitle>Repair Order #{selectedOrder.id}</DialogTitle>
-              <DialogDescription>
-                Detailed information for this repair order
-              </DialogDescription>
-            </DialogHeader>
-            
-            <ScrollArea className="max-h-[80vh] pr-4">
-              <div className="grid gap-6">
-                {/* Order Summary */}
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle>Order Summary</CardTitle>
-                  </CardHeader>
-                  <CardContent className="grid gap-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Date</p>
-                        <p className="font-medium">{formatDate(selectedOrder.date)}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Status</p>
-                        <StatusBadge status={selectedOrder.status} />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Total Amount</p>
-                        <p className="font-medium text-xl">{formatCurrency(selectedOrder.totalAmount)}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Estimated Completion</p>
-                        <p className="font-medium">{formatDate(selectedOrder.estimatedCompletion)}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Customer Information */}
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle>Customer Information</CardTitle>
-                  </CardHeader>
-                  <CardContent className="grid gap-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Name</p>
-                        <p className="font-medium">{selectedOrder.customerName}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Phone</p>
-                        <p className="font-medium">{selectedOrder.customerPhone}</p>
-                      </div>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Email</p>
-                      <p className="font-medium">{selectedOrder.customerEmail}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Vehicle Information */}
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle>Vehicle Information</CardTitle>
-                  </CardHeader>
-                  <CardContent className="grid gap-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Make & Model</p>
-                        <p className="font-medium">{selectedOrder.vehicle.make} {selectedOrder.vehicle.model}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Year</p>
-                        <p className="font-medium">{selectedOrder.vehicle.year}</p>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm text-muted-foreground">VIN</p>
-                        <p className="font-medium">{selectedOrder.vehicle.vin}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">License Plate</p>
-                        <p className="font-medium">{selectedOrder.vehicle.licensePlate}</p>
-                      </div>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Mileage</p>
-                      <p className="font-medium">{selectedOrder.vehicle.mileage.toLocaleString()} miles</p>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Services */}
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle>Services</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="rounded-md border">
-                      <div className="grid grid-cols-12 gap-4 p-4 font-medium border-b">
-                        <div className="col-span-5">Service</div>
-                        <div className="col-span-2 text-right">Price</div>
-                        <div className="col-span-2 text-right">Quantity</div>
-                        <div className="col-span-3 text-right">Total</div>
-                      </div>
-                      {selectedOrder.services.map((service, index) => (
-                        <div key={index} className="grid grid-cols-12 gap-4 p-4 border-b last:border-b-0">
-                          <div className="col-span-5">
-                            <p className="font-medium">{service.name}</p>
-                            <p className="text-sm text-muted-foreground">{service.description}</p>
-                            <p className="text-sm text-muted-foreground">Technician: {service.technician}</p>
-                            <p className="text-sm text-muted-foreground">Duration: {service.duration} min</p>
-                          </div>
-                          <div className="col-span-2 text-right">{formatCurrency(service.price)}</div>
-                          <div className="col-span-2 text-right">{service.quantity}</div>
-                          <div className="col-span-3 text-right font-medium">{formatCurrency(service.total)}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Parts */}
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle>Parts</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="rounded-md border">
-                      <div className="grid grid-cols-12 gap-4 p-4 font-medium border-b">
-                        <div className="col-span-5">Part</div>
-                        <div className="col-span-2 text-right">Price</div>
-                        <div className="col-span-2 text-right">Quantity</div>
-                        <div className="col-span-3 text-right">Total</div>
-                      </div>
-                      {selectedOrder.parts.map((part, index) => (
-                        <div key={index} className="grid grid-cols-12 gap-4 p-4 border-b last:border-b-0">
-                          <div className="col-span-5">
-                            <p className="font-medium">{part.name}</p>
-                            <p className="text-sm text-muted-foreground">{part.description}</p>
-                            <div className="flex items-center mt-1">
-                              <div className={`h-2 w-2 rounded-full mr-2 ${part.inStock ? 'bg-green-500' : 'bg-red-500'}`} />
-                              <span className="text-xs text-muted-foreground">
-                                {part.inStock ? 'In Stock' : 'Out of Stock'}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="col-span-2 text-right">{formatCurrency(part.price)}</div>
-                          <div className="col-span-2 text-right">{part.quantity}</div>
-                          <div className="col-span-3 text-right font-medium">{formatCurrency(part.total)}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Notes */}
-                {selectedOrder.notes && (
+      {/* Order Detail Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh]">
+          {isLoadingOrder ? (
+            <div className="flex items-center justify-center h-40">
+              <RefreshCw className="h-8 w-8 animate-spin" />
+            </div>
+          ) : selectedOrder ? (
+            <>
+              <DialogHeader>
+                <DialogTitle>Repair Order #{selectedOrder.id}</DialogTitle>
+                <DialogDescription>
+                  Detailed information for this repair order
+                </DialogDescription>
+              </DialogHeader>
+              
+              <ScrollArea className="max-h-[80vh] pr-4">
+                <div className="grid gap-6">
+                  {/* Order Summary */}
                   <Card>
                     <CardHeader className="pb-3">
-                      <CardTitle>Notes</CardTitle>
+                      <CardTitle>Order Summary</CardTitle>
                     </CardHeader>
-                    <CardContent>
-                      <p className="text-sm">{selectedOrder.notes}</p>
+                    <CardContent className="grid gap-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Date</p>
+                          <p className="font-medium">{formatDate(selectedOrder.date)}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Status</p>
+                          <StatusBadge status={selectedOrder.status} />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Total Amount</p>
+                          <p className="font-medium text-xl">{formatCurrency(selectedOrder.totalAmount)}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Estimated Completion</p>
+                          <p className="font-medium">{formatDate(selectedOrder.estimatedCompletion)}</p>
+                        </div>
+                      </div>
                     </CardContent>
                   </Card>
-                )}
-              </div>
-            </ScrollArea>
-          </>
-        ) : (
-          <div className="flex items-center justify-center h-40">
-            <p>Failed to load order details</p>
-          </div>
-        )}
-      </DialogContent>
-    </Dialog>
 
+                  {/* Customer Information */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle>Customer Information</CardTitle>
+                    </CardHeader>
+                    <CardContent className="grid gap-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Name</p>
+                          <p className="font-medium">{selectedOrder.customerName}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Phone</p>
+                          <p className="font-medium">{selectedOrder.customerPhone}</p>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Email</p>
+                        <p className="font-medium">{selectedOrder.customerEmail}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Vehicle Information */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle>Vehicle Information</CardTitle>
+                    </CardHeader>
+                    <CardContent className="grid gap-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Make & Model</p>
+                          <p className="font-medium">{selectedOrder.vehicle.make} {selectedOrder.vehicle.model}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Year</p>
+                          <p className="font-medium">{selectedOrder.vehicle.year}</p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm text-muted-foreground">VIN</p>
+                          <p className="font-medium">{selectedOrder.vehicle.vin}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">License Plate</p>
+                          <p className="font-medium">{selectedOrder.vehicle.licensePlate}</p>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Mileage</p>
+                        <p className="font-medium">{selectedOrder.vehicle.mileage.toLocaleString()} miles</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Services */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle>Services</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="rounded-md border">
+                        <div className="grid grid-cols-12 gap-4 p-4 font-medium border-b">
+                          <div className="col-span-5">Service</div>
+                          <div className="col-span-2 text-right">Price</div>
+                          <div className="col-span-2 text-right">Quantity</div>
+                          <div className="col-span-3 text-right">Total</div>
+                        </div>
+                        {selectedOrder.services.map((service, index) => (
+                          <div key={index} className="grid grid-cols-12 gap-4 p-4 border-b last:border-b-0">
+                            <div className="col-span-5">
+                              <p className="font-medium">{service.name}</p>
+                              <p className="text-sm text-muted-foreground">{service.description}</p>
+                              <p className="text-sm text-muted-foreground">Technician: {service.technician}</p>
+                              <p className="text-sm text-muted-foreground">Duration: {service.duration} min</p>
+                            </div>
+                            <div className="col-span-2 text-right">{formatCurrency(service.price)}</div>
+                            <div className="col-span-2 text-right">{service.quantity}</div>
+                            <div className="col-span-3 text-right font-medium">{formatCurrency(service.total)}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Parts */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle>Parts</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="rounded-md border">
+                        <div className="grid grid-cols-12 gap-4 p-4 font-medium border-b">
+                          <div className="col-span-5">Part</div>
+                          <div className="col-span-2 text-right">Price</div>
+                          <div className="col-span-2 text-right">Quantity</div>
+                          <div className="col-span-3 text-right">Total</div>
+                        </div>
+                        {selectedOrder.parts.map((part, index) => (
+                          <div key={index} className="grid grid-cols-12 gap-4 p-4 border-b last:border-b-0">
+                            <div className="col-span-5">
+                              <p className="font-medium">{part.name}</p>
+                              <p className="text-sm text-muted-foreground">{part.description}</p>
+                              <div className="flex items-center mt-1">
+                                <div className={`h-2 w-2 rounded-full mr-2 ${part.inStock ? 'bg-green-500' : 'bg-red-500'}`} />
+                                <span className="text-xs text-muted-foreground">
+                                  {part.inStock ? 'In Stock' : 'Out of Stock'}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="col-span-2 text-right">{formatCurrency(part.price)}</div>
+                            <div className="col-span-2 text-right">{part.quantity}</div>
+                            <div className="col-span-3 text-right font-medium">{formatCurrency(part.total)}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Notes */}
+                  {selectedOrder.notes && (
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle>Notes</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm">{selectedOrder.notes}</p>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              </ScrollArea>
+            </>
+          ) : (
+            <div className="flex items-center justify-center h-40">
+              <p>Failed to load order details</p>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
-    
   )
 }
