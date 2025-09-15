@@ -40,8 +40,8 @@ const data = {
       icon: Calendar,
     },
     {
-      title: "Tech Board",
-      url: "/manager/tech-board",
+      title: "Tech Schedule",
+      url: "/manager/techSchedule",
       icon: CircuitBoard,
     },
   ],
