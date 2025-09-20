@@ -40,7 +40,7 @@ interface ConcernFormData {
 
 type Status = "critical" | "warning" | "info" | "normal"
 
-export default function SummaryTab({}: EstimateTabProps) {
+export default function EstimateTab({}: EstimateTabProps) {
   const [isLaborGuideOpen, setIsLaborGuideOpen] = useState(false)
   const [isConcernsExpanded, setIsConcernsExpanded] = useState(true)
   const [jobs, setJobs] = useState<Array<{ id: string; title: string; hours?: number; cost?: number; laborRate?: number; parts?: Array<{ id: string; name: string; qty: number; cost: number; retail: number }> }>>([])

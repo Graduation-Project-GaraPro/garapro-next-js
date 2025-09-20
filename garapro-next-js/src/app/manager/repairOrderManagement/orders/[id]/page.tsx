@@ -14,8 +14,8 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { 
-  SummaryTab, 
+import {
+  VehicleInformation, 
   InspectionsTab, 
   EstimateTab, 
   WorkProgressTab, 
@@ -29,7 +29,7 @@ interface OrderDetailsProps {
 export default function OrderDetailsPage({ params }: OrderDetailsProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [activeTab, setActiveTab] = useState("summary")
+  const [activeTab, setActiveTab] = useState("vehicle-info")
   const [orderId, setOrderId] = useState<string>("")
 
   // Handle async params
@@ -72,7 +72,7 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
   }
 
   const tabs = [
-    { id: "summary", label: "SUMMARY", icon: FileText },
+    { id: "vehicle-info", label: "VEHICLE INFO", icon: FileText },
     { id: "inspections", label: "INSPECTIONS", icon: Clipboard },
     { id: "estimate", label: "ESTIMATE", icon: Calculator },
     { id: "work-in-progress", label: "WORK-IN-PROGRESS", icon: Wrench },
@@ -81,7 +81,7 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
 
   const renderTabContent = () => {
     const tabComponents = {
-      summary: <SummaryTab orderId={orderId} />,
+      "vehicle-info": <VehicleInformation orderId={orderId} />,
       inspections: <InspectionsTab orderId={orderId} />,
       estimate: <EstimateTab orderId={orderId} />,
       "work-in-progress": <WorkProgressTab orderId={orderId} />,
