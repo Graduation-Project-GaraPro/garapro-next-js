@@ -7,7 +7,6 @@ import { cn } from '@/lib/utils'
 import {
   LayoutDashboard,
   Users,
-  Settings,
   BarChart3,
   FileText,
   UserCheck,
@@ -41,7 +40,7 @@ const menuItems = [
     icon: FileCheck,
     submenu: [
       { title: 'All Policies', href: '/admin/policies' },
-      { title: 'Compliance', href: '/admin/policies/compliance' },
+     
       { title: 'Audit Logs', href: '/admin/policies/audit' },
     ]
   },
@@ -53,7 +52,7 @@ const menuItems = [
       { title: 'Overview', href: '/admin/statistics' },
       { title: 'Advanced Analytics', href: '/admin/statistics/advanced' },
       { title: 'Real-time Analytics', href: '/admin/statistics/realtime' },
-      { title: 'Performance Analytics', href: '/admin/statistics/performance' }
+      { title: 'Revenue Reports', href: '/admin/financial-reports' }      
     ]
   },
   {
@@ -62,8 +61,8 @@ const menuItems = [
     icon: FileText,
     submenu: [
       { title: 'All Logs', href: '/admin/logs' },
-      { title: 'Log Analytics', href: '/admin/logs/analytics' },
-      { title: 'Log Management', href: '/admin/logs/management' },
+      { title: 'Log Analytics', href: '/admin/logs/analytics' }
+      
     ]
   },
   {
@@ -72,8 +71,8 @@ const menuItems = [
     icon: Megaphone,
     submenu: [
       { title: 'All Campaigns', href: '/admin/campaigns' },
-      { title: 'Create Campaign', href: '/admin/campaigns/create' },
-      { title: 'Campaign Analytics', href: '/admin/campaigns/analytics' },
+      { title: 'Create Campaign', href: '/admin/campaigns/create' }
+     
     ]
   },
   {

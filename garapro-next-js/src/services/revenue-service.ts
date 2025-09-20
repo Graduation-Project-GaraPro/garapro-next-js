@@ -75,11 +75,16 @@ export interface TopService {
 export interface TechnicianRevenue {
     technicianId: string
     technicianName: string
-    revenue: number
+    totalTasks: number 
     orderCount: number
     averageOrderValue: number
+    taskContributions: TaskContribution[]
 }
-
+export interface TaskContribution {
+  serviceName: string
+  taskCount: number
+  revenueGenerated: number
+}
 export interface BranchRevenue {
     branchId: string
     branchName: string
@@ -362,10 +367,19 @@ class RevenueService {
         { serviceName: 'Tire Service', revenue: baseRevenue * 0.2, orderCount: Math.floor(baseOrders * 0.15), percentageOfTotal: 20 }
       ],
       revenueByTechnician: [
-        { technicianId: 't1', technicianName: 'John Smith', revenue: baseRevenue * 0.4, orderCount: Math.floor(baseOrders * 0.4), averageOrderValue: baseRevenue / baseOrders },
-        { technicianId: 't2', technicianName: 'Mike Johnson', revenue: baseRevenue * 0.35, orderCount: Math.floor(baseOrders * 0.35), averageOrderValue: baseRevenue / baseOrders },
-        { technicianId: 't3', technicianName: 'Sarah Wilson', revenue: baseRevenue * 0.25, orderCount: Math.floor(baseOrders * 0.25), averageOrderValue: baseRevenue / baseOrders }
-      ],
+        { 
+            technicianId: 't1', 
+            technicianName: 'John Smith', 
+            totalTasks: 120, 
+            orderCount: Math.floor(baseOrders * 0.4), 
+            averageOrderValue: baseRevenue / baseOrders,
+            taskContributions: [
+                { serviceName: 'Oil Change', taskCount: 80, revenueGenerated: baseRevenue * 0.2 },
+                { serviceName: 'Brake Service', taskCount: 40, revenueGenerated: baseRevenue * 0.2 }
+            ]
+        },
+        // ... similarly for other technicians ...
+    ],
       branchComparison: [
         { branchId: 'b1', branchName: 'Downtown', revenue: baseRevenue * 0.5, orderCount: Math.floor(baseOrders * 0.5), growthRate: 15 },
         { branchId: 'b2', branchName: 'Uptown', revenue: baseRevenue * 0.3, orderCount: Math.floor(baseOrders * 0.3), growthRate: 12 },
@@ -452,10 +466,19 @@ class RevenueService {
 
   private getFallbackTechnicianRevenue(): TechnicianRevenue[] {
     return [
-      { technicianId: 't1', technicianName: 'John Smith', revenue: 60000, orderCount: 300, averageOrderValue: 200 },
-      { technicianId: 't2', technicianName: 'Mike Johnson', revenue: 52500, orderCount: 262, averageOrderValue: 200 },
-      { technicianId: 't3', technicianName: 'Sarah Wilson', revenue: 37500, orderCount: 188, averageOrderValue: 200 }
-    ]
+      { 
+          technicianId: 't1', 
+          technicianName: 'John Smith', 
+          totalTasks: 120, 
+          orderCount: 300, 
+          averageOrderValue: 200,
+          taskContributions: [
+              { serviceName: 'Oil Change', taskCount: 80, revenueGenerated: 24000 },
+              { serviceName: 'Brake Service', taskCount: 40, revenueGenerated: 36000 }
+          ]
+      },
+      // ... similarly for other technicians ...
+  ]
   }
 
   private getFallbackBranchRevenue(): BranchRevenue[] {
