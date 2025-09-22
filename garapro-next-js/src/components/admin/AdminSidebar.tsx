@@ -15,7 +15,8 @@ import {
   FileCheck,
   Megaphone,
   DollarSign,
-  MapPin
+  MapPin,
+  Wrench
 } from 'lucide-react'
 
 const menuItems = [
@@ -39,9 +40,7 @@ const menuItems = [
     href: '/admin/policies',
     icon: FileCheck,
     submenu: [
-      { title: 'All Policies', href: '/admin/policies' },
-     
-      { title: 'Audit Logs', href: '/admin/policies/audit' },
+      { title: 'Security Policies', href: '/admin/policies/security' }
     ]
   },
   {
@@ -76,14 +75,6 @@ const menuItems = [
     ]
   },
   {
-    title: 'Revenue Reports',
-    href: '/admin/revenue',
-    icon: DollarSign,
-    submenu: [
-      { title: 'Reports', href: '/admin/revenue' },   
-    ]
-  },
-  {
     title: 'Garage Branches',
     href: '/admin/branches',
     icon: MapPin,
@@ -91,6 +82,15 @@ const menuItems = [
       { title: 'All Branches', href: '/admin/branches' },
       { title: 'Create Branch', href: '/admin/branches/create' }
      
+    ]
+  },
+  {
+    title: 'Garage Services',
+    href: '/admin/services',
+    icon: Wrench,
+    submenu: [
+      { title: 'All Services', href: '/admin/services' },
+      { title: 'Create Service', href: '/admin/services/create' }    
     ]
   }
 ]
