@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Calendar, Clock, Car, MapPin, ArrowLeft, AlertCircle, CheckCircle, XCircle } from 'lucide-react';
 
-// Định nghĩa kiểu dữ liệu
+// Define data types
 interface Appointment {
   id: string;
   serviceId: string;
@@ -30,30 +30,30 @@ export default function AppointmentDetailPage({ params }: { params: { id: string
   const [isLoading, setIsLoading] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   
-  // Dữ liệu mẫu cho chi tiết lịch hẹn
+  // Sample data for appointment details
   const appointment: Appointment = {
     id: params.id,
     serviceId: '1',
-    serviceName: 'Bảo dưỡng định kỳ',
+    serviceName: 'Regular Maintenance',
     servicePrice: 800000,
     vehicleId: '1',
     vehicleName: 'Toyota Camry',
-    vehicleDetails: 'Năm SX: 2019, Biển số: 29A-12345',
+    vehicleDetails: 'Year: 2019, License Plate: 29A-12345',
     branchId: '1',
-    branchName: 'GaraPro Hà Nội',
-    branchAddress: '123 Đường Láng, Đống Đa, Hà Nội',
+    branchName: 'GaraPro Hanoi',
+    branchAddress: '123 Lang Street, Dong Da, Hanoi',
     branchPhone: '024-1234-5678',
     date: '2023-06-15',
     time: '09:00',
     status: 'confirmed',
-    notes: 'Kiểm tra dầu và lọc gió',
+    notes: 'Check oil and air filter',
     createdAt: '2023-06-01T10:30:00Z'
   };
   
-  // Format ngày tháng
+  // Format date
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('vi-VN', {
+    return date.toLocaleDateString('en-US', {
       weekday: 'long',
       day: 'numeric',
       month: 'long',
@@ -61,61 +61,61 @@ export default function AppointmentDetailPage({ params }: { params: { id: string
     });
   };
   
-  // Format giá tiền
+  // Format price
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
   };
   
-  // Hiển thị trạng thái lịch hẹn
+  // Display appointment status
   const getStatusInfo = (status: Appointment['status']) => {
     switch (status) {
       case 'pending':
         return {
-          label: 'Chờ xác nhận',
+          label: 'Pending Confirmation',
           color: 'bg-yellow-100 text-yellow-800',
           icon: <Clock className="h-5 w-5 mr-2" />
         };
       case 'confirmed':
         return {
-          label: 'Đã xác nhận',
+          label: 'Confirmed',
           color: 'bg-blue-100 text-blue-800',
           icon: <CheckCircle className="h-5 w-5 mr-2" />
         };
       case 'completed':
         return {
-          label: 'Hoàn thành',
+          label: 'Completed',
           color: 'bg-green-100 text-green-800',
           icon: <CheckCircle className="h-5 w-5 mr-2" />
         };
       case 'cancelled':
         return {
-          label: 'Đã hủy',
+          label: 'Cancelled',
           color: 'bg-red-100 text-red-800',
           icon: <XCircle className="h-5 w-5 mr-2" />
         };
       default:
         return {
-          label: 'Không xác định',
+          label: 'Unknown',
           color: 'bg-gray-100 text-gray-800',
           icon: <AlertCircle className="h-5 w-5 mr-2" />
         };
     }
   };
   
-  // Xử lý hủy lịch hẹn
+  // Handle appointment cancellation
   const handleCancelAppointment = () => {
     setIsLoading(true);
     
-    // Giả lập API call
+    // Simulate API call
     setTimeout(() => {
       setIsLoading(false);
       setShowCancelConfirm(false);
-      // Chuyển hướng về trang danh sách lịch hẹn
+      // Redirect to appointments list page
       router.push('/customer/services/appointments');
     }, 1500);
   };
   
-  // Kiểm tra xem có thể hủy lịch hẹn không
+  // Check if appointment can be cancelled
   const canCancel = () => {
     return appointment.status === 'pending' || appointment.status === 'confirmed';
   };
@@ -127,7 +127,7 @@ export default function AppointmentDetailPage({ params }: { params: { id: string
       <div className="mb-6">
         <Link href="/customer/services/appointments" className="flex items-center text-blue-500 hover:text-blue-700">
           <ArrowLeft className="h-4 w-4 mr-1" />
-          Quay lại danh sách lịch hẹn
+          Back to appointments list
         </Link>
       </div>
       
@@ -138,7 +138,7 @@ export default function AppointmentDetailPage({ params }: { params: { id: string
             <div>
               <h1 className="text-2xl font-bold">{appointment.serviceName}</h1>
               <p className="mt-2 opacity-90">
-                Mã lịch hẹn: #{appointment.id}
+                Appointment ID: #{appointment.id}
               </p>
             </div>
             <div className={`px-3 py-2 rounded-lg flex items-center ${statusInfo.color}`}>
@@ -148,40 +148,40 @@ export default function AppointmentDetailPage({ params }: { params: { id: string
           </div>
         </div>
         
-        {/* Nội dung chi tiết */}
+        {/* Detail content */}
         <div className="p-6 space-y-6">
-          {/* Thông tin thời gian */}
+          {/* Time information */}
           <div className="flex items-start">
             <Calendar className="h-5 w-5 text-blue-500 mr-4 mt-1" />
             <div>
-              <h3 className="font-medium">Thời gian</h3>
+              <h3 className="font-medium">Date & Time</h3>
               <p className="mt-1 text-gray-600">{formatDate(appointment.date)}</p>
               <p className="text-gray-600">{appointment.time}</p>
             </div>
           </div>
           
-          {/* Thông tin phương tiện */}
+          {/* Vehicle information */}
           <div className="flex items-start">
             <Car className="h-5 w-5 text-blue-500 mr-4 mt-1" />
             <div>
-              <h3 className="font-medium">Phương tiện</h3>
+              <h3 className="font-medium">Vehicle</h3>
               <p className="mt-1 text-gray-600">{appointment.vehicleName}</p>
               <p className="text-gray-600">{appointment.vehicleDetails}</p>
             </div>
           </div>
           
-          {/* Thông tin chi nhánh */}
+          {/* Branch information */}
           <div className="flex items-start">
             <MapPin className="h-5 w-5 text-blue-500 mr-4 mt-1" />
             <div>
-              <h3 className="font-medium">Chi nhánh</h3>
+              <h3 className="font-medium">Branch</h3>
               <p className="mt-1 text-gray-600">{appointment.branchName}</p>
               <p className="text-gray-600">{appointment.branchAddress}</p>
               <p className="text-gray-600">{appointment.branchPhone}</p>
             </div>
           </div>
           
-          {/* Thông tin dịch vụ */}
+          {/* Service information */}
           <div className="flex items-start">
             <div className="h-5 w-5 text-blue-500 mr-4 mt-1">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -189,27 +189,27 @@ export default function AppointmentDetailPage({ params }: { params: { id: string
               </svg>
             </div>
             <div>
-              <h3 className="font-medium">Chi tiết dịch vụ</h3>
+              <h3 className="font-medium">Service Details</h3>
               <p className="mt-1 text-gray-600">{appointment.serviceName}</p>
               <p className="text-blue-500 font-medium">{formatPrice(appointment.servicePrice)}</p>
             </div>
           </div>
           
-          {/* Ghi chú */}
+          {/* Notes */}
           {appointment.notes && (
             <div className="border-t pt-6">
-              <h3 className="font-medium">Ghi chú</h3>
+              <h3 className="font-medium">Notes</h3>
               <p className="mt-2 text-gray-600">{appointment.notes}</p>
             </div>
           )}
           
-          {/* Thông tin đặt lịch */}
+          {/* Booking information */}
           <div className="border-t pt-6 text-sm text-gray-500">
-            <p>Đặt lịch vào: {new Date(appointment.createdAt).toLocaleString('vi-VN')}</p>
+            <p>Booked on: {new Date(appointment.createdAt).toLocaleString('en-US')}</p>
           </div>
         </div>
         
-        {/* Footer với các nút hành động */}
+        {/* Footer with action buttons */}
         <div className="p-6 bg-gray-50 border-t">
           {canCancel() ? (
             <div className="flex justify-between">
@@ -217,7 +217,7 @@ export default function AppointmentDetailPage({ params }: { params: { id: string
                 href={`/customer/services/appointments/create?service=${appointment.serviceId}`}
                 className="px-4 py-2 border border-blue-500 text-blue-500 rounded-lg hover:bg-blue-50"
               >
-                Đặt lịch tương tự
+                Book Similar Appointment
               </Link>
               
               <button
@@ -225,7 +225,7 @@ export default function AppointmentDetailPage({ params }: { params: { id: string
                 className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
                 onClick={() => setShowCancelConfirm(true)}
               >
-                Hủy lịch hẹn
+                Cancel Appointment
               </button>
             </div>
           ) : (
@@ -234,33 +234,33 @@ export default function AppointmentDetailPage({ params }: { params: { id: string
                 href={`/customer/services/appointments/create?service=${appointment.serviceId}`}
                 className="px-4 py-2 border border-blue-500 text-blue-500 rounded-lg hover:bg-blue-50"
               >
-                Đặt lịch tương tự
+                Book Similar Appointment
               </Link>
             </div>
           )}
         </div>
       </div>
       
-      {/* Thông tin hướng dẫn */}
+      {/* Guidelines information */}
       <div className="mt-6 bg-blue-50 border border-blue-100 rounded-lg p-4 flex items-start">
         <AlertCircle className="h-5 w-5 text-blue-500 mr-3 mt-0.5 flex-shrink-0" />
         <div>
-          <h4 className="font-medium text-blue-800">Lưu ý về lịch hẹn</h4>
+          <h4 className="font-medium text-blue-800">Appointment Guidelines</h4>
           <ul className="mt-2 text-sm text-blue-700 space-y-1">
-            <li>• Vui lòng đến đúng giờ đã đặt lịch.</li>
-            <li>• Bạn có thể hủy hoặc thay đổi lịch hẹn trước 24 giờ.</li>
-            <li>• Nếu cần hỗ trợ, vui lòng liên hệ với chúng tôi qua hotline: 1900-1234.</li>
+            <li>• Please arrive on time for your scheduled appointment.</li>
+            <li>• You can cancel or reschedule your appointment up to 24 hours in advance.</li>
+            <li>• If you need assistance, please contact us via hotline: 1900-1234.</li>
           </ul>
         </div>
       </div>
       
-      {/* Modal xác nhận hủy lịch hẹn */}
+      {/* Appointment cancellation confirmation modal */}
       {showCancelConfirm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold">Xác nhận hủy lịch hẹn</h3>
+            <h3 className="text-lg font-semibold">Confirm Appointment Cancellation</h3>
             <p className="mt-2 text-gray-600">
-              Bạn có chắc chắn muốn hủy lịch hẹn này không? Hành động này không thể hoàn tác.
+              Are you sure you want to cancel this appointment? This action cannot be undone.
             </p>
             <div className="mt-6 flex justify-end space-x-3">
               <button
@@ -269,7 +269,7 @@ export default function AppointmentDetailPage({ params }: { params: { id: string
                 onClick={() => setShowCancelConfirm(false)}
                 disabled={isLoading}
               >
-                Không, giữ lịch hẹn
+                No, keep appointment
               </button>
               <button
                 type="button"
@@ -277,7 +277,7 @@ export default function AppointmentDetailPage({ params }: { params: { id: string
                 onClick={handleCancelAppointment}
                 disabled={isLoading}
               >
-                {isLoading ? 'Đang xử lý...' : 'Có, hủy lịch hẹn'}
+                {isLoading ? 'Processing...' : 'Yes, cancel appointment'}
               </button>
             </div>
           </div>

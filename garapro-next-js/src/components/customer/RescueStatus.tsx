@@ -27,22 +27,22 @@ const RescueStatus: React.FC<RescueStatusProps> = ({
   updateStatus,
   generatePdf,
 }) => {
-  // Map trạng thái sang tiếng Việt
+  // Map status to display text
   const getStatusText = (status: RescueStatusType) => {
     const statusMap: Record<RescueStatusType, string> = {
-      pending: 'Đang chờ xử lý',
-      accepted: 'Đã tiếp nhận',
-      dispatched: 'Đã điều động',
-      'on-the-way': 'Đang trên đường',
-      arrived: 'Đã đến nơi',
-      'in-progress': 'Đang xử lý',
-      completed: 'Hoàn thành',
-      cancelled: 'Đã hủy',
+      pending: 'Pending',
+      accepted: 'Accepted',
+      dispatched: 'Dispatched',
+      'on-the-way': 'On the way',
+      arrived: 'Arrived',
+      'in-progress': 'In progress',
+      completed: 'Completed',
+      cancelled: 'Cancelled',
     };
     return statusMap[status] || status;
   };
 
-  // Màu sắc theo trạng thái
+  // Colors based on status
   const getStatusColor = (status: RescueStatusType) => {
     const colorMap: Record<RescueStatusType, string> = {
       pending: 'bg-yellow-100 text-yellow-800',
@@ -57,21 +57,21 @@ const RescueStatus: React.FC<RescueStatusProps> = ({
     return colorMap[status] || 'bg-gray-100 text-gray-800';
   };
 
-  // Format thời gian ISO
+  // Format ISO time
   const formatTime = (isoString: string | null) => {
-    if (!isoString) return 'Không có thông tin';
+    if (!isoString) return 'No information';
 
     const date = new Date(isoString);
-    if (isNaN(date.getTime())) return 'Thời gian không hợp lệ';
+    if (isNaN(date.getTime())) return 'Invalid time';
 
     return (
-      date.toLocaleTimeString('vi-VN', {
+      date.toLocaleTimeString('en-US', {
         hour: '2-digit',
         minute: '2-digit',
         hour12: false,
       }) +
       ' - ' +
-      date.toLocaleDateString('vi-VN', {
+      date.toLocaleDateString('en-US', {
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
@@ -79,29 +79,29 @@ const RescueStatus: React.FC<RescueStatusProps> = ({
     );
   };
 
-  // Tính thời gian còn lại
+  // Calculate remaining time
   const getRemainingTime = () => {
-    if (!estimatedArrival) return 'Không xác định';
+    if (!estimatedArrival) return 'Unknown';
     const now = new Date();
     const arrival = new Date(estimatedArrival);
     const diffMs = arrival.getTime() - now.getTime();
 
-    if (diffMs <= 0) return 'Đã đến giờ';
+    if (diffMs <= 0) return 'Arrived';
 
     const diffMins = Math.floor(diffMs / 60000);
-    return `${diffMins} phút`;
+    return `${diffMins} minutes`;
   };
 
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden">
       <div className="p-4 bg-blue-600 text-white font-semibold">
-        Trạng thái cứu hộ
+        Rescue Status
       </div>
 
       <div className="p-4">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <span className="text-sm text-gray-500">Trạng thái:</span>
+            <span className="text-sm text-gray-500">Status:</span>
             <span
               className={`ml-2 px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(
                 status
@@ -115,23 +115,23 @@ const RescueStatus: React.FC<RescueStatusProps> = ({
             onClick={generatePdf}
             className="px-3 py-1 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors text-sm"
           >
-            Tạo PDF
+            Generate PDF
           </button>
         </div>
 
         <div className="space-y-3">
           <div className="flex justify-between">
-            <span className="text-sm text-gray-500">Thời gian yêu cầu:</span>
+            <span className="text-sm text-gray-500">Request time:</span>
             <span className="text-sm font-medium">{formatTime(requestTime)}</span>
           </div>
 
           <div className="flex justify-between">
-            <span className="text-sm text-gray-500">Dự kiến đến nơi:</span>
+            <span className="text-sm text-gray-500">Estimated arrival:</span>
             <span className="text-sm font-medium">{formatTime(estimatedArrival)}</span>
           </div>
 
           <div className="flex justify-between">
-            <span className="text-sm text-gray-500">Thời gian còn lại:</span>
+            <span className="text-sm text-gray-500">Time remaining:</span>
             <span className="text-sm font-medium text-blue-600">
               {getRemainingTime()}
             </span>
@@ -140,7 +140,7 @@ const RescueStatus: React.FC<RescueStatusProps> = ({
 
         <div className="mt-6 space-y-2">
           <p className="text-sm font-medium text-gray-700 mb-2">
-            Cập nhật trạng thái:
+            Update status:
           </p>
 
           <div className="grid grid-cols-2 gap-2">

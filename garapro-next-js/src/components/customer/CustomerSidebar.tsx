@@ -12,6 +12,7 @@ import {
   User,
   AlertTriangle,
   Plus,
+  Wrench,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
@@ -36,16 +37,16 @@ const data = {
   // Main navigation items
   mainNav: [
     { id: "dashboard", title: "Dashboard", url: "/customer", icon: Car },
-    { id: "vehicles", title: "Vehicles", url: "/customer/vehicles", icon: Car },
+    { id: "vehicles", title: "My Vehicles", url: "/customer/vehicles", icon: Car },
     { id: "services", title: "Services", url: "/customer/services", icon: Plus },
-    { id: "repairs", title: "Repairs", url: "/customer/repairs", icon: Clock },
+    { id: "repairs", title: "Repairs", url: "/customer/repairs", icon: Wrench },
   ],
   // Tracking and appointment items
   trackingNav: [
     { id: "appointments", title: "Appointments", url: "/customer/services/appointments", icon: Calendar },
-    { id: "progress", title: "Progress", url: "/customer/repairs/progress", icon: Clock },
-    { id: "history", title: "History", url: "/customer/repairs/history", icon: History },
-    { id: "emergency", title: "Emergency", url: "/customer/services/emergency", icon: AlertTriangle },
+    { id: "progress", title: "Repair Progress", url: "/customer/repairs/progress", icon: Clock },
+    { id: "history", title: "Repair History", url: "/customer/repairs/history", icon: History },
+    { id: "emergency", title: "Emergency Support", url: "/customer/services/emergency", icon: AlertTriangle },
   ],
   // Account and review items
   accountNav: [
@@ -74,8 +75,13 @@ function NavMain({
   
   return (
     <SidebarMenu className="gap-0">
+      {groupLabel && (
+        <div className="px-3 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider">
+          {groupLabel}
+        </div>
+      )}
       {items.map((item) => {
-        const isActive = pathname === item.url;
+        const isActive = pathname === item.url || pathname.startsWith(item.url + '/');
         const Icon = item.icon;
         
         return (
@@ -85,15 +91,15 @@ function NavMain({
               tooltip={item.title} 
               isActive={isActive}
             >
-              <a href={item.url} className="flex items-center justify-between w-full">
-                <div className="flex items-center gap-2">
-                  <div className="text-blue-600">
-                    <Icon className="size-4" />
+              <a href={item.url} className="flex items-center justify-between w-full transition-all hover:bg-blue-50 rounded-md">
+                <div className="flex items-center gap-3">
+                  <div className={`${isActive ? 'text-blue-600' : 'text-gray-600'} p-1 rounded-md`}>
+                    <Icon className="size-5" />
                   </div>
-                  <span>{item.title}</span>
+                  <span className={isActive ? 'font-medium text-blue-600' : ''}>{item.title}</span>
                 </div>
                 {item.id === "notifications" && notificationsCount && notificationsCount > 0 && (
-                  <span className="bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  <span className="bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center mr-2">
                     {notificationsCount}
                   </span>
                 )}
@@ -135,7 +141,7 @@ export function CustomerSidebar({ ...props }: React.ComponentProps<typeof Sideba
     defaultNotifs.length
   );
 
-  // Listen for events to decrease badge count
+  // Listen for events to update badge count
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -168,14 +174,14 @@ export function CustomerSidebar({ ...props }: React.ComponentProps<typeof Sideba
         {/* Logo/Brand */}
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" className="px-9 mb-3" asChild>
-              <a href="/customer">
+            <SidebarMenuButton size="lg" className="px-2" asChild>
+              <a href="/">
                 <div className="flex aspect-square size-6 items-center justify-center rounded-sm bg-blue-100 text-blue-600">
-                  <Car className="size-10" />
+                  <Car className="size-4" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold">Garage Pro</span>
-                  {/* <span className="truncate text-xs">Customer</span> */}
+                  <span className="truncate text-xs">Customer</span>
                 </div>
               </a>
             </SidebarMenuButton>

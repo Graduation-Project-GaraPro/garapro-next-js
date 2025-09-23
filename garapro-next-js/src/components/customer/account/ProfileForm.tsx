@@ -4,10 +4,10 @@ import { useState } from "react";
 
 export function ProfileForm() {
   const [formData, setFormData] = useState({
-    name: "Nguyễn Văn A",
-    email: "nguyenvana@example.com",
+    name: "John Doe",
+    email: "johndoe@example.com",
     phone: "0901234567",
-    address: "123 Đường ABC, Quận 1, TP.HCM",
+    address: "123 ABC Street, District 1, Ho Chi Minh City",
   });
   const [loading, setLoading] = useState(false);
 
@@ -21,12 +21,12 @@ export function ProfileForm() {
     setLoading(true);
 
     try {
-      // Giả lập API call
+      // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
-      alert("Cập nhật thông tin thành công!");
+      alert("Information updated successfully!");
     } catch (error) {
-      console.error("Lỗi khi cập nhật thông tin:", error);
-      alert("Có lỗi xảy ra khi cập nhật thông tin. Vui lòng thử lại.");
+      console.error("Error updating information:", error);
+      alert("An error occurred while updating information. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -34,12 +34,12 @@ export function ProfileForm() {
 
   return (
     <div className="bg-white shadow-sm rounded-lg p-6">
-      <h2 className="text-xl font-semibold mb-4">Thông tin cá nhân</h2>
+      <h2 className="text-xl font-semibold mb-4">Personal Information</h2>
       
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-            Họ và tên
+            Full Name
           </label>
           <input
             type="text"
@@ -69,7 +69,7 @@ export function ProfileForm() {
         
         <div>
           <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
-            Số điện thoại
+            Phone Number
           </label>
           <input
             type="tel"
@@ -84,7 +84,7 @@ export function ProfileForm() {
         
         <div>
           <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">
-            Địa chỉ
+            Address
           </label>
           <textarea
             id="address"
@@ -102,7 +102,7 @@ export function ProfileForm() {
             disabled={loading}
             className={`px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
           >
-            {loading ? 'Đang lưu...' : 'Lưu thay đổi'}
+            {loading ? 'Saving...' : 'Save Changes'}
           </button>
         </div>
       </form>

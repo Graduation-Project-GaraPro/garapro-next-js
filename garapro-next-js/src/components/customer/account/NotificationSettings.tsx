@@ -39,12 +39,12 @@ export function NotificationSettings() {
     setLoading(true);
 
     try {
-      // Giả lập API call
+      // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
-      alert("Cập nhật cài đặt thông báo thành công!");
+      alert("Notification settings updated successfully!");
     } catch (error) {
-      console.error("Lỗi khi cập nhật cài đặt thông báo:", error);
-      alert("Có lỗi xảy ra khi cập nhật cài đặt thông báo. Vui lòng thử lại.");
+      console.error("Error updating notification settings:", error);
+      alert("An error occurred while updating notification settings. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -52,17 +52,17 @@ export function NotificationSettings() {
 
   return (
     <div className="bg-white shadow-sm rounded-lg p-6">
-      <h2 className="text-xl font-semibold mb-4">Cài đặt thông báo</h2>
+      <h2 className="text-xl font-semibold mb-4">Notification Settings</h2>
       
       <form onSubmit={handleSubmit}>
         <div className="space-y-6">
           {/* Email Notifications */}
           <div>
-            <h3 className="text-lg font-medium mb-3">Thông báo qua Email</h3>
+            <h3 className="text-lg font-medium mb-3">Email Notifications</h3>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label htmlFor="email-repairs" className="text-sm">
-                  Cập nhật trạng thái sửa chữa
+                  Repair status updates
                 </label>
                 <div className="relative inline-block w-10 mr-2 align-middle select-none">
                   <input
@@ -81,7 +81,7 @@ export function NotificationSettings() {
               
               <div className="flex items-center justify-between">
                 <label htmlFor="email-promotions" className="text-sm">
-                  Khuyến mãi và ưu đãi
+                  Promotions and offers
                 </label>
                 <div className="relative inline-block w-10 mr-2 align-middle select-none">
                   <input
@@ -100,7 +100,7 @@ export function NotificationSettings() {
               
               <div className="flex items-center justify-between">
                 <label htmlFor="email-news" className="text-sm">
-                  Tin tức và cập nhật
+                  News and updates
                 </label>
                 <div className="relative inline-block w-10 mr-2 align-middle select-none">
                   <input
@@ -119,7 +119,7 @@ export function NotificationSettings() {
               
               <div className="flex items-center justify-between">
                 <label htmlFor="email-reminders" className="text-sm">
-                  Nhắc nhở bảo dưỡng
+                  Maintenance reminders
                 </label>
                 <div className="relative inline-block w-10 mr-2 align-middle select-none">
                   <input
@@ -140,11 +140,11 @@ export function NotificationSettings() {
           
           {/* SMS Notifications */}
           <div>
-            <h3 className="text-lg font-medium mb-3">Thông báo qua SMS</h3>
+            <h3 className="text-lg font-medium mb-3">SMS Notifications</h3>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label htmlFor="sms-repairs" className="text-sm">
-                  Cập nhật trạng thái sửa chữa
+                  Repair status updates
                 </label>
                 <div className="relative inline-block w-10 mr-2 align-middle select-none">
                   <input
@@ -163,7 +163,7 @@ export function NotificationSettings() {
               
               <div className="flex items-center justify-between">
                 <label htmlFor="sms-promotions" className="text-sm">
-                  Khuyến mãi và ưu đãi
+                  Promotions and offers
                 </label>
                 <div className="relative inline-block w-10 mr-2 align-middle select-none">
                   <input
@@ -182,7 +182,7 @@ export function NotificationSettings() {
               
               <div className="flex items-center justify-between">
                 <label htmlFor="sms-reminders" className="text-sm">
-                  Nhắc nhở bảo dưỡng
+                  Maintenance reminders
                 </label>
                 <div className="relative inline-block w-10 mr-2 align-middle select-none">
                   <input
@@ -203,11 +203,11 @@ export function NotificationSettings() {
           
           {/* Push Notifications */}
           <div>
-            <h3 className="text-lg font-medium mb-3">Thông báo đẩy</h3>
+            <h3 className="text-lg font-medium mb-3">Push Notifications</h3>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label htmlFor="push-repairs" className="text-sm">
-                  Cập nhật trạng thái sửa chữa
+                  Repair status updates
                 </label>
                 <div className="relative inline-block w-10 mr-2 align-middle select-none">
                   <input
@@ -226,7 +226,7 @@ export function NotificationSettings() {
               
               <div className="flex items-center justify-between">
                 <label htmlFor="push-chat" className="text-sm">
-                  Tin nhắn mới
+                  New messages
                 </label>
                 <div className="relative inline-block w-10 mr-2 align-middle select-none">
                   <input
@@ -245,7 +245,7 @@ export function NotificationSettings() {
               
               <div className="flex items-center justify-between">
                 <label htmlFor="push-promotions" className="text-sm">
-                  Khuyến mãi và ưu đãi
+                  Promotions and offers
                 </label>
                 <div className="relative inline-block w-10 mr-2 align-middle select-none">
                   <input
@@ -264,7 +264,7 @@ export function NotificationSettings() {
               
               <div className="flex items-center justify-between">
                 <label htmlFor="push-reminders" className="text-sm">
-                  Nhắc nhở bảo dưỡng
+                  Maintenance reminders
                 </label>
                 <div className="relative inline-block w-10 mr-2 align-middle select-none">
                   <input
@@ -289,7 +289,7 @@ export function NotificationSettings() {
               disabled={loading}
               className={`px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
             >
-              {loading ? 'Đang lưu...' : 'Lưu thay đổi'}
+              {loading ? 'Saving...' : 'Save Changes'}
             </button>
           </div>
         </div>

@@ -1,7 +1,7 @@
 "use client";
 
-import Dashboard from '@/components/customer/Dashboard'
+import NewDashboard from '@/components/customer/NewDashboard'
 
 export default function Home() {
-  return <Dashboard />;
+  return <NewDashboard />;
 }

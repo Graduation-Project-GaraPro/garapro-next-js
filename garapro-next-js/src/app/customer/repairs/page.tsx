@@ -10,14 +10,14 @@ import { SearchInput } from "@/components/customer/common/SearchInput";
 export default function RepairsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Yêu cầu sửa chữa</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Repair Requests</h1>
           <p className="text-muted-foreground">
-            Quản lý các yêu cầu sửa chữa và theo dõi tiến độ
+            Manage your repair requests and track progress
           </p>
         </div>
         <div>
@@ -25,7 +25,7 @@ export default function RepairsPage() {
             href="/customer/repairs/create"
             className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
           >
-            Tạo yêu cầu mới
+            Create New Request
           </Link>
         </div>
       </div>
@@ -33,17 +33,17 @@ export default function RepairsPage() {
       <div className="flex items-center space-x-2">
         <div className="flex-1">
           <SearchInput 
-            placeholder="Tìm kiếm theo biển số xe..."
+            placeholder="Search by license plate..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
         <FilterBar 
           options={[
-            { value: "all", label: "Tất cả" },
-            { value: "pending", label: "Chờ xử lý" },
-            { value: "in-progress", label: "Đang xử lý" },
-            { value: "completed", label: "Hoàn thành" },
+            { value: "all", label: "All" },
+            { value: "pending", label: "Pending" },
+            { value: "in-progress", label: "In Progress" },
+            { value: "completed", label: "Completed" },
           ]}
           value={statusFilter}
           onChange={(value) => setStatusFilter(value)}

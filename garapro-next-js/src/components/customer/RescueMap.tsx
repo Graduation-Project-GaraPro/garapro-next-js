@@ -29,12 +29,12 @@ const RescueMap: React.FC<RescueMapProps> = ({ location, technicianLocation }) =
   if (!location) {
     return (
       <div className="flex items-center justify-center h-full bg-gray-100">
-        <p className="text-gray-500">Không có thông tin vị trí</p>
+        <p className="text-gray-500">No location information available</p>
       </div>
     );
   }
 
-  // Chuyển đổi định dạng vị trí nếu cần
+  // Convert location format if needed
   const userLocation = location.lat && location.lng
     ? { lat: location.lat, lng: location.lng }
     : { lat: location.latitude || 10.762622, lng: location.longitude || 106.660172 };
@@ -47,13 +47,13 @@ const RescueMap: React.FC<RescueMapProps> = ({ location, technicianLocation }) =
         </div>
       ) : (
         <div className="h-full w-full relative">
-          {/* Mô phỏng bản đồ */}
+          {/* Map simulation */}
           <div className="absolute inset-0 bg-blue-50 overflow-hidden">
             <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-blue-300 text-6xl opacity-20">
               MAP VIEW
             </div>
 
-            {/* Vị trí của người dùng */}
+            {/* User location */}
             <div
               className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
               style={{ top: `${userLocation.lat * 0.1}%`, left: `${userLocation.lng * 0.1}%` }}
@@ -62,11 +62,11 @@ const RescueMap: React.FC<RescueMapProps> = ({ location, technicianLocation }) =
                 <div className="h-4 w-4 bg-red-300 rounded-full"></div>
               </div>
               <div className="mt-1 bg-white px-2 py-1 rounded-md shadow-md text-xs">
-                Vị trí của bạn
+                Your location
               </div>
             </div>
 
-            {/* Vị trí của kỹ thuật viên */}
+            {/* Technician location */}
             {technicianLocation && (
               <div
                 className="absolute"
@@ -76,12 +76,12 @@ const RescueMap: React.FC<RescueMapProps> = ({ location, technicianLocation }) =
                   <div className="h-4 w-4 bg-blue-300 rounded-full"></div>
                 </div>
                 <div className="mt-1 bg-white px-2 py-1 rounded-md shadow-md text-xs">
-                  Kỹ thuật viên
+                  Technician
                 </div>
               </div>
             )}
 
-            {/* Đường đi mô phỏng */}
+            {/* Route simulation */}
             <svg className="absolute inset-0 h-full w-full" xmlns="http://www.w3.org/2000/svg">
               <path
                 d="M50% 50% L45% 40%"
@@ -93,9 +93,9 @@ const RescueMap: React.FC<RescueMapProps> = ({ location, technicianLocation }) =
             </svg>
           </div>
 
-          {/* Thông tin vị trí */}
+          {/* Location information */}
           <div className="absolute bottom-4 left-4 right-4 bg-white p-3 rounded-md shadow-md">
-            <div className="text-sm font-medium text-gray-700">{location.address || 'Vị trí hiện tại'}</div>
+            <div className="text-sm font-medium text-gray-700">{location.address || 'Current location'}</div>
             <div className="text-xs text-gray-500 mt-1">
               {userLocation.lat.toFixed(6)}, {userLocation.lng.toFixed(6)}
             </div>

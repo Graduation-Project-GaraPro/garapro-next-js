@@ -95,47 +95,47 @@ export default function AccountPage() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     
-    // Xác thực các trường dữ liệu
+    // Validate fields
     let errorMessage = '';
     
-    // Xác thực nếu trường là ngày tháng
+    // Validate if field is date
     if (name === 'joinDate' || name.includes('date') || name.includes('Date')) {
       if (!isValidDate(value)) {
-        errorMessage = 'Ngày tháng không hợp lệ. Vui lòng nhập theo định dạng YYYY-MM-DD';
+        errorMessage = 'Invalid date format. Please enter in YYYY-MM-DD format';
       }
     } else if (name === 'email') {
-      // Xác thực email
+      // Validate email
       const validation = validateEmailField(value, { required: true, label: 'Email' });
       if (!validation.isValid) {
         errorMessage = validation.error;
       }
     } else if (name === 'phone') {
-      // Xác thực số điện thoại
-      const validation = validatePhoneField(value, { required: true, label: 'Số điện thoại' });
+      // Validate phone number
+      const validation = validatePhoneField(value, { required: true, label: 'Phone number' });
       if (!validation.isValid) {
         errorMessage = validation.error;
       }
     } else if (name === 'name') {
-      // Xác thực tên
-      const validation = validateTextField(value, { required: true, minLength: 2, label: 'Họ tên' });
+      // Validate name
+      const validation = validateTextField(value, { required: true, minLength: 2, label: 'Full name' });
       if (!validation.isValid) {
         errorMessage = validation.error;
       }
     } else if (name === 'address') {
-      // Xác thực địa chỉ
-      const validation = validateTextField(value, { required: false, label: 'Địa chỉ' });
+      // Validate address
+      const validation = validateTextField(value, { required: false, label: 'Address' });
       if (!validation.isValid) {
         errorMessage = validation.error;
       }
     }
     
-    // Cập nhật lỗi cho trường đang thay đổi
+    // Update error for the changing field
     setErrors(prev => ({
       ...prev,
       [name]: errorMessage
     }));
     
-    // Luôn cập nhật giá trị của trường, ngay cả khi có lỗi
+    // Always update field value, even if there's an error
     setFormData(prev => ({
       ...prev,
       [name]: value
@@ -169,11 +169,11 @@ export default function AccountPage() {
       
       await updateUserProfile(formData);
       setIsEditing(false);
-      setSaveToast('Thông tin đã được cập nhật!');
+      setSaveToast('Information has been updated!');
       setTimeout(() => setSaveToast(''), 3000);
     } catch (error) {
       console.error('Error updating profile:', error);
-      setSaveToast('Có lỗi xảy ra khi cập nhật thông tin!');
+      setSaveToast('An error occurred while updating information!');
       setTimeout(() => setSaveToast(''), 3000);
     }
   };
@@ -204,11 +204,11 @@ export default function AccountPage() {
       };
       
       await updatePreferences(updatedPreferences);
-      setSaveToast('Cài đặt thông báo đã được cập nhật!');
+      setSaveToast('Notification settings have been updated!');
       setTimeout(() => setSaveToast(''), 3000);
     } catch (error) {
       console.error('Error updating notification settings:', error);
-      setSaveToast('Có lỗi xảy ra khi cập nhật cài đặt thông báo!');
+      setSaveToast('An error occurred while updating notification settings!');
       setTimeout(() => setSaveToast(''), 3000);
     }
   };
@@ -223,11 +223,11 @@ export default function AccountPage() {
       };
       
       await updatePreferences(updatedPreferences);
-      setSaveToast('Cài đặt bảo mật đã được cập nhật!');
+      setSaveToast('Security settings have been updated!');
       setTimeout(() => setSaveToast(''), 3000);
     } catch (error) {
       console.error('Error updating security settings:', error);
-      setSaveToast('Có lỗi xảy ra khi cập nhật cài đặt bảo mật!');
+      setSaveToast('An error occurred while updating security settings!');
       setTimeout(() => setSaveToast(''), 3000);
     }
   };
@@ -255,54 +255,54 @@ export default function AccountPage() {
   const handlePasswordSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
     
-    // Khởi tạo đối tượng lỗi mới
+    // Initialize new error object
     const newPasswordErrors = {
       currentPassword: '',
       newPassword: '',
       confirmPassword: ''
     };
     
-    // Xác thực mật khẩu hiện tại
+    // Validate current password
     const currentPasswordValidation = validateTextField(passwordData.currentPassword, {
       required: true,
-      label: 'Mật khẩu hiện tại'
+      label: 'Current password'
     });
     if (!currentPasswordValidation.isValid) {
       newPasswordErrors.currentPassword = currentPasswordValidation.error;
     }
     
-    // Xác thực mật khẩu mới
+    // Validate new password
     const newPasswordValidation = validatePasswordField(passwordData.newPassword, {
       required: true,
       minLength: 6,
       requireNumber: true,
-      label: 'Mật khẩu mới'
+      label: 'New password'
     });
     if (!newPasswordValidation.isValid) {
       newPasswordErrors.newPassword = newPasswordValidation.error;
     }
     
-    // Xác thực mật khẩu xác nhận
+    // Validate confirm password
     const confirmPasswordValidation = validateConfirmPasswordField(
       passwordData.confirmPassword,
       passwordData.newPassword,
-      { required: true, label: 'Xác nhận mật khẩu' }
+      { required: true, label: 'Confirm password' }
     );
     if (!confirmPasswordValidation.isValid) {
       newPasswordErrors.confirmPassword = confirmPasswordValidation.error;
     }
     
-    // Cập nhật state lỗi
+    // Update error state
     setPasswordErrors(newPasswordErrors);
     
-    // Kiểm tra nếu có lỗi thì không tiếp tục
+    // If there are errors, don't continue
     if (newPasswordErrors.currentPassword || newPasswordErrors.newPassword || newPasswordErrors.confirmPassword) {
       return;
     }
 
     try {
       await changePassword(passwordData);
-      setSaveToast('Mật khẩu đã được thay đổi thành công!');
+      setSaveToast('Password has been changed successfully!');
       setTimeout(() => setSaveToast(''), 3000);
       setShowPasswordForm(false);
       setPasswordData({
@@ -312,7 +312,7 @@ export default function AccountPage() {
       });
     } catch (error) {
       console.error('Error changing password:', error);
-      setSaveToast('Có lỗi xảy ra khi thay đổi mật khẩu!');
+      setSaveToast('An error occurred while changing password!');
       setTimeout(() => setSaveToast(''), 3000);
     }
   };
@@ -356,11 +356,11 @@ export default function AccountPage() {
   };
 
   const tabs = [
-    { id: 'profile', label: 'Thông tin cá nhân', icon: User },
-    { id: 'notifications', label: 'Thông báo', icon: Bell },
-    { id: 'security', label: 'Bảo mật', icon: Shield },
-    { id: 'billing', label: 'Thanh toán', icon: CreditCard },
-    { id: 'settings', label: 'Cài đặt', icon: Settings }
+    { id: 'profile', label: 'Personal Information', icon: User },
+    { id: 'notifications', label: 'Notifications', icon: Bell },
+    { id: 'security', label: 'Security', icon: Shield },
+    { id: 'billing', label: 'Billing', icon: CreditCard },
+    { id: 'settings', label: 'Settings', icon: Settings }
   ];
 
   // Show loading state
@@ -376,7 +376,7 @@ export default function AccountPage() {
   if (error) {
     return (
       <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-        <p className="font-medium">Đã xảy ra lỗi</p>
+        <p className="font-medium">An error occurred</p>
         <p>{error}</p>
       </div>
     );
@@ -397,8 +397,8 @@ export default function AccountPage() {
           <User className="h-6 w-6 text-green-600" />
         </div>
         <div>
-          <h2 className="text-2xl font-bold">Tài khoản</h2>
-          <p className="text-gray-600">Quản lý thông tin và cài đặt tài khoản</p>
+          <h2 className="text-2xl font-bold">Account</h2>
+          <p className="text-gray-600">Manage your account information and settings</p>
         </div>
       </div>
 
@@ -479,7 +479,7 @@ export default function AccountPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Đổi mật khẩu</h3>
+              <h3 className="text-lg font-semibold">Change Password</h3>
               <button 
                 onClick={handlePasswordCancel}
                 className="text-gray-500 hover:text-gray-700"
@@ -491,7 +491,7 @@ export default function AccountPage() {
             <form onSubmit={handlePasswordSubmit}>
               <div className="mb-4">
                 <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700 mb-1">
-                  Mật khẩu hiện tại
+                  Current Password
                 </label>
                 <input
                   type="password"
@@ -508,7 +508,7 @@ export default function AccountPage() {
               </div>
               <div className="mb-4">
                 <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-1">
-                  Mật khẩu mới
+                  New Password
                 </label>
                 <input
                   type="password"
@@ -525,7 +525,7 @@ export default function AccountPage() {
               </div>
               <div className="mb-4">
                 <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
-                  Xác nhận mật khẩu mới
+                  Confirm New Password
                 </label>
                 <input
                   type="password"
@@ -546,13 +546,13 @@ export default function AccountPage() {
                   onClick={handlePasswordCancel}
                   className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
                 >
-                  Hủy
+                  Cancel
                 </button>
                 <button
                   type="submit"
                   className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
                 >
-                  Cập nhật
+                  Update
                 </button>
               </div>
             </form>

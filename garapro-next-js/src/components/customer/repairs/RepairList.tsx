@@ -25,13 +25,13 @@ export function RepairList({ searchTerm, statusFilter }: RepairListProps) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Giả lập dữ liệu - trong thực tế sẽ gọi API
+    // Simulate data - in reality would call API
     const mockData: Repair[] = [
       {
         id: 1,
         licensePlate: "51F-123.45",
         vehicle: "Toyota Camry 2020",
-        issue: "Thay dầu và bảo dưỡng định kỳ",
+        issue: "Oil change and routine maintenance",
         status: "completed",
         date: "15/05/2023",
         priority: "medium",
@@ -41,7 +41,7 @@ export function RepairList({ searchTerm, statusFilter }: RepairListProps) {
         id: 2,
         licensePlate: "59A-678.90",
         vehicle: "Honda Civic 2019",
-        issue: "Kiểm tra hệ thống phanh",
+        issue: "Brake system inspection",
         status: "in-progress",
         date: "20/05/2023",
         priority: "high",
@@ -51,7 +51,7 @@ export function RepairList({ searchTerm, statusFilter }: RepairListProps) {
         id: 3,
         licensePlate: "51G-246.80",
         vehicle: "Ford Ranger 2021",
-        issue: "Thay thế bộ ly hợp",
+        issue: "Clutch replacement",
         status: "pending",
         date: "25/05/2023",
         priority: "medium",
@@ -61,7 +61,7 @@ export function RepairList({ searchTerm, statusFilter }: RepairListProps) {
         id: 4,
         licensePlate: "50D-357.91",
         vehicle: "Mazda CX-5 2022",
-        issue: "Sửa chữa điều hòa",
+        issue: "Air conditioning repair",
         status: "pending",
         date: "28/05/2023",
         priority: "low",
@@ -75,7 +75,7 @@ export function RepairList({ searchTerm, statusFilter }: RepairListProps) {
     }, 500);
   }, []);
 
-  // Lọc dữ liệu theo tìm kiếm và trạng thái
+  // Filter data by search and status
   const filteredRepairs = repairs.filter((repair) => {
     const matchesSearch = repair.licensePlate
       .toLowerCase()
@@ -85,31 +85,31 @@ export function RepairList({ searchTerm, statusFilter }: RepairListProps) {
     return matchesSearch && matchesStatus;
   });
 
-  // Hiển thị trạng thái
+  // Display status
   const getStatusBadge = (status: Repair["status"]) => {
     switch (status) {
       case "completed":
         return (
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-            <Wrench className="w-3 h-3 mr-1" /> Hoàn thành
+            <Wrench className="w-3 h-3 mr-1" /> Completed
           </span>
         );
       case "in-progress":
         return (
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-            <Clock className="w-3 h-3 mr-1" /> Đang xử lý
+            <Clock className="w-3 h-3 mr-1" /> In Progress
           </span>
         );
       case "pending":
         return (
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-            <Clock className="w-3 h-3 mr-1" /> Chờ xử lý
+            <Clock className="w-3 h-3 mr-1" /> Pending
           </span>
         );
       case "cancelled":
         return (
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-            <AlertTriangle className="w-3 h-3 mr-1" /> Đã hủy
+            <AlertTriangle className="w-3 h-3 mr-1" /> Cancelled
           </span>
         );
       default:
@@ -117,25 +117,25 @@ export function RepairList({ searchTerm, statusFilter }: RepairListProps) {
     }
   };
 
-  // Hiển thị độ ưu tiên
+  // Display priority
   const getPriorityBadge = (priority: Repair["priority"]) => {
     switch (priority) {
       case "high":
         return (
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-            Cao
+            High
           </span>
         );
       case "medium":
         return (
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-            Trung bình
+            Medium
           </span>
         );
       case "low":
         return (
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-            Thấp
+            Low
           </span>
         );
       default:
@@ -155,10 +155,10 @@ export function RepairList({ searchTerm, statusFilter }: RepairListProps) {
     return (
       <div className="text-center py-8">
         <h2 className="text-xl font-semibold text-gray-900 mb-2">
-          Không tìm thấy yêu cầu nào
+          No requests found
         </h2>
         <p className="text-gray-600 mb-4">
-          Không có yêu cầu sửa chữa nào phù hợp với tìm kiếm của bạn.
+          No repair requests match your search criteria.
         </p>
       </div>
     );
@@ -173,46 +173,46 @@ export function RepairList({ searchTerm, statusFilter }: RepairListProps) {
               scope="col"
               className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
             >
-              Biển số
+              License Plate
             </th>
             <th
               scope="col"
               className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
             >
-              Xe
+              Vehicle
             </th>
             <th
               scope="col"
               className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
             >
-              Vấn đề
+              Issue
             </th>
             <th
               scope="col"
               className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
             >
-              Trạng thái
+              Status
             </th>
             <th
               scope="col"
               className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
             >
-              Ngày
+              Date
             </th>
             <th
               scope="col"
               className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
             >
-              Độ ưu tiên
+              Priority
             </th>
             <th
               scope="col"
               className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
             >
-              Tiến độ
+              Progress
             </th>
             <th scope="col" className="relative px-6 py-3">
-              <span className="sr-only">Chi tiết</span>
+              <span className="sr-only">Details</span>
             </th>
           </tr>
         </thead>
@@ -251,7 +251,7 @@ export function RepairList({ searchTerm, statusFilter }: RepairListProps) {
                   href={`/customer/repairs/${repair.id}`}
                   className="text-blue-600 hover:text-blue-900"
                 >
-                  Chi tiết
+                  Details
                 </Link>
               </td>
             </tr>

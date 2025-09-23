@@ -21,7 +21,7 @@ export default function VehiclesPage() {
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Phương tiện của tôi</h1>
         <Link 
-          href="/customer/account" 
+          href="/customer/vehicles/create" 
           className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center"
         >
           <Plus className="h-4 w-4 mr-2" />
@@ -91,7 +91,7 @@ export default function VehiclesPage() {
             {!searchTerm && (
               <div className="mt-6">
                 <Link 
-                  href="/customer/account" 
+                  href="/customer/vehicles/create" 
                   className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg inline-flex items-center"
                 >
                   <Plus className="h-4 w-4 mr-2" />

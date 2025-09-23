@@ -34,75 +34,75 @@ export default function RepairHistoryPage() {
         id: 1,
         vehicle: 'Honda Civic 2020',
         licensePlate: '59A-123.45',
-        issue: 'Động cơ kêu lạ',
-        service: 'Bảo dưỡng định kỳ',
+        issue: 'Engine making strange noise',
+        service: 'Regular Maintenance',
         date: '2025-01-10',
         status: 'completed',
         cost: 1500000,
-        technician: 'Nguyễn Văn A',
+        technician: 'John Smith',
         rating: 5,
-        description: 'Thay dầu máy, lọc dầu, kiểm tra hệ thống phanh',
-        parts: ['Dầu máy 5W-30', 'Lọc dầu', 'Lọc gió'],
+        description: 'Oil change, oil filter replacement, brake system inspection',
+        parts: ['5W-30 Engine Oil', 'Oil Filter', 'Air Filter'],
         laborHours: 2
       },
       {
         id: 2,
         vehicle: 'Toyota Camry 2019',
         licensePlate: '51G-678.90',
-        issue: 'Phanh kêu',
-        service: 'Sửa chữa phanh',
+        issue: 'Brake noise',
+        service: 'Brake Repair',
         date: '2025-01-08',
         status: 'completed',
         cost: 3200000,
-        technician: 'Trần Thị B',
+        technician: 'Jane Doe',
         rating: 4,
-        description: 'Thay má phanh trước, kiểm tra dầu phanh, điều chỉnh phanh tay',
-        parts: ['Má phanh trước', 'Dầu phanh DOT4', 'Dây phanh'],
+        description: 'Front brake pad replacement, brake fluid check, handbrake adjustment',
+        parts: ['Front Brake Pads', 'DOT4 Brake Fluid', 'Brake Cable'],
         laborHours: 4
       },
       {
         id: 3,
         vehicle: 'BMW X5 2021',
         licensePlate: '30F-246.80',
-        issue: 'Đèn check engine',
-        service: 'Kiểm tra động cơ',
+        issue: 'Check engine light',
+        service: 'Engine Inspection',
         date: '2025-01-05',
         status: 'completed',
         cost: 2500000,
-        technician: 'Lê Văn C',
+        technician: 'Mike Johnson',
         rating: 5,
-        description: 'Chẩn đoán lỗi động cơ, thay bugi, kiểm tra hệ thống đánh lửa',
-        parts: ['Bugi', 'Dây bugi', 'Bộ lọc nhiên liệu'],
+        description: 'Engine diagnostic, spark plug replacement, ignition system inspection',
+        parts: ['Spark Plugs', 'Spark Plug Wires', 'Fuel Filter'],
         laborHours: 3
       },
       {
         id: 4,
         vehicle: 'Honda Civic 2020',
         licensePlate: '59A-123.45',
-        issue: 'Lốp mòn',
-        service: 'Thay lốp',
+        issue: 'Tire wear',
+        service: 'Tire Replacement',
         date: '2025-01-03',
         status: 'completed',
         cost: 800000,
-        technician: 'Nguyễn Văn A',
+        technician: 'John Smith',
         rating: 4,
-        description: 'Thay 4 lốp mới, cân bằng bánh xe, kiểm tra áp suất',
-        parts: ['Lốp 205/55R16 x4', 'Van lốp'],
+        description: 'Replace 4 new tires, wheel balancing, tire pressure check',
+        parts: ['205/55R16 Tires x4', 'Tire Valves'],
         laborHours: 1
       },
       {
         id: 5,
         vehicle: 'Toyota Camry 2019',
         licensePlate: '51G-678.90',
-        issue: 'Điều hòa không mát',
-        service: 'Sửa chữa điều hòa',
+        issue: 'AC not cooling',
+        service: 'AC Repair',
         date: '2024-12-28',
         status: 'completed',
         cost: 4500000,
-        technician: 'Trần Thị B',
+        technician: 'Jane Doe',
         rating: 5,
-        description: 'Thay máy nén điều hòa, nạp gas, kiểm tra hệ thống làm mát',
-        parts: ['Máy nén điều hòa', 'Gas R134a', 'Bộ lọc cabin'],
+        description: 'AC compressor replacement, gas refill, cooling system inspection',
+        parts: ['AC Compressor', 'R134a Gas', 'Cabin Filter'],
         laborHours: 5
       }
     ]);
@@ -138,20 +138,20 @@ export default function RepairHistoryPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Lịch sử sửa chữa</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Repair History</h1>
         <p className="text-muted-foreground">
-          Xem lại các lần sửa chữa trước đây
+          Review your previous repair records
         </p>
       </div>
       
-      {/* Bộ lọc và tìm kiếm */}
+      {/* Filters and search */}
       <div className="flex flex-col md:flex-row gap-4">
         <div className="flex-1">
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
             <input
               type="text"
-              placeholder="Tìm kiếm theo xe, dịch vụ, biển số..."
+              placeholder="Search by vehicle, service, license plate..."
               className="w-full rounded-md border border-gray-300 pl-9 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -167,11 +167,11 @@ export default function RepairHistoryPage() {
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
             >
-              <option value="all">Tất cả trạng thái</option>
-              <option value="completed">Hoàn thành</option>
-              <option value="in-progress">Đang xử lý</option>
-              <option value="pending">Chờ xử lý</option>
-              <option value="cancelled">Đã hủy</option>
+              <option value="all">All Status</option>
+              <option value="completed">Completed</option>
+              <option value="in-progress">In Progress</option>
+              <option value="pending">Pending</option>
+              <option value="cancelled">Cancelled</option>
             </select>
           </div>
           
@@ -182,16 +182,16 @@ export default function RepairHistoryPage() {
               value={filterDate}
               onChange={(e) => setFilterDate(e.target.value)}
             >
-              <option value="all">Tất cả thời gian</option>
-              <option value="last-week">Tuần qua</option>
-              <option value="last-month">Tháng qua</option>
-              <option value="last-year">Năm qua</option>
+              <option value="all">All Time</option>
+              <option value="last-week">Last Week</option>
+              <option value="last-month">Last Month</option>
+              <option value="last-year">Last Year</option>
             </select>
           </div>
         </div>
       </div>
       
-      {/* Danh sách lịch sử */}
+      {/* History list */}
       {filteredHistory.length > 0 ? (
         <div className="bg-white rounded-lg shadow overflow-hidden">
           <div className="overflow-x-auto">
@@ -199,22 +199,22 @@ export default function RepairHistoryPage() {
               <thead className="bg-gray-50">
                 <tr>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Xe
+                    Vehicle
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Vấn đề
+                    Issue
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Ngày
+                    Date
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Trạng thái
+                    Status
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Chi phí
+                    Cost
                   </th>
                   <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Thao tác
+                    Actions
                   </th>
                 </tr>
               </thead>
@@ -248,7 +248,7 @@ export default function RepairHistoryPage() {
                         href={`/customer/repairs/${repair.id}`}
                         className="text-blue-600 hover:text-blue-900 mr-4"
                       >
-                        Chi tiết
+                        Details
                       </Link>
                     </td>
                   </tr>
@@ -260,11 +260,11 @@ export default function RepairHistoryPage() {
       ) : (
         <div className="text-center py-12 bg-white rounded-lg shadow">
           <HistoryIcon className="mx-auto h-12 w-12 text-gray-300" />
-          <h3 className="mt-2 text-lg font-medium text-gray-900">Không tìm thấy lịch sử sửa chữa</h3>
+          <h3 className="mt-2 text-lg font-medium text-gray-900">No repair history found</h3>
           <p className="mt-1 text-sm text-gray-500">
             {searchTerm || filterStatus !== 'all' || filterDate !== 'all' 
-              ? 'Không có kết quả phù hợp với bộ lọc của bạn.'
-              : 'Bạn chưa có lịch sử sửa chữa nào.'}
+              ? 'No results match your current filters.'
+              : 'You have no repair history yet.'}
           </p>
         </div>
       )}

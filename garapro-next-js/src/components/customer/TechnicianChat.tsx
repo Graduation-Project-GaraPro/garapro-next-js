@@ -33,7 +33,7 @@ const TechnicianChat: React.FC<TechnicianChatProps> = ({
   const [newMessage, setNewMessage] = useState<string>('');
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
-  // Tự động cuộn xuống tin nhắn mới nhất
+  // Auto scroll to the latest message
   useEffect(() => {
     scrollToBottom();
   }, [messages, initialMessages, isOpen]);
@@ -50,12 +50,12 @@ const TechnicianChat: React.FC<TechnicianChatProps> = ({
     }
   };
 
-  // Định dạng thời gian
+  // Format time
   const formatTime = (value: string): string => {
     try {
       const date = new Date(value);
       if (isNaN(date.getTime())) return '';
-      return date.toLocaleTimeString('vi-VN', {
+      return date.toLocaleTimeString('en-US', {
         hour: '2-digit',
         minute: '2-digit',
         hour12: false,
@@ -65,7 +65,7 @@ const TechnicianChat: React.FC<TechnicianChatProps> = ({
     }
   };
 
-  // Xác định loại tin nhắn và style tương ứng
+  // Determine message type and corresponding style
   const getMessageStyle = (sender: string): string => {
     switch (sender) {
       case 'user':
@@ -108,7 +108,7 @@ const TechnicianChat: React.FC<TechnicianChatProps> = ({
     <div className={`${isOpen ? 'block' : 'hidden'} fixed bottom-4 right-4 z-50 w-96`}>
       <div className="bg-white rounded-lg shadow-2xl overflow-hidden flex flex-col w-full h-96 border border-gray-200">
         <div className={`p-4 ${headerColorClass} text-white font-semibold flex justify-between items-center`}>
-          <span>Chat với {technicianName || 'kỹ thuật viên'}</span>
+          <span>Chat with {technicianName || 'technician'}</span>
           <button onClick={onClose} className="text-white hover:text-gray-200">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -136,10 +136,10 @@ const TechnicianChat: React.FC<TechnicianChatProps> = ({
                 <div className="flex justify-between items-center mb-1">
                   <span className="font-medium text-xs">
                     {msg.sender === 'user'
-                      ? 'Bạn'
+                      ? 'You'
                       : msg.sender === 'technician'
-                      ? 'Kỹ thuật viên'
-                      : 'Hệ thống'}
+                      ? 'Technician'
+                      : 'System'}
                   </span>
                   <span className="text-xs opacity-75">{formatTime(msg.timestamp)}</span>
                 </div>
@@ -156,7 +156,7 @@ const TechnicianChat: React.FC<TechnicianChatProps> = ({
               type="text"
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Nhập tin nhắn..."
+              placeholder="Type a message..."
               className="flex-1 py-2 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
             <button
@@ -164,7 +164,7 @@ const TechnicianChat: React.FC<TechnicianChatProps> = ({
               disabled={!newMessage.trim()}
               className="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed"
             >
-              Gửi
+              Send
             </button>
           </div>
         </form>

@@ -27,7 +27,7 @@ export default function VehicleHistoryPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   
-  // Lấy thông tin phương tiện từ ID
+  // Get vehicle information from ID
   useEffect(() => {
     const foundVehicle = vehicles.find(v => v.id.toString() === vehicleId);
     if (foundVehicle) {
@@ -35,16 +35,16 @@ export default function VehicleHistoryPage() {
     }
   }, [vehicleId, vehicles]);
   
-  // Lọc lịch sử sửa chữa cho phương tiện này
+  // Filter repair history for this vehicle
   const vehicleRepairs = repairs
     .filter(repair => repair.licensePlate === vehicle?.licensePlate)
     .filter(repair => {
-      // Lọc theo từ khóa tìm kiếm
+      // Search filter
       const matchesSearch = 
         repair.issue.toLowerCase().includes(searchTerm.toLowerCase()) ||
         repair.description.toLowerCase().includes(searchTerm.toLowerCase());
       
-      // Lọc theo trạng thái
+      // Status filter
       const matchesStatus = filterStatus === 'all' || repair.status === filterStatus;
       
       return matchesSearch && matchesStatus;
@@ -56,7 +56,7 @@ export default function VehicleHistoryPage() {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Đang tải thông tin phương tiện...</p>
+          <p className="mt-4 text-gray-600">Loading vehicle information...</p>
         </div>
       </div>
     );
@@ -80,13 +80,13 @@ export default function VehicleHistoryPage() {
         </div>
       </div>
 
-      {/* Thanh tìm kiếm và lọc */}
+      {/* Search and Filter */}
       <div className="flex flex-col md:flex-row gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
           <input
             type="text"
-            placeholder="Tìm kiếm theo vấn đề, mô tả..."
+            placeholder="Search by issue or description..."
             className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -98,18 +98,18 @@ export default function VehicleHistoryPage() {
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value)}
         >
-          <option value="all">Tất cả trạng thái</option>
-          <option value="completed">Hoàn thành</option>
-          <option value="in-progress">Đang xử lý</option>
-          <option value="pending">Chờ xử lý</option>
-          <option value="cancelled">Đã hủy</option>
+          <option value="all">All statuses</option>
+          <option value="completed">Completed</option>
+          <option value="in-progress">In Progress</option>
+          <option value="pending">Pending</option>
+          <option value="cancelled">Cancelled</option>
         </select>
       </div>
 
-      {/* Danh sách lịch sử sửa chữa */}
+      {/* Repair History List */}
       <div className="bg-white rounded-lg shadow-sm overflow-hidden">
         <div className="p-6 border-b">
-          <h2 className="text-lg font-semibold">Lịch sử sửa chữa</h2>
+          <h2 className="text-lg font-semibold">Repair History</h2>
         </div>
         
         {vehicleRepairs.length > 0 ? (
@@ -129,7 +129,7 @@ export default function VehicleHistoryPage() {
                     href={`/customer/repairs/${repair.id}`}
                     className="mt-4 md:mt-0 text-blue-500 hover:text-blue-700"
                   >
-                    Xem chi tiết
+                    View details
                   </Link>
                 </div>
                 
@@ -140,7 +140,7 @@ export default function VehicleHistoryPage() {
                 {repair.progress !== undefined && (
                   <div className="mt-4">
                     <div className="flex justify-between text-xs text-gray-500 mb-1">
-                      <span>Tiến độ</span>
+                      <span>Progress</span>
                       <span>{repair.progress}%</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
@@ -157,11 +157,11 @@ export default function VehicleHistoryPage() {
         ) : (
           <div className="p-12 text-center">
             <Wrench className="h-12 w-12 text-gray-300 mx-auto" />
-            <h3 className="mt-4 text-lg font-medium text-gray-900">Không tìm thấy lịch sử sửa chữa</h3>
+            <h3 className="mt-4 text-lg font-medium text-gray-900">No repair history found</h3>
             <p className="mt-2 text-gray-500">
               {searchTerm || filterStatus !== 'all' 
-                ? 'Không có kết quả phù hợp với bộ lọc của bạn.'
-                : 'Phương tiện này chưa có lịch sử sửa chữa nào.'}
+                ? 'No results match your filters.'
+                : 'This vehicle has no repair history yet.'}
             </p>
             {(searchTerm || filterStatus !== 'all') && (
               <button 
@@ -171,7 +171,7 @@ export default function VehicleHistoryPage() {
                 }}
                 className="mt-4 text-blue-500 hover:text-blue-700"
               >
-                Xóa bộ lọc
+                Clear filters
               </button>
             )}
           </div>
@@ -181,7 +181,7 @@ export default function VehicleHistoryPage() {
   );
 }
 
-// Component hiển thị trạng thái sửa chữa
+// Component to display repair status
 function RepairStatusBadge({ status, className = '' }) {
   let color = "";
   let text = "";
@@ -190,22 +190,22 @@ function RepairStatusBadge({ status, className = '' }) {
   switch(status) {
     case "completed":
       color = "bg-green-100 text-green-800";
-      text = "Hoàn thành";
+      text = "Completed";
       icon = <CheckCircle className="h-3 w-3 mr-1" />;
       break;
     case "in-progress":
       color = "bg-blue-100 text-blue-800";
-      text = "Đang xử lý";
+      text = "In Progress";
       icon = <Wrench className="h-3 w-3 mr-1" />;
       break;
     case "pending":
       color = "bg-yellow-100 text-yellow-800";
-      text = "Chờ xử lý";
+      text = "Pending";
       icon = <Calendar className="h-3 w-3 mr-1" />;
       break;
     case "cancelled":
       color = "bg-red-100 text-red-800";
-      text = "Đã hủy";
+      text = "Cancelled";
       icon = <AlertTriangle className="h-3 w-3 mr-1" />;
       break;
     default:

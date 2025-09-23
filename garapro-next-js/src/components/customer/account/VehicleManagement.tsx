@@ -21,7 +21,7 @@ export function VehicleManagement() {
       model: "Camry",
       year: 2020,
       licensePlate: "51F-123.45",
-      color: "Trắng",
+      color: "White",
       vin: "1HGCM82633A123456",
     },
     {
@@ -30,7 +30,7 @@ export function VehicleManagement() {
       model: "Civic",
       year: 2019,
       licensePlate: "59A-678.90",
-      color: "Đen",
+      color: "Black",
       vin: "2HGFG12567H123456",
     },
   ]);
@@ -78,7 +78,7 @@ export function VehicleManagement() {
   };
 
   const handleDelete = (id: number) => {
-    if (window.confirm("Bạn có chắc chắn muốn xóa xe này?")) {
+    if (window.confirm("Are you sure you want to delete this vehicle?")) {
       setVehicles(prev => prev.filter(vehicle => vehicle.id !== id));
     }
   };
@@ -87,7 +87,7 @@ export function VehicleManagement() {
     e.preventDefault();
     
     if (editingVehicle) {
-      // Cập nhật xe hiện có
+      // Update existing vehicle
       setVehicles(prev =>
         prev.map(vehicle =>
           vehicle.id === editingVehicle.id
@@ -96,7 +96,7 @@ export function VehicleManagement() {
         )
       );
     } else {
-      // Thêm xe mới
+      // Add new vehicle
       const newVehicle: Vehicle = {
         id: Date.now(),
         ...formData,
@@ -112,25 +112,25 @@ export function VehicleManagement() {
   return (
     <div className="bg-white shadow-sm rounded-lg p-6">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold">Xe của tôi</h2>
+        <h2 className="text-xl font-semibold">My Vehicles</h2>
         <button
           onClick={handleAddNew}
           className="flex items-center px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
         >
-          <Plus className="w-4 h-4 mr-1" /> Thêm xe
+          <Plus className="w-4 h-4 mr-1" /> Add Vehicle
         </button>
       </div>
 
       {showAddForm && (
         <div className="mb-6 p-4 border rounded-lg">
           <h3 className="text-lg font-medium mb-3">
-            {editingVehicle ? "Chỉnh sửa thông tin xe" : "Thêm xe mới"}
+            {editingVehicle ? "Edit Vehicle Information" : "Add New Vehicle"}
           </h3>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid md:grid-cols-2 gap-4">
               <div>
                 <label htmlFor="make" className="block text-sm font-medium text-gray-700 mb-1">
-                  Hãng xe
+                  Make
                 </label>
                 <input
                   type="text"
@@ -145,7 +145,7 @@ export function VehicleManagement() {
               
               <div>
                 <label htmlFor="model" className="block text-sm font-medium text-gray-700 mb-1">
-                  Mẫu xe
+                  Model
                 </label>
                 <input
                   type="text"
@@ -162,7 +162,7 @@ export function VehicleManagement() {
             <div className="grid md:grid-cols-3 gap-4">
               <div>
                 <label htmlFor="year" className="block text-sm font-medium text-gray-700 mb-1">
-                  Năm sản xuất
+                  Year
                 </label>
                 <input
                   type="number"
@@ -179,7 +179,7 @@ export function VehicleManagement() {
               
               <div>
                 <label htmlFor="licensePlate" className="block text-sm font-medium text-gray-700 mb-1">
-                  Biển số xe
+                  License Plate
                 </label>
                 <input
                   type="text"
@@ -194,7 +194,7 @@ export function VehicleManagement() {
               
               <div>
                 <label htmlFor="color" className="block text-sm font-medium text-gray-700 mb-1">
-                  Màu sắc
+                  Color
                 </label>
                 <input
                   type="text"
@@ -210,7 +210,7 @@ export function VehicleManagement() {
             
             <div>
               <label htmlFor="vin" className="block text-sm font-medium text-gray-700 mb-1">
-                Số khung (VIN)
+                VIN Number
               </label>
               <input
                 type="text"
@@ -228,13 +228,13 @@ export function VehicleManagement() {
                 onClick={() => setShowAddForm(false)}
                 className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
               >
-                Hủy
+                Cancel
               </button>
               <button
                 type="submit"
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
               >
-                {editingVehicle ? "Cập nhật" : "Thêm"}
+                {editingVehicle ? "Update" : "Add"}
               </button>
             </div>
           </form>
@@ -244,8 +244,8 @@ export function VehicleManagement() {
       {vehicles.length === 0 ? (
         <div className="text-center py-8">
           <Car className="w-12 h-12 mx-auto text-gray-400" />
-          <h3 className="mt-2 text-lg font-medium text-gray-900">Không có xe</h3>
-          <p className="mt-1 text-sm text-gray-500">Bắt đầu bằng cách thêm xe đầu tiên của bạn.</p>
+          <h3 className="mt-2 text-lg font-medium text-gray-900">No Vehicles</h3>
+          <p className="mt-1 text-sm text-gray-500">Get started by adding your first vehicle.</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -255,8 +255,8 @@ export function VehicleManagement() {
                 <Car className="w-6 h-6 text-blue-600 mt-1" />
                 <div>
                   <h3 className="font-medium">{vehicle.make} {vehicle.model} {vehicle.year}</h3>
-                  <p className="text-sm text-gray-600">Biển số: {vehicle.licensePlate}</p>
-                  <p className="text-sm text-gray-600">Màu: {vehicle.color}</p>
+                  <p className="text-sm text-gray-600">License Plate: {vehicle.licensePlate}</p>
+                  <p className="text-sm text-gray-600">Color: {vehicle.color}</p>
                   {vehicle.vin && <p className="text-sm text-gray-600">VIN: {vehicle.vin}</p>}
                 </div>
               </div>

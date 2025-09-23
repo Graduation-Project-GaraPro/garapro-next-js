@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FaRobot, FaTimes } from "react-icons/fa";
+import { FaComments, FaTimes } from "react-icons/fa";
 
 const ChatBotUI = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -9,9 +9,12 @@ const ChatBotUI = () => {
   const [messages, setMessages] = useState([
     {
       id: 1,
-      text: "Xin chào! Tôi có thể giúp gì cho bạn?",
+      text: "Xin chào! Tôi là trợ lý của GaraPro. Tôi có thể giúp gì cho bạn về dịch vụ sửa chữa xe hoặc đặt lịch hẹn?",
       sender: "bot",
-      time: "09:00",
+      time: new Date().toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
     },
   ]);
 
@@ -35,11 +38,21 @@ const ChatBotUI = () => {
 
     setMessages((prev) => [...prev, userMsg]);
 
-    // Giả lập bot trả lời
     setTimeout(() => {
+      const sampleResponses = [
+        "Cảm ơn bạn đã liên hệ với GaraPro. Chúng tôi sẽ phản hồi sớm nhất có thể.",
+        "Bạn có thể đặt lịch hẹn sửa chữa xe thông qua ứng dụng hoặc gọi số hotline của chúng tôi.",
+        "Chúng tôi cung cấp nhiều dịch vụ bảo dưỡng và sửa chữa xe. Bạn cần hỗ trợ cụ thể về vấn đề gì?",
+        "Kỹ thuật viên của chúng tôi sẽ liên hệ với bạn trong thời gian sớm nhất.",
+        "Bạn có thể kiểm tra tình trạng sửa chữa xe của mình trong mục 'Theo dõi sửa chữa' trên ứng dụng.",
+      ];
+
+      const randomResponse =
+        sampleResponses[Math.floor(Math.random() * sampleResponses.length)];
+
       const botMsg = {
         id: Date.now() + 1,
-        text: "Đây là câu trả lời giả lập.",
+        text: randomResponse,
         sender: "bot",
         time: new Date().toLocaleTimeString([], {
           hour: "2-digit",
@@ -53,22 +66,22 @@ const ChatBotUI = () => {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50">
+    <div className="fixed bottom-24 right-6 z-50">
       {/* Nút mở Chatbot */}
       <button
         onClick={toggleChat}
-        className="bg-slate-800 text-white p-4 rounded-full shadow-lg hover:bg-slate-700 transition-all duration-300 transform hover:scale-110 focus:outline-none cursor-pointer"
+        className="bg-red-600 text-white p-4 rounded-full shadow-lg hover:bg-red-700 transition-all duration-300 transform hover:scale-110 focus:outline-none cursor-pointer"
         aria-label="Open Chatbot"
       >
-        <FaRobot className="w-6 h-6" />
+        <FaComments className="w-10 h-10" />
       </button>
 
       {/* Khung Chatbot */}
       {isOpen && (
-        <div className="absolute bottom-16 right-0 w-80 sm:w-96 bg-white rounded-xl shadow-2xl overflow-hidden transform transition-all duration-300 animate-slide-up">
+        <div className="absolute bottom-24 right-0 w-[28rem] bg-white rounded-xl shadow-2xl overflow-hidden transform transition-all duration-500 ease-out translate-y-4 animate-slide-up">
           {/* Header */}
-          <div className="bg-slate-800 text-white p-4 flex justify-between items-center">
-            <h3 className="text-lg font-semibold">CourseBot</h3>
+          <div className="bg-red-600 text-white p-4 flex justify-between items-center">
+            <h3 className="text-lg font-semibold">GaraPro Chat</h3>
             <button
               onClick={toggleChat}
               className="text-white hover:text-slate-300 focus:outline-none"
@@ -79,15 +92,15 @@ const ChatBotUI = () => {
           </div>
 
           {/* Khung tin nhắn */}
-          <div className="h-80 p-4 overflow-y-auto bg-slate-50 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100">
+          <div className="h-[30rem] p-4 overflow-y-auto bg-slate-50 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100">
             <div className="flex flex-col space-y-3">
               {messages.map((msg) => (
                 <div
                   key={msg.id}
                   className={`p-3 rounded-lg max-w-[80%] ${
                     msg.sender === "user"
-                      ? "bg-slate-800 text-white self-end"
-                      : "bg-slate-200 text-slate-800 self-start"
+                      ? "bg-red-600 text-white self-end"
+                      : "bg-gray-200 text-gray-800 self-start"
                   }`}
                 >
                   <p className="text-sm whitespace-pre-wrap break-words">
@@ -114,7 +127,7 @@ const ChatBotUI = () => {
                 />
                 <button
                   type="submit"
-                  className="bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-700 transition-colors duration-200 cursor-pointer"
+                  className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors duration-200 cursor-pointer"
                 >
                   Gửi
                 </button>

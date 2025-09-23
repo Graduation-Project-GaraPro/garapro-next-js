@@ -74,28 +74,28 @@ export function RepairDetails({ request }: RepairDetailsProps) {
   const getStatusText = (status: Request["status"]) => {
     switch (status) {
       case "completed":
-        return "Hoàn thành";
+        return "Completed";
       case "in-progress":
-        return "Đang xử lý";
+        return "In Progress";
       case "pending":
-        return "Chờ xử lý";
+        return "Pending";
       case "cancelled":
-        return "Đã hủy";
+        return "Cancelled";
       default:
-        return "Không xác định";
+        return "Unknown";
     }
   };
 
   const getPriorityText = (priority: Request["priority"]) => {
     switch (priority) {
       case "high":
-        return "Cao";
+        return "High";
       case "medium":
-        return "Trung bình";
+        return "Medium";
       case "low":
-        return "Thấp";
+        return "Low";
       default:
-        return "Không xác định";
+        return "Unknown";
     }
   };
 
@@ -116,63 +116,63 @@ export function RepairDetails({ request }: RepairDetailsProps) {
       {/* Header */}
       <div className="flex items-center space-x-4">
         <Link href="/customer/repairs" className="text-blue-600 hover:underline flex items-center">
-          <ArrowLeft className="h-5 w-5 mr-1" /> Quay lại
+          <ArrowLeft className="h-5 w-5 mr-1" /> Back
         </Link>
-        <h1 className="text-2xl font-bold">Chi tiết yêu cầu #{request.id}</h1>
+        <h1 className="text-2xl font-bold">Request Details #{request.id}</h1>
       </div>
 
-      {/* Thông tin chung */}
+      {/* General information */}
       <div className="grid md:grid-cols-2 gap-6">
         <div className="p-4 border rounded-lg bg-white shadow-sm space-y-3">
           <h2 className="text-lg font-semibold flex items-center">
-            <Car className="mr-2 h-5 w-5 text-blue-600" /> Thông tin xe
+            <Car className="mr-2 h-5 w-5 text-blue-600" /> Vehicle Information
           </h2>
-          <p><strong>Xe:</strong> {request.vehicle}</p>
-          <p><strong>Biển số:</strong> {request.licensePlate}</p>
-          <p><strong>Sự cố:</strong> {request.issue}</p>
-          <p><strong>Mô tả:</strong> {request.description}</p>
-          <p><strong>Độ ưu tiên:</strong> {getPriorityText(request.priority)}</p>
-          <p><strong>Trạng thái:</strong> {getStatusText(request.status)}</p>
-          <p><strong>Tiến độ:</strong> {request.progress}%</p>
+          <p><strong>Vehicle:</strong> {request.vehicle}</p>
+          <p><strong>License Plate:</strong> {request.licensePlate}</p>
+          <p><strong>Issue:</strong> {request.issue}</p>
+          <p><strong>Description:</strong> {request.description}</p>
+          <p><strong>Priority:</strong> {getPriorityText(request.priority)}</p>
+          <p><strong>Status:</strong> {getStatusText(request.status)}</p>
+          <p><strong>Progress:</strong> {request.progress}%</p>
         </div>
 
         <div className="p-4 border rounded-lg bg-white shadow-sm space-y-3">
           <h2 className="text-lg font-semibold flex items-center">
-            <User className="mr-2 h-5 w-5 text-blue-600" /> Thông tin khách hàng
+            <User className="mr-2 h-5 w-5 text-blue-600" /> Customer Information
           </h2>
-          <p><strong>Tên:</strong> {request.customerName}</p>
-          <p><strong>SĐT:</strong> {request.phone}</p>
+          <p><strong>Name:</strong> {request.customerName}</p>
+          <p><strong>Phone:</strong> {request.phone}</p>
           <p><strong>Email:</strong> {request.email}</p>
-          <p><strong>Địa chỉ:</strong> {request.address}</p>
-          <p><strong>Kỹ thuật viên:</strong> {request.technician}</p>
+          <p><strong>Address:</strong> {request.address}</p>
+          <p><strong>Technician:</strong> {request.technician}</p>
         </div>
       </div>
 
-      {/* Hình ảnh */}
+      {/* Images */}
       <div className="p-4 border rounded-lg bg-white shadow-sm">
-        <h2 className="text-lg font-semibold mb-4">Hình ảnh</h2>
+        <h2 className="text-lg font-semibold mb-4">Images</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {request.images.map((img, i) => (
             <img
               key={i}
               src={img}
-              alt={`Ảnh ${i}`}
+              alt={`Image ${i}`}
               className="rounded-lg shadow"
             />
           ))}
         </div>
       </div>
 
-      {/* Phụ tùng */}
+      {/* Parts */}
       <div className="p-4 border rounded-lg bg-white shadow-sm">
-        <h2 className="text-lg font-semibold mb-4">Phụ tùng</h2>
+        <h2 className="text-lg font-semibold mb-4">Parts</h2>
         <table className="w-full border text-sm">
           <thead>
             <tr className="bg-gray-100">
-              <th className="border px-2 py-1">Tên</th>
-              <th className="border px-2 py-1">Số lượng</th>
-              <th className="border px-2 py-1">Giá</th>
-              <th className="border px-2 py-1">Trạng thái</th>
+              <th className="border px-2 py-1">Name</th>
+              <th className="border px-2 py-1">Quantity</th>
+              <th className="border px-2 py-1">Price</th>
+              <th className="border px-2 py-1">Status</th>
             </tr>
           </thead>
           <tbody>
@@ -180,7 +180,7 @@ export function RepairDetails({ request }: RepairDetailsProps) {
               <tr key={i}>
                 <td className="border px-2 py-1">{p.name}</td>
                 <td className="border px-2 py-1">{p.quantity}</td>
-                <td className="border px-2 py-1">{p.price.toLocaleString()} đ</td>
+                <td className="border px-2 py-1">{p.price.toLocaleString()} VND</td>
                 <td className="border px-2 py-1">{p.status}</td>
               </tr>
             ))}
@@ -190,7 +190,7 @@ export function RepairDetails({ request }: RepairDetailsProps) {
 
       {/* Timeline */}
       <div className="p-4 border rounded-lg bg-white shadow-sm">
-        <h2 className="text-lg font-semibold mb-4">Tiến trình</h2>
+        <h2 className="text-lg font-semibold mb-4">Timeline</h2>
         <ul className="space-y-3">
           {request.timeline.map((t, i) => (
             <li key={i} className="flex items-start space-x-3">
@@ -217,7 +217,7 @@ export function RepairDetails({ request }: RepairDetailsProps) {
           onClick={() => setShowChat(!showChat)}
         >
           <MessageCircle className="inline mr-2" />
-          {showChat ? "Ẩn chat" : "Mở chat với kỹ thuật viên"}
+          {showChat ? "Hide chat" : "Open chat with technician"}
         </button>
 
         {showChat && (
@@ -243,13 +243,13 @@ export function RepairDetails({ request }: RepairDetailsProps) {
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
                 className="flex-1 border rounded-l-lg px-2"
-                placeholder="Nhập tin nhắn..."
+                placeholder="Type message..."
               />
               <button
                 className="bg-blue-600 text-white px-4 rounded-r-lg"
                 onClick={sendMessage}
               >
-                Gửi
+                Send
               </button>
             </div>
           </div>
