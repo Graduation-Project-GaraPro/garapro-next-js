@@ -49,7 +49,7 @@ const data = {
   mainNav: [
     {
       title: "Appointments",
-      url: "/manager/appointments",
+      url: "/manager/CustomerAppointments",
       icon: CalendarDays,
     },
     {
