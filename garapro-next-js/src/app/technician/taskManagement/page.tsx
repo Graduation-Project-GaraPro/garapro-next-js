@@ -15,7 +15,9 @@ import {
   X,
   Phone,
   FileText, 
-  Search
+  Search,
+  CreditCard, 
+  ClipboardList
 } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
@@ -61,6 +63,17 @@ export default function TaskManagement() {
   const router = useRouter(); 
   const [searchTerm, setSearchTerm] = useState("");
 
+  // Function to check if a task should be hidden (completed tasks after deadline)
+  const shouldHideCompletedTask = (task: Task): boolean => {
+    if (task.status !== "completed") return false;
+    
+    const today = new Date();
+    const taskDate = new Date(task.time.split('/').reverse().join('-')); // Convert DD/MM/YYYY to YYYY-MM-DD
+    
+    // Hide completed tasks if current date is after the task deadline
+    return today > taskDate;
+  };
+
   // Sample task data with enhanced properties
   const currentTasks: Task[] = [
     {
@@ -86,7 +99,7 @@ export default function TaskManagement() {
       progress: 0,
       priority: "medium",
       technician: "Jane Smith",
-      licensePlate: "30A-12345",
+      licensePlate: "31A-12345",
       owner: "Nguyễn Văn An",
       phone: "0901234567",
       description: "Xe có tiếng kêu bất thường từ động cơ, đèn check engine bật sáng. Khách hàng phản ánh xe giật cục khi tăng tốc.",
@@ -100,7 +113,7 @@ export default function TaskManagement() {
       progress: 20,
       priority: "low",
       technician: "Mike Johnson",
-      licensePlate: "30A-12345",
+      licensePlate: "30A-12346",
       owner: "Nguyễn Văn An",
       phone: "0901234567",
       description: "Xe có tiếng kêu bất thường từ động cơ, đèn check engine bật sáng. Khách hàng phản ánh xe giật cục khi tăng tốc.",
@@ -110,12 +123,12 @@ export default function TaskManagement() {
       id: 4,
       vehicle: "Porsche 911 2019",
       issue: "Oil Change",
-      time: "19/01/2025",
+      time: "23/09/2025", // Changed to today's date for testing
       status: "completed",
       progress: 100,
       priority: "low",
       technician: "William",
-      licensePlate: "30A-12345",
+      licensePlate: "92A-12345",
       owner: "Nguyễn Văn An",
       phone: "0901234567",
       description: "Xe có tiếng kêu bất thường từ động cơ, đèn check engine bật sáng. Khách hàng phản ánh xe giật cục khi tăng tốc.",
@@ -151,9 +164,18 @@ export default function TaskManagement() {
     low: "bg-green-100 text-green-700 border-green-200",
   };
 
-  const filteredTasks = filter === "all"
-    ? currentTasks
-    : currentTasks.filter((task) => task.status === filter);
+  // Filter tasks to hide completed tasks that are past their deadline
+  const visibleTasks = currentTasks.filter(task => !shouldHideCompletedTask(task));
+
+  const filteredTasks = (filter === "all"
+    ? visibleTasks
+    : visibleTasks.filter((task) => task.status === filter))
+    .filter(
+  (vehicle) =>
+    vehicle.vehicle.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    vehicle.owner.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (vehicle.licensePlate &&
+      vehicle.licensePlate.toLowerCase().includes(searchTerm.toLowerCase())));     
 
   return (
     <div className="bg-[url('/images/image5.jpg')] bg-cover bg-no-repeat h-[640px] p-6 rounded-lg shadow-md ">
@@ -163,7 +185,7 @@ export default function TaskManagement() {
             <div className="absolute inset-0 w-full max-w-md bg-white/70 shadow-md rounded-lg"></div>
               <div className="relative flex items-center gap-2 px-6 py-3">
                 <div className="p-2 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-lg">
-                  <CheckCircle className="w-7 h-7 text-white" />
+                  <ClipboardList className="w-7 h-7 text-white" />
                 </div>
                 <div className="flex flex-col items-start">
                  <h2 className="text-[29px] font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent italic">
@@ -186,7 +208,7 @@ export default function TaskManagement() {
                     />
                 </div>
              </div>
-            </div>
+          </div>
       <div className="max-w-6xl mx-auto">
        
         <div className="mb-3">          
@@ -230,6 +252,7 @@ export default function TaskManagement() {
           )
           .map((task) => {
             const StatusIcon = statusConfig[task.status]?.icon || Clock;
+            const isCompleted = task.status === "completed";
 
             return (
               <div
@@ -293,13 +316,19 @@ export default function TaskManagement() {
                       </div>
                     </div>
 
-                    <div className="text-sm text-gray-600">
+                    <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2 text-sm text-gray-800 font-medium ">
                          <User className="w-4 h-4" />
                           <span className="font-medium">Technician: </span>
                           <span className="text-gray-800">{task.technician}</span>
                       </div>
+                         
+                      <div className="flex items-center font-bold gap-2 text-gray-800 ">
+                         <CreditCard className="w-4 h-4" />
+                          <span className="text-sm text-gray-800">{task.licensePlate}</span>
+                        </div>
                     </div>
+                    
                   </div>
                 </div>
 
@@ -307,10 +336,16 @@ export default function TaskManagement() {
                 <div className="px-6 py-4 bg-white/50 border-t border-gray-200">
                   <div className="flex space-x-3">
                     <button 
-                    onClick={() => router.push(`conditionInspection/checkCondition?id=${task.id}`)}                   
-                    className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-indigo-800 transition-all duration-300 transform hover:scale-105 shadow-md">
+                      onClick={() => !isCompleted && router.push(`inspectionAndRepair/repair/repairProgress?id=${task.id}`)}                   
+                      disabled={isCompleted}
+                      className={`flex-1 flex items-center justify-center space-x-2 px-4 py-2 font-semibold rounded-lg transition-all duration-300 shadow-md ${
+                        isCompleted 
+                          ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                          : 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-800 transform hover:scale-105'
+                      }`}
+                    >
                       <Play className="w-4 h-4" />
-                      <span>Start Work</span>
+                      <span>{isCompleted ? 'Completed' : 'Start Work'}</span>
                     </button>
 
                     <button 
@@ -327,19 +362,30 @@ export default function TaskManagement() {
 
         {/* Empty State */}
         {filteredTasks.length === 0 && (
-          <div className="text-center py-12">
-            <div className="w-24 h-24 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
-              <AlertTriangle className="w-12 h-12 text-gray-400" />
-            </div>
-          <div className="bg-white/70 p-4 rounded-lg inline-block">
-              <h3 className="text-xl font-semibold text-balck-900 mb-2">No tasks found</h3>
-              <p className="text-gray-900">Try adjusting your filters or create a new task.</p>
-          </div>
-      </div>
+        
+      <div className="flex flex-col items-center justify-center py-10 px-6 bg-white rounded-xl shadow-md text-center max-w-md mx-auto">
+                  <div className="bg-gray-100 p-4 rounded-full mb-4">
+                    <AlertTriangle className="text-6xl text-gray-800" />
+                  </div>
+                    <h3 className="text-2xl font-bold text-gray-700 mb-2">
+                      No vehicles found
+                    </h3>
+                      <p className="text-gray-500 text-xm mb-4">
+                       No vehicles match your search criteria &quot;
+                       <span className="font-medium">{searchTerm}</span>
+                        &quot;
+                      </p>
+                      <button
+                        onClick={() => setSearchTerm("")}
+                        className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-bold"
+                        >
+                        Clear search
+                    </button>
+                </div>
         )}
         {/* Detail Modal */}
         {selectedTask && (
-          <div className="fixed inset-0 bg-white/40 flex items-center justify-center p-4 z-50">
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
             <div className="bg-gradient-to-br from-slate-100 via-blue-300 to-indigo-100 rounded-2xl shadow-2xl max-w-3xl w-full ">
               {/* Modal Header */}
               <div className="flex items-center justify-between p-6 border-b border-gray-200">
@@ -474,8 +520,16 @@ export default function TaskManagement() {
                 >
                   Close
                 </button>
-                <button className="px-6 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all duration-200">
-                  Start Work
+                <button
+                  onClick={() => selectedTask.status !== "completed" && router.push(`inspectionAndRepair/repair/repairProgress?id=${selectedTask.id}`)}  
+                  disabled={selectedTask.status === "completed"}
+                  className={`px-6 py-2 font-semibold rounded-lg transition-all duration-200 ${
+                    selectedTask.status === "completed"
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700'
+                  }`}
+                >
+                  {selectedTask.status === "completed" ? "Completed" : "Start Work"}
                 </button>
               </div>
             </div>

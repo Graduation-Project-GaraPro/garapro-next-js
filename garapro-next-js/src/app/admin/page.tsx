@@ -1,7 +1,7 @@
 import { DashboardOverview } from '@/components/admin/DashboardOverview'
 import { QuickActions } from '@/components/admin/QuickActions'
-import { RecentActivity } from '@/components/admin/RecentActivity'
-import { SystemStats } from '@/components/admin/SystemStats'
+// import { RecentActivity } from '@/components/admin/RecentActivity'
+// import { SystemStats } from '@/components/admin/SystemStats'
 
 export default function AdminDashboard() {
   return (
@@ -12,7 +12,7 @@ export default function AdminDashboard() {
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <QuickActions />
-        <RecentActivity />
+        {/* <RecentActivity /> */}
       </div>
 
     
