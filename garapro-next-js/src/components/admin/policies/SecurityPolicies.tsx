@@ -17,18 +17,7 @@ import { Loader2, Save, Shield, Lock, Timer, RefreshCw, Check, X } from 'lucide-
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function SecurityPolicies() {
-  const [policy, setPolicy] = useState<SecurityPolicy>({
-    minPasswordLength: 8,
-    requireSpecialChar: true,
-    requireNumber: true,
-    requireUppercase: true,
-    sessionTimeout: 30,
-    maxLoginAttempts: 5,
-    accountLockoutTime: 15,
-    mfaRequired: false,
-    passwordExpiryDays: 90,
-    enableBruteForceProtection: true
-  });
+  const [policy, setPolicy] = useState<SecurityPolicy | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -39,13 +28,13 @@ export default function SecurityPolicies() {
   const loadPolicy = async () => {
     try {
       setIsLoading(true);
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 800));
-      const currentPolicy = securityPolicyService.getPolicy();
+      const currentPolicy = await securityPolicyService.getPolicy();
       setPolicy(currentPolicy);
     } catch (error) {
       console.error('Failed to load security policy:', error);
-      toast.error('Failed to load security policy');
+      toast.error('Failed to load security policy', {
+        description: error instanceof Error ? error.message : 'Please try again later.',
+      });
     } finally {
       setIsLoading(false);
     }
@@ -53,23 +42,21 @@ export default function SecurityPolicies() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!policy) return;
+  
     try {
       setIsSaving(true);
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      securityPolicyService.updatePolicy(policy);
       
-      toast.success('Security policies updated successfully', {
-        description: 'All security settings have been saved.',
-        action: {
-          label: 'Dismiss',
-          onClick: () => console.log('Dismissed'),
-        },
+      const { message, updatedPolicy } = await securityPolicyService.updatePolicy(policy);
+      setPolicy(updatedPolicy);
+  
+      toast.success(message, {
+        description: "All security settings have been saved.",
       });
     } catch (error) {
-      console.error('Failed to save security policy:', error);
-      toast.error('Failed to save security policy', {
-        description: 'Please try again later.',
+      console.error("Failed to save security policy:", error);
+      toast.error("Failed to save security policy", {
+        description: error instanceof Error ? error.message : "Please try again later.",
       });
     } finally {
       setIsSaving(false);
@@ -77,7 +64,7 @@ export default function SecurityPolicies() {
   };
 
   const handleResetToDefaults = () => {
-    const defaultPolicy = {
+    const defaultPolicy: SecurityPolicy = {
       minPasswordLength: 8,
       requireSpecialChar: true,
       requireNumber: true,
@@ -87,13 +74,21 @@ export default function SecurityPolicies() {
       accountLockoutTime: 15,
       mfaRequired: false,
       passwordExpiryDays: 90,
-      enableBruteForceProtection: true
+      enableBruteForceProtection: true,
+      updatedAt: new Date().toISOString(),
+      updatedBy: null
     };
     
     setPolicy(defaultPolicy);
     toast.info('Reset to default values', {
       description: 'Remember to save changes to apply them.',
     });
+  };
+
+  const handlePolicyChange = (updates: Partial<SecurityPolicy>) => {
+    if (policy) {
+      setPolicy({ ...policy, ...updates });
+    }
   };
 
   if (isLoading) {
@@ -115,6 +110,21 @@ export default function SecurityPolicies() {
     );
   }
 
+  if (!policy) {
+    return (
+      <Alert variant="destructive">
+        <AlertTitle>Error</AlertTitle>
+        <AlertDescription>
+          Failed to load security policy. Please try refreshing the page.
+        </AlertDescription>
+        <Button onClick={loadPolicy} className="mt-2">
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Retry
+        </Button>
+      </Alert>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -127,10 +137,15 @@ export default function SecurityPolicies() {
             Configure and enforce security settings for your application
           </p>
         </div>
-        <Button variant="outline" onClick={handleResetToDefaults} className="flex items-center gap-2">
-          <RefreshCw className="h-4 w-4" />
-          Reset to Defaults
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={loadPolicy} className="flex items-center gap-2">
+            <RefreshCw className="h-4 w-4" />
+            Refresh
+          </Button>
+          <Button variant="outline" onClick={handleResetToDefaults} className="flex items-center gap-2">
+            Reset to Defaults
+          </Button>
+        </div>
       </div>
 
       <Alert variant="default" className="bg-blue-50 border-blue-200">
@@ -184,7 +199,7 @@ export default function SecurityPolicies() {
                       min="6"
                       max="20"
                       value={policy.minPasswordLength}
-                      onChange={(e) => setPolicy({ ...policy, minPasswordLength: parseInt(e.target.value) })}
+                      onChange={(e) => handlePolicyChange({ minPasswordLength: parseInt(e.target.value) })}
                     />
                   </div>
                   <div className="space-y-2">
@@ -195,7 +210,7 @@ export default function SecurityPolicies() {
                       min="1"
                       max="365"
                       value={policy.passwordExpiryDays}
-                      onChange={(e) => setPolicy({ ...policy, passwordExpiryDays: parseInt(e.target.value) })}
+                      onChange={(e) => handlePolicyChange({ passwordExpiryDays: parseInt(e.target.value) })}
                     />
                   </div>
                 </div>
@@ -220,7 +235,7 @@ export default function SecurityPolicies() {
                     <Switch
                       id="requireSpecialChar"
                       checked={policy.requireSpecialChar}
-                      onCheckedChange={(checked) => setPolicy({ ...policy, requireSpecialChar: checked })}
+                      onCheckedChange={(checked) => handlePolicyChange({ requireSpecialChar: checked })}
                     />
                   </div>
                   
@@ -241,7 +256,7 @@ export default function SecurityPolicies() {
                     <Switch
                       id="requireNumber"
                       checked={policy.requireNumber}
-                      onCheckedChange={(checked) => setPolicy({ ...policy, requireNumber: checked })}
+                      onCheckedChange={(checked) => handlePolicyChange({ requireNumber: checked })}
                     />
                   </div>
                   
@@ -262,7 +277,7 @@ export default function SecurityPolicies() {
                     <Switch
                       id="requireUppercase"
                       checked={policy.requireUppercase}
-                      onCheckedChange={(checked) => setPolicy({ ...policy, requireUppercase: checked })}
+                      onCheckedChange={(checked) => handlePolicyChange({ requireUppercase: checked })}
                     />
                   </div>
                 </div>
@@ -291,7 +306,7 @@ export default function SecurityPolicies() {
                       min="1"
                       max="1440"
                       value={policy.sessionTimeout}
-                      onChange={(e) => setPolicy({ ...policy, sessionTimeout: parseInt(e.target.value) })}
+                      onChange={(e) => handlePolicyChange({ sessionTimeout: parseInt(e.target.value) })}
                     />
                   </div>
                 </div>
@@ -328,7 +343,7 @@ export default function SecurityPolicies() {
                       min="1"
                       max="10"
                       value={policy.maxLoginAttempts}
-                      onChange={(e) => setPolicy({ ...policy, maxLoginAttempts: parseInt(e.target.value) })}
+                      onChange={(e) => handlePolicyChange({ maxLoginAttempts: parseInt(e.target.value) })}
                     />
                   </div>
                   
@@ -340,7 +355,7 @@ export default function SecurityPolicies() {
                       min="1"
                       max="1440"
                       value={policy.accountLockoutTime}
-                      onChange={(e) => setPolicy({ ...policy, accountLockoutTime: parseInt(e.target.value) })}
+                      onChange={(e) => handlePolicyChange({ accountLockoutTime: parseInt(e.target.value) })}
                     />
                   </div>
                 </div>
@@ -369,7 +384,7 @@ export default function SecurityPolicies() {
                   <Switch
                     id="mfaRequired"
                     checked={policy.mfaRequired}
-                    onCheckedChange={(checked) => setPolicy({ ...policy, mfaRequired: checked })}
+                    onCheckedChange={(checked) => handlePolicyChange({ mfaRequired: checked })}
                   />
                 </div>
                 
@@ -390,7 +405,7 @@ export default function SecurityPolicies() {
                   <Switch
                     id="enableBruteForceProtection"
                     checked={policy.enableBruteForceProtection}
-                    onCheckedChange={(checked) => setPolicy({ ...policy, enableBruteForceProtection: checked })}
+                    onCheckedChange={(checked) => handlePolicyChange({ enableBruteForceProtection: checked })}
                   />
                 </div>
               </CardContent>
@@ -442,7 +457,16 @@ export default function SecurityPolicies() {
           </TabsContent>
         </Tabs>
 
-        <div className="mt-6 flex justify-end">
+        <div className="mt-6 flex justify-end gap-2">
+          <Button 
+            type="button"
+            variant="outline"
+            onClick={loadPolicy}
+            disabled={isSaving}
+          >
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Refresh
+          </Button>
           <Button 
             type="submit" 
             disabled={isSaving} 

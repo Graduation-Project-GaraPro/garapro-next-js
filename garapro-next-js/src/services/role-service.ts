@@ -1,472 +1,215 @@
-import { apiClient } from './api-client'
-
-export interface Role {
-  id: number
-  name: string
-  description: string
-  users: number
-  permissions: string[]
-  isDefault: boolean
-  createdAt: string
-  updatedAt?: string
-}
-
+// types/role.ts
 export interface Permission {
   id: string
   name: string
+  code: string
   description: string
-  category?: string
+  deprecated: boolean
 }
 
-export interface RoleFilters {
-  search?: string
-  isDefault?: boolean
-  permissions?: string[]
-  page?: number
-  limit?: number
-}
-
-export interface RoleCreateData {
+export interface PermissionCategory {
+  id: string
   name: string
   description: string
-  permissions: string[]
-  isDefault?: boolean
+  permissions: Permission[]
 }
 
-export interface RoleUpdateData {
-  name?: string
-  description?: string
-  permissions?: string[]
-  isDefault?: boolean
+export interface Role {
+  id: string
+  name: string
+  description: string
+  isDefault: boolean
+  users: number
+  createdAt: string
+  updatedAt: string | null
+  permissionCategories: PermissionCategory[]
 }
 
-export interface RoleResponse {
-  roles: Role[]
-  total: number
-  page: number
-  limit: number
-  totalPages: number
+export interface CreateRoleRequest {
+  name: string
+  description: string
+  permissionIds: string[]
+  isDefault: boolean
+  grantedBy: string
+  GrantedUserId: string | null
 }
 
-export interface RoleStatistics {
-  totalRoles: number
-  customRoles: number
-  defaultRoles: number
-  mostUsedRole: string
-  averagePermissionsPerRole: number
-  roleDistribution: Array<{
-    roleName: string
-    userCount: number
-    percentage: number
-  }>
+export interface UpdateRoleRequest {
+  roleId: string
+  newName: string
+  description: string
+  permissionIds: string[]
+  isDefault: boolean
+  grantedBy: string
+  GrantedUserId: string | null
 }
+
+export interface AuthResponseDto {
+  token: string
+  expiresIn: number
+  userId: string
+  email: string
+  roles: string[]
+}
+
+// services/roleService.ts
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:7113/api';
 
 class RoleService {
-  private baseUrl = '/roles'
-  private memoryCache: Role[] | null = null
-  private permissionsCache: Permission[] | null = null
-
-  private readCache(): Role[] {
-    if (this.memoryCache === null) {
-      this.memoryCache = this.getFallbackRoles().roles
+  private getAuthToken(): string | null {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('authToken')
     }
-    return [...this.memoryCache]
+    return null
   }
 
-  private writeCache(roles: Role[]): void {
-    this.memoryCache = [...roles]
+  private getCurrentUserId(): string | null {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('userId')
+    }
+    return null
+  }
+  private getCurrentUserEmail(): string | null {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('userEmail')
+    }
+    return null
   }
 
-  private initializeCache(): void {
-    if (this.memoryCache === null) {
-      this.memoryCache = this.getFallbackRoles().roles
+  private async fetchAPI<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+    const token = this.getAuthToken()
+    const url = `${API_BASE_URL}${endpoint}`
+
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      ...options.headers,
     }
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(url, {
+      headers,
+      ...options,
+    })
+
+    if (!response.ok) {
+      const errorText = await response.json()
+      throw new Error(`API error: ${response.status} ${response.statusText} - ${errorText.message}`)
+    }
+
+    // Nếu response status là 204 (No Content) thì không parse JSON
+    if (response.status === 204) {
+      return null as T
+    }
+
+    // Nếu response có content-type là JSON thì parse, ngược lại trả về text
+    const contentType = response.headers.get('content-type')
+    if (contentType && contentType.includes('application/json')) {
+      return response.json() as Promise<T>
+    }
+
+    // Fallback: trả về text nếu không phải JSON
+    return response.text() as Promise<T>
   }
 
-  // Get all roles with filters and pagination
-  async getRoles(filters?: RoleFilters): Promise<RoleResponse> {
-    try {
-      const params: Record<string, unknown> = {}
-      if (filters?.search) params.search = filters.search
-      if (filters?.isDefault !== undefined) params.isDefault = filters.isDefault
-      if (filters?.permissions) params.permissions = filters.permissions.join(',')
-      if (filters?.page) params.page = filters.page
-      if (filters?.limit) params.limit = filters.limit
+  // Get all roles
+  async getRoles(): Promise<Role[]> {
+    return this.fetchAPI<Role[]>('/Roles')
+  }
 
-      const response = await apiClient.get<RoleResponse>(this.baseUrl, params)
-      return response.data
-    } catch (error) {
-      console.log('API failed, using mock data')
-      this.initializeCache()
-      let roles = this.readCache()
-
-      // Apply filters
-      if (filters?.search) {
-        const q = filters.search.toLowerCase()
-        roles = roles.filter(r => 
-          r.name.toLowerCase().includes(q) || 
-          r.description.toLowerCase().includes(q)
-        )
-      }
-      
-      if (filters?.isDefault !== undefined) {
-        roles = roles.filter(r => r.isDefault === filters.isDefault)
-      }
-      
-      if (filters?.permissions && filters.permissions.length > 0) {
-        roles = roles.filter(r => 
-          filters.permissions!.every(p => r.permissions.includes(p))
-        )
-      }
-
-      // Apply pagination
-      const page = filters?.page ?? 1
-      const limit = filters?.limit ?? 10
-      const total = roles.length
-      const totalPages = Math.max(1, Math.ceil(total / limit))
-      const startIndex = (page - 1) * limit
-      const pageItems = roles.slice(startIndex, startIndex + limit)
-      
-      return { roles: pageItems, total, page, limit, totalPages }
-    }
+  // Get grouped permissions
+  async getGroupedPermissions(): Promise<PermissionCategory[]> {
+    return this.fetchAPI<PermissionCategory[]>('/Permissions/grouped')
   }
 
   // Get role by ID
-  async getRoleById(id: number): Promise<Role> {
-    try {
-      const response = await apiClient.get<Role>(`${this.baseUrl}/${id}`)
-      return response.data
-    } catch (error) {
-      this.initializeCache()
-      const found = this.readCache().find(r => r.id === id)
-      if (!found) throw new Error(`Role with ID ${id} not found`)
-      return found
-    }
+  async getRoleById(id: string): Promise<Role> {
+    return this.fetchAPI<Role>(`/Roles/${id}`)
   }
 
   // Create new role
-  async createRole(roleData: RoleCreateData): Promise<Role> {
-    try {
-      const response = await apiClient.post<Role>(this.baseUrl, roleData)
-      return response.data
-    } catch (error) {
-      this.initializeCache()
-      const roles = this.readCache()
-      const now = new Date().toISOString()
-      
-      // Check for duplicate name
-      if (roles.some(r => r.name.toLowerCase() === roleData.name.toLowerCase())) {
-        throw new Error('Role name already exists')
-      }
+  async createRole(roleData: Omit<CreateRoleRequest, 'grantedBy'>): Promise<Role> {
+    const grantedBy = this.getCurrentUserEmail()
+    const GrantedUserId = this.getCurrentUserId()
 
-      const newRole: Role = {
-        id: Math.max(0, ...roles.map(r => r.id)) + 1,
-        name: roleData.name,
-        description: roleData.description,
-        permissions: roleData.permissions,
-        isDefault: roleData.isDefault || false,
-        users: 0,
-        createdAt: now,
-        updatedAt: now
-      }
-      
-      roles.unshift(newRole)
-      this.writeCache(roles)
-      return newRole
+    if (!grantedBy) {
+      throw new Error('User not authenticated')
     }
+
+    const requestData: CreateRoleRequest = {
+      ...roleData,
+      grantedBy,
+      GrantedUserId
+    }
+
+    return this.fetchAPI<Role>('/Roles', {
+      method: 'POST',
+      body: JSON.stringify(requestData),
+    })
   }
 
   // Update role
-  async updateRole(id: number, roleData: RoleUpdateData): Promise<Role> {
-    try {
-      const response = await apiClient.put<Role>(`${this.baseUrl}/${id}`, roleData)
-      return response.data
-    } catch (error) {
-      this.initializeCache()
-      const roles = this.readCache()
-      const index = roles.findIndex(r => r.id === id)
-      if (index === -1) throw new Error(`Role with ID ${id} not found`)
-      
-      // Check for duplicate name if name is being updated
-      if (roleData.name && roleData.name !== roles[index].name) {
-        if (roles.some(r => r.id !== id && r.name.toLowerCase() === roleData.name!.toLowerCase())) {
-          throw new Error('Role name already exists')
-        }
-      }
-      
-      const updatedRole = { 
-        ...roles[index], 
-        ...roleData,
-        updatedAt: new Date().toISOString()
-      }
-      
-      roles[index] = updatedRole
-      this.writeCache(roles)
-      return updatedRole
+  async updateRole(roleData: Omit<UpdateRoleRequest, 'grantedBy' | 'roleId'> & { id: string }): Promise<Role> {
+    const grantedBy = this.getCurrentUserEmail()
+    const GrantedUserId = this.getCurrentUserId()
+    if (!grantedBy) {
+      throw new Error('User not authenticated')
     }
+
+    const requestData: UpdateRoleRequest = {
+      roleId: roleData.id,
+      newName: roleData.newName,
+      description: roleData.description,
+      permissionIds: roleData.permissionIds,
+      isDefault: roleData.isDefault,
+      grantedBy,
+      GrantedUserId
+    }
+
+    return this.fetchAPI<Role>(`/Roles/${roleData.id}`, {
+      method: 'PUT',
+      body: JSON.stringify(requestData),
+    })
   }
 
-  // Delete role
-  async deleteRole(id: number): Promise<void> {
-    try {
-      await apiClient.delete(`${this.baseUrl}/${id}`)
-    } catch (error) {
-      this.initializeCache()
-      const roles = this.readCache()
-      const role = roles.find(r => r.id === id)
-      
-      if (!role) throw new Error(`Role with ID ${id} not found`)
-      if (role.isDefault) throw new Error('Cannot delete default role')
-      if (role.users > 0) throw new Error('Cannot delete role with assigned users')
-      
-      const filteredRoles = roles.filter(r => r.id !== id)
-      this.writeCache(filteredRoles)
-    }
+  // Delete role - trả về void vì API trả về 204 No Content
+  async deleteRole(id: string): Promise<void> {
+    await this.fetchAPI<void>(`/Roles/${id}`, {
+      method: 'DELETE',
+    })
+    // Không cần return gì cả vì API trả về 204
   }
 
   // Duplicate role
-  async duplicateRole(id: number, newName: string): Promise<Role> {
-    try {
-      const response = await apiClient.post<Role>(`${this.baseUrl}/${id}/duplicate`, { name: newName })
-      return response.data
-    } catch (error) {
-      this.initializeCache()
-      const roles = this.readCache()
-      const originalRole = roles.find(r => r.id === id)
-      
-      if (!originalRole) throw new Error(`Role with ID ${id} not found`)
-      if (roles.some(r => r.name.toLowerCase() === newName.toLowerCase())) {
-        throw new Error('Role name already exists')
-      }
-
-      const duplicatedRole: Role = {
-        id: Math.max(0, ...roles.map(r => r.id)) + 1,
-        name: newName,
-        description: `Copy of ${originalRole.description}`,
-        permissions: [...originalRole.permissions],
-        isDefault: false,
-        users: 0,
-        createdAt: new Date().toISOString()
-      }
-      
-      roles.unshift(duplicatedRole)
-      this.writeCache(roles)
-      return duplicatedRole
+  async duplicateRole(id: string, newName: string): Promise<Role> {
+    const grantedBy = this.getCurrentUserId()
+    if (!grantedBy) {
+      throw new Error('User not authenticated')
     }
+
+    return this.fetchAPI<Role>(`/Roles/${id}/duplicate`, {
+      method: 'POST',
+      body: JSON.stringify({ 
+        newName,
+        grantedBy 
+      }),
+    })
   }
 
-  // Get all available permissions
-  async getPermissions(): Promise<Permission[]> {
+  async getUsersCountByRole(roleId: string): Promise<number> {
     try {
-      const response = await apiClient.get<Permission[]>(`${this.baseUrl}/permissions`)
-      this.permissionsCache = response.data
-      return response.data
+      const users = await this.fetchAPI<any[]>(`/Roles/${roleId}/users`)
+      return users.length
     } catch (error) {
-      if (this.permissionsCache) return this.permissionsCache
-      
-      const permissions = this.getFallbackPermissions()
-      this.permissionsCache = permissions
-      return permissions
+      console.error(`Failed to get users count for role ${roleId}:`, error)
+      return 0
     }
   }
-
-  // Get role statistics
-  async getRoleStatistics(): Promise<RoleStatistics> {
-    try {
-      const response = await apiClient.get<RoleStatistics>(`${this.baseUrl}/statistics`)
-      return response.data
-    } catch (error) {
-      this.initializeCache()
-      const roles = this.readCache()
-      
-      const totalRoles = roles.length
-      const customRoles = roles.filter(r => !r.isDefault).length
-      const defaultRoles = roles.filter(r => r.isDefault).length
-      const mostUsedRole = roles.reduce((prev, current) => 
-        (prev.users > current.users) ? prev : current
-      ).name
-      
-      const totalPermissions = roles.reduce((sum, role) => sum + role.permissions.length, 0)
-      const averagePermissionsPerRole = totalRoles > 0 ? Math.round(totalPermissions / totalRoles) : 0
-      
-      const roleDistribution = roles.map(role => ({
-        roleName: role.name,
-        userCount: role.users,
-        percentage: totalRoles > 0 ? Math.round((role.users / roles.reduce((sum, r) => sum + r.users, 0)) * 100) : 0
-      }))
-      
-      return {
-        totalRoles,
-        customRoles,
-        defaultRoles,
-        mostUsedRole,
-        averagePermissionsPerRole,
-        roleDistribution
-      }
-    }
-  }
-
-  // Assign role to users
-  async assignRoleToUsers(roleId: number, userIds: number[]): Promise<void> {
-    try {
-      await apiClient.post(`${this.baseUrl}/${roleId}/assign`, { userIds })
-    } catch (error) {
-      console.error(`Failed to assign role ${roleId} to users:`, error)
-      
-      // Update user count locally
-      this.initializeCache()
-      const roles = this.readCache()
-      const roleIndex = roles.findIndex(r => r.id === roleId)
-      if (roleIndex !== -1) {
-        roles[roleIndex].users += userIds.length
-        this.writeCache(roles)
-      }
-    }
-  }
-
-  // Remove role from users
-  async removeRoleFromUsers(roleId: number, userIds: number[]): Promise<void> {
-    try {
-      await apiClient.post(`${this.baseUrl}/${roleId}/remove`, { userIds })
-    } catch (error) {
-      console.error(`Failed to remove role ${roleId} from users:`, error)
-      
-      // Update user count locally
-      this.initializeCache()
-      const roles = this.readCache()
-      const roleIndex = roles.findIndex(r => r.id === roleId)
-      if (roleIndex !== -1) {
-        roles[roleIndex].users = Math.max(0, roles[roleIndex].users - userIds.length)
-        this.writeCache(roles)
-      }
-    }
-  }
-
   // Get users with specific role
-  async getUsersByRole(roleId: number): Promise<Array<{
-    id: number
-    name: string
-    email: string
-    assignedAt: string
-  }>> {
-    try {
-      const response = await apiClient.get<Array<{
-        id: number
-        name: string
-        email: string
-        assignedAt: string
-      }>>(`${this.baseUrl}/${roleId}/users`)
-      return response.data
-    } catch (error) {
-      console.error(`Failed to fetch users for role ${roleId}:`, error)
-      
-      // Return mock data
-      return [
-        { id: 1, name: 'John Doe', email: 'john@example.com', assignedAt: '2024-01-01T00:00:00Z' },
-        { id: 2, name: 'Jane Smith', email: 'jane@example.com', assignedAt: '2024-01-02T00:00:00Z' }
-      ]
-    }
-  }
-
-  // Export roles
-  async exportRoles(filters?: RoleFilters, format: 'csv' | 'excel' | 'json' = 'csv'): Promise<Blob> {
-    try {
-      const params: Record<string, unknown> = { format }
-      if (filters?.search) params.search = filters.search
-      if (filters?.isDefault !== undefined) params.isDefault = filters.isDefault
-
-      const response = await apiClient.get<Blob>(`${this.baseUrl}/export`, params)
-      return response.data
-    } catch (error) {
-      console.error('Failed to export roles:', error)
-      
-      const roles = (await this.getRoles(filters)).roles
-      
-      if (format === 'json') {
-        return new Blob([JSON.stringify(roles, null, 2)], { type: 'application/json' })
-      }
-      
-      const header = 'id,name,description,users,permissions,isDefault,createdAt\n'
-      const rows = roles.map(r => 
-        `${r.id},"${r.name}","${r.description}",${r.users},"${r.permissions.join(';')}",${r.isDefault},${r.createdAt}`
-      ).join('\n')
-      const csv = header + rows
-      
-      const mimeType = format === 'excel' ? 'application/vnd.ms-excel' : 'text/csv;charset=utf-8;'
-      return new Blob([csv], { type: mimeType })
-    }
-  }
-
-  // Clear cache
-  clearCache(): void {
-    this.memoryCache = null
-    this.permissionsCache = null
-  }
-
-  // Private methods for fallback data
-  private getFallbackRoles(): RoleResponse {
-    const roles: Role[] = [
-      {
-        id: 1,
-        name: 'Super Admin',
-        description: 'Full system access and control',
-        users: 2,
-        permissions: [
-          'user_management', 'garage_management', 'system_settings', 
-          'security_policies', 'statistics_view', 'logs_view', 'role_management'
-        ],
-        isDefault: false,
-        createdAt: '2024-01-01T00:00:00Z'
-      },
-      {
-        id: 2,
-        name: 'Admin',
-        description: 'Administrative access with limited system control',
-        users: 5,
-        permissions: [
-          'user_management', 'garage_management', 'statistics_view', 'logs_view'
-        ],
-        isDefault: false,
-        createdAt: '2024-01-15T00:00:00Z'
-      },
-      {
-        id: 3,
-        name: 'Technician',
-        description: 'Content moderation and user support',
-        users: 12,
-        permissions: [
-          'user_management', 'content_moderation', 'support_tickets'
-        ],
-        isDefault: false,
-        createdAt: '2024-02-01T00:00:00Z'
-      },
-      {
-        id: 4,
-        name: 'User',
-        description: 'Standard user access',
-        users: 2847,
-        permissions: ['basic_access'],
-        isDefault: true,
-        createdAt: '2024-01-01T00:00:00Z'
-      }
-    ]
-    
-    return { roles, total: roles.length, page: 1, limit: roles.length, totalPages: 1 }
-  }
-
-  private getFallbackPermissions(): Permission[] {
-    return [
-      { id: 'user_management', name: 'User Management', description: 'Manage user accounts', category: 'Users' },
-      { id: 'garage_management', name: 'Garage Management', description: 'Manage garage accounts', category: 'Garages' },
-      { id: 'system_settings', name: 'System Settings', description: 'Configure system settings', category: 'System' },
-      { id: 'security_policies', name: 'Security Policies', description: 'Manage security policies', category: 'Security' },
-      { id: 'statistics_view', name: 'View Statistics', description: 'Access system statistics', category: 'Analytics' },
-      { id: 'logs_view', name: 'View Logs', description: 'Access system logs', category: 'Analytics' },
-      { id: 'role_management', name: 'Role Management', description: 'Manage user roles', category: 'Users' },
-      { id: 'content_moderation', name: 'Content Moderation', description: 'Moderate content', category: 'Moderation' },
-      { id: 'support_tickets', name: 'Support Tickets', description: 'Handle support tickets', category: 'Support' },
-      { id: 'basic_access', name: 'Basic Access', description: 'Basic user access', category: 'Basic' }
-    ]
+  async getUsersWithRole(roleId: string): Promise<any[]> {
+    return this.fetchAPI<any[]>(`/Roles/${roleId}/users`)
   }
 }
 
