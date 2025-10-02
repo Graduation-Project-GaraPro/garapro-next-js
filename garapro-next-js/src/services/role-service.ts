@@ -79,39 +79,58 @@ class RoleService {
   private async fetchAPI<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const token = this.getAuthToken()
     const url = `${API_BASE_URL}${endpoint}`
-
+  
+    const defaultHeaders: HeadersInit = {
+      "Content-Type": "application/json",
+    }
+    console.log(token);
     const headers: HeadersInit = {
-      'Content-Type': 'application/json',
-      ...options.headers,
+      ...defaultHeaders,
+      ...(options.headers as Record<string, string> || {}),
     }
-
+  
     if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+      headers["Authorization"] = `Bearer ${token}`
     }
-
+  
     const response = await fetch(url, {
-      headers,
       ...options,
+      headers, // ensure our merged headers are used
     })
-
-    if (!response.ok) {
-      const errorText = await response.json()
-      throw new Error(`API error: ${response.status} ${response.statusText} - ${errorText.message}`)
-    }
-
-    // Nếu response status là 204 (No Content) thì không parse JSON
+  
+    // Handle no content
     if (response.status === 204) {
       return null as T
     }
-
-    // Nếu response có content-type là JSON thì parse, ngược lại trả về text
-    const contentType = response.headers.get('content-type')
-    if (contentType && contentType.includes('application/json')) {
+  
+    // Handle non-OK responses
+    if (!response.ok) {
+      let errorMessage: string
+  
+      try {
+        const errorData = await response.json()
+        errorMessage = errorData.message || JSON.stringify(errorData)
+      } catch {
+        errorMessage = await response.text()
+      }
+  
+      // Optionally handle 401 (unauthorized) automatically
+      if (response.status === 401) {
+        // this.logout() or trigger refresh token here
+      }
+  
+      throw new Error(`API error ${response.status}: ${errorMessage}`)
+    }
+  
+    // Detect content-type
+    const contentType = response.headers.get("content-type")
+  
+    if (contentType && contentType.includes("application/json")) {
       return response.json() as Promise<T>
     }
-
-    // Fallback: trả về text nếu không phải JSON
-    return response.text() as Promise<T>
+  
+    // fallback: return text
+    return (await response.text()) as unknown as T
   }
 
   // Get all roles
