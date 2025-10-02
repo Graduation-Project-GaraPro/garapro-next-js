@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FaBell, FaExclamationTriangle, FaCheckCircle, FaClock, FaSearch, FaFilter,FaInfoCircle } from "react-icons/fa";
+import { FaBell, FaExclamationTriangle, FaCheckCircle, FaClock, FaSearch, FaFilter,FaInfoCircle,FaExclamationCircle } from "react-icons/fa";
 
 type NotificationType = "normal" | "warning";
 type NotificationCategory = "Task" | "Approval" | "Parts" | "Deadline" | "Feedback";
@@ -47,11 +47,16 @@ export default function Notifications() {
     }
     return "bg-blue-100 border-l-4 border-blue-400 hover:bg-blue-300";
   };
+  
   const [searchTerm, setSearchTerm] = useState("");
   const [filter, setFilter] = useState<NotificationCategory | "all">("all");
-  const filterNotifications = filter === "all"
-    ?  notifications
-    :  notifications.filter((task) => task.category === filter);
+  const filteredNotifications = notifications
+  .filter((notification) => 
+    filter === "all" || notification.category === filter
+  )
+  .filter((notification) => 
+    notification.message.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="bg-gradient-to-r from-blue-200 to-purple-100 p-6 rounded-xl shadow-lg flex flex-col h-full">  
@@ -88,7 +93,7 @@ export default function Notifications() {
             <div className="flex items-center justify-between mb-4 gap-4">
             <h2 className="text-[18px] font-semibold text-gray-800 flex items-center gap-2">
               <FaInfoCircle className="w-6 h-6 text-blue-600" />
-              Notifications ({filterNotifications.length})
+              Notifications ({filteredNotifications.length})
             </h2>
             {/* Filter Section */}
             <div className="flex items-center space-x-2 bg-white/40 rounded-xl p-2 shadow-sm border border-gray-200">
@@ -117,12 +122,8 @@ export default function Notifications() {
        <div className="px-8 max-h-[47vh] overflow-y-auto bg-white/30 rounded-2xl shadow-inner space-y-4 p-4 rounded-scroll">
       {/* Danh sách thông báo */}
       <div className="flex-1 overflow-y-auto space-y-3">
-        {filterNotifications
-         .filter(
-            (vehicle) =>
-              vehicle.message.toLowerCase().includes(searchTerm.toLowerCase())             
-          )
-        .map((notification) => (
+        {filteredNotifications.length > 0 ? (
+        filteredNotifications.map((notification) => (
           <div
             key={notification.id}
             className={`flex items-start p-4 rounded-lg transition-all duration-200 cursor-pointer ${getNotificationStyle(notification.type)}`}
@@ -152,13 +153,34 @@ export default function Notifications() {
               </div>
             </div>
           </div>
-        ))}
+        ))
+      ):// No results found message
+         <div className="flex flex-col items-center justify-center py-10 px-6 bg-white rounded-xl shadow-md text-center max-w-md mx-auto">
+            <div className="bg-gray-100 p-4 rounded-full mb-4">
+              <FaExclamationCircle className="text-4xl text-gray-400" />
+            </div>
+              <h3 className="text-2xl font-bold text-gray-700 mb-2">
+                No notifications found
+              </h3>
+                <p className="text-gray-500 text-xm mb-4">
+                 No notifications match your search criteria &quot;
+                 <span className="font-medium">{searchTerm}</span>
+                  &quot;
+                </p>
+                <button
+                  onClick={() => setSearchTerm("")}
+                  className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-bold"
+                  >
+                  Clear search
+              </button>
+          </div>
+      }
       </div>
-</div>
+    </div>
       {/* Footer */}
       <div className="mt-4 py-3 border-t border-gray-200 bg-white rounded-xl flex justify-center">
         <p className="text-[15px] text-gray-500 font-bold">
-        Total {notifications.length} notifications
+        Total {filteredNotifications.length} notifications
         </p>
       </div>
     </div>

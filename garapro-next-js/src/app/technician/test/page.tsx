@@ -1,418 +1,394 @@
 "use client";
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { 
-  FaCar, FaSearch, FaChevronDown, FaChevronUp, 
-  FaRuler, FaCog, FaRoad, FaShieldAlt, FaTachometerAlt,
-  FaWrench, FaEye
-} from "react-icons/fa";
+  Wrench, 
+  Car, 
+  Calendar,
+  User,
+  IdCard,
+  Zap,
+  Activity,
+  Clock,
+  CheckCircle, 
+  Filter,
+  Search,
+  Eye, 
+  Sparkles
+} from "lucide-react";
 
-export default function VehicleInformation() {
-  const [vehicleSearch, setVehicleSearch] = useState("");
-  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
-  
-  // Toggle dropdown
-  const toggleSection = (vehicleId: number, sectionId: string) => {
-    const key = `${vehicleId}-${sectionId}`;
-    setExpandedSections(prev => ({
-      ...prev,
-      [key]: !prev[key]
-    }));
-  };
+interface Vehicle {
+  id: number;
+  vehicle: string;
+  licensePlate: string;
+  customer: string;
+  assignedDate: string;
+  status: string;
+}
+type TaskStatus = "New" | "Pending" | "Approval" | "In Progress";
 
-  // Vehicle data
-  const vehicleData = [
+export default function ConditionInspection() {
+  const [selectedVehicle] = useState<Vehicle | null>(null);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [filter, setFilter] = useState<TaskStatus | "all">("all");
+  const router = useRouter(); // Initialize useRouter
+  const [searchTerm, setSearchTerm] = useState("");
+  // Auto-rotate images every 4 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentImageIndex(prev => (prev + 1) % 3);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const assignedVehicles = [
     {
       id: 1,
-      name: "Camry 2.5Q",
-      make: "Toyota",
-      sections: [
-        {
-          id: "dimensions",
-          title: "1. Dimensions & Weight",
-          icon: FaRuler,
-          color: "bg-blue-50 border-blue-200",
-          iconBg: "bg-blue-600",
-          data: {
-            "Overall size (L×W×H)": "4885 × 1840 × 1455 mm",
-            "Wheelbase": "2825 mm",
-            "Ground clearance": "155 mm",
-            "Minimum turning radius": "5.7 m",
-            "Curb weight": "1530 kg",
-            "Gross weight": "2030 kg"
-          }
-        },
-        {
-          id: "engine",
-          title: "2. Engine",
-          icon: FaCog,
-          color: "bg-orange-50 border-orange-200",
-          iconBg: "bg-orange-600",
-          data: {
-            "Engine type": "Petrol",
-            "Displacement": "2487 cc (2.5L)",
-            "Max power": "181 hp / 133 kW @ 6000 rpm",
-            "Max torque": "231 Nm @ 4100 rpm",
-            "Cylinders": "4-inline (I4)",
-            "Emission standard": "Euro 5"
-          }
-        },
-        {
-          id: "drivetrain",
-          title: "3. Drivetrain",
-          icon: FaRoad,
-          color: "bg-green-50 border-green-200",
-          iconBg: "bg-green-600",
-          data: {
-            "Drive type": "Front-wheel drive (FWD)",
-            "Transmission": "CVT automatic",
-            "Gear levels": "Stepless with 10 simulated gears"
-          }
-        },
-        {
-          id: "chassis",
-          title: "4. Chassis & Suspension",
-          icon: FaWrench,
-          color: "bg-purple-50 border-purple-200",
-          iconBg: "bg-purple-600",
-          data: {
-            "Front suspension": "MacPherson",
-            "Rear suspension": "Multi-link",
-            "Front brakes": "Ventilated discs",
-            "Rear brakes": "Solid discs",
-            "Steering system": "Electric power steering (EPS)"
-          }
-        },
-        {
-          id: "performance",
-          title: "5. Performance",
-          icon: FaTachometerAlt,
-          color: "bg-red-50 border-red-200",
-          iconBg: "bg-red-600",
-          data: {
-            "Top speed": "190 km/h",
-            "0-100 km/h acceleration": "9.8 sec",
-            "Fuel consumption": "7.2 L/100km",
-            "Fuel tank capacity": "60 L"
-          }
-        },
-        {
-          id: "wheels",
-          title: "6. Wheels & Tires",
-          icon: FaRoad,
-          color: "bg-gray-50 border-gray-200",
-          iconBg: "bg-gray-600",
-          data: {
-            "Tire size": "215/55 R17",
-            "Wheel size": "17 inches",
-            "Wheel material": "Alloy"
-          }
-        },
-        {
-          id: "exterior",
-          title: "7. Exterior & Interior",
-          icon: FaEye,
-          color: "bg-indigo-50 border-indigo-200",
-          iconBg: "bg-indigo-600",
-          data: {
-            "Seats": "5",
-            "Body style": "Sedan",
-            "Lighting system": "Full LED",
-            "Seats material": "Premium leather, power adjustable",
-            "Air conditioning": "Dual-zone automatic",
-            "Infotainment": "10.5-inch touchscreen",
-            "Audio system": "JBL 9 speakers"
-          }
-        },
-        {
-          id: "safety",
-          title: "8. Safety",
-          icon: FaShieldAlt,
-          color: "bg-emerald-50 border-emerald-200",
-          iconBg: "bg-emerald-600",
-          data: {
-            "Airbags": "7 (front, side, curtain, knee)",
-            "ABS": "Yes",
-            "EBD": "Yes",
-            "BA": "Yes",
-            "ESP": "Yes (VSC)",
-            "TCS": "Yes",
-            "HSA": "Yes",
-            "Cruise Control": "Yes (Adaptive)",
-            "Sensors & Cameras": "Rear camera, parking sensors, blind-spot monitor"
-          }
-        }
-      ]
+      vehicle: "Tesla Model S 2023",
+      licensePlate: "29A-123.45",
+      customer: "John Smith",
+      assignedDate: "2024-08-28",
+      status: "New",  
     },
     {
       id: 2,
-      name: "Civic RS",
-      make: "Honda",
-      sections: [
-        {
-          id: "dimensions",
-          title: "1. Dimensions & Weight",
-          icon: FaRuler,
-          color: "bg-blue-50 border-blue-200",
-          iconBg: "bg-blue-600",
-          data: {
-            "Overall size (L×W×H)": "4678 × 1802 × 1415 mm",
-            "Wheelbase": "2735 mm",
-            "Ground clearance": "134 mm",
-            "Minimum turning radius": "5.5 m",
-            "Curb weight": "1335 kg",
-            "Gross weight": "1835 kg"
-          }
-        },
-        {
-          id: "engine",
-          title: "2. Engine",
-          icon: FaCog,
-          color: "bg-orange-50 border-orange-200",
-          iconBg: "bg-orange-600",
-          data: {
-            "Engine type": "Petrol Turbo",
-            "Displacement": "1498 cc (1.5L)",
-            "Max power": "178 hp / 131 kW @ 6000 rpm",
-            "Max torque": "240 Nm @ 1700–5500 rpm",
-            "Cylinders": "4-inline DOHC VTEC Turbo",
-            "Emission standard": "Euro 5"
-          }
-        },
-        {
-          id: "drivetrain",
-          title: "3. Drivetrain",
-          icon: FaRoad,
-          color: "bg-green-50 border-green-200",
-          iconBg: "bg-green-600",
-          data: {
-            "Drive type": "Front-wheel drive (FWD)",
-            "Transmission": "CVT automatic",
-            "Gear levels": "Stepless with paddle shift"
-          }
-        },
-        {
-          id: "chassis",
-          title: "4. Chassis & Suspension",
-          icon: FaWrench,
-          color: "bg-purple-50 border-purple-200",
-          iconBg: "bg-purple-600",
-          data: {
-            "Front suspension": "MacPherson",
-            "Rear suspension": "Torsion beam",
-            "Front brakes": "Ventilated discs",
-            "Rear brakes": "Solid discs",
-            "Steering system": "Electric power steering (EPS)"
-          }
-        },
-        {
-          id: "performance",
-          title: "5. Performance",
-          icon: FaTachometerAlt,
-          color: "bg-red-50 border-red-200",
-          iconBg: "bg-red-600",
-          data: {
-            "Top speed": "200 km/h",
-            "0-100 km/h acceleration": "8.2 sec",
-            "Fuel consumption": "6.8 L/100km",
-            "Fuel tank capacity": "47 L"
-          }
-        },
-        {
-          id: "wheels",
-          title: "6. Wheels & Tires",
-          icon: FaRoad,
-          color: "bg-gray-50 border-gray-200",
-          iconBg: "bg-gray-600",
-          data: {
-            "Tire size": "215/50 R17",
-            "Wheel size": "17 inches",
-            "Wheel material": "Sport alloy"
-          }
-        },
-        {
-          id: "exterior",
-          title: "7. Exterior & Interior",
-          icon: FaEye,
-          color: "bg-indigo-50 border-indigo-200",
-          iconBg: "bg-indigo-600",
-          data: {
-            "Seats": "5",
-            "Body style": "Sport sedan",
-            "Lighting system": "Full LED",
-            "Seats material": "Leather/Alcantara sport",
-            "Air conditioning": "Single-zone automatic",
-            "Infotainment": "9-inch Honda CONNECT",
-            "Audio system": "8 premium speakers"
-          }
-        },
-        {
-          id: "safety",
-          title: "8. Safety",
-          icon: FaShieldAlt,
-          color: "bg-emerald-50 border-emerald-200",
-          iconBg: "bg-emerald-600",
-          data: {
-            "Airbags": "6 (front, side, curtain)",
-            "ABS": "Yes",
-            "EBD": "Yes",
-            "BA": "Yes",
-            "ESP": "Yes (VSA)",
-            "TCS": "Yes",
-            "HSA": "Yes",
-            "Cruise Control": "Yes (Honda SENSING)",
-            "Sensors & Cameras": "Rear camera, front/rear sensors, Honda SENSING suite"
-          }
-        }
-      ]
+      vehicle: "BMW i8 2022",
+      licensePlate: "30B-678.90",
+      customer: "Jane Wilson",
+      assignedDate: "2024-08-28",
+      status: "Pending",
+    },
+    {
+      id: 3,
+      vehicle: "Audi RS6 2024",
+      licensePlate: "31C-111.22",
+      customer: "Mike Johnson",
+      assignedDate: "2024-08-27",
+      status: "Approval",
+    },
+    {
+      id: 4,
+      vehicle: "Mercedes AMG GT",
+      licensePlate: "32D-333.44",
+      customer: "Sarah Davis",
+      assignedDate: "2024-08-26",
+      status: "In Progress",
     }
   ];
 
-  // Search vehicles
-  const getFilteredVehicles = () => {
-    if (!vehicleSearch.trim()) return vehicleData;
-    const searchTerm = vehicleSearch.toLowerCase().trim();
-    return vehicleData.filter(vehicle => 
-      vehicle.name.toLowerCase().includes(searchTerm) ||
-      vehicle.make.toLowerCase().includes(searchTerm) ||
-      `${vehicle.make} ${vehicle.name}`.toLowerCase().includes(searchTerm)
-    );
+  const placeholderImages = [
+    "/images/image6.png",
+    "/images/image17.jpg",
+    "/images/image7.png",
+    "/images/image18.jpg"
+  ];
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "New":
+        return "from-blue-400/70 to-cyan-500/70";
+      case "Approval":
+        return "from-emerald-400/70 to-green-500/70";
+      case "In Progress":
+        return "from-amber-300/70 to-orange-300/70";
+      default:
+        return "from-blue-400/70 to-purple-500/70";
+    }
   };
 
-  const filteredVehicles = getFilteredVehicles();
-  return (
-    <div className="space-y-6 p-3 bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-4">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="relative inline-block mb-4">
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case "New":
+        return <Sparkles className="w-5 h-5" />;
+      case "Approval":
+        return <CheckCircle className="w-5 h-5" />;
+      case "In Progress":
+        return <Activity className="w-5 h-5" />;
+      default:
+        return <Clock className="w-5 h-5" />;
+    }
+  };
+  
+ const searchedVehicles = (filter === "all"
+  ? assignedVehicles
+  : assignedVehicles.filter((vehicle) => vehicle.status === filter)
+).filter(
+  (vehicle) =>
+    vehicle.vehicle.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    vehicle.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (vehicle.licensePlate &&
+      vehicle.licensePlate.toLowerCase().includes(searchTerm.toLowerCase()))
+);
+
+  // Main vehicle list view
+  if (!selectedVehicle) {
+    return (
+      <div className="flex gap-6 bg-gradient-to-br from-slate-100 via-blue-300 to-indigo-100 p-5 rounded-lg ">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-between mb-2 gap-4">
+          {/* Animated Header */}
+          <div className="relative inline-block mb-6">
             <div className="absolute inset-0 w-full max-w-md bg-white/70 shadow-md rounded-lg"></div>
-              <div className="relative flex items-center gap-2 px-4 py-2">
-                <div className="p-2 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-lg">
-                  <FaCar className="w-7 h-7 text-white" />
-                </div>
-                <div className="flex flex-col items-start">
-                 <h2 className="text-[28px] font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent italic">
-                   Vehicle Information Lookup
-                 </h2>
-                   <p className="text-gray-700 italic">Find detailed information about the car</p>
-                </div>
+            <div className="relative flex items-center gap-2 px-3 py-2">
+              <div className="p-2 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-lg">
+                <Wrench className="w-7 h-7 text-white"/>
+              </div>
+              <div className="flex flex-col items-start">
+                <h2 className="text-[27px] font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent italic">
+                  Vehicle Condition Inspection
+                </h2>
+                <p className="text-gray-600 italic">Professional automotive inspection dashboard</p>
+              </div>
             </div>
-            </div>
-        {/* Search Section */}
-        <div className="bg-white rounded-2xl shadow-xl p-8 py-7 mb-3 border border-gray-100">
+          </div>
+          {/* Search */}
+           <div className="px-12 mb-4 flex-1">
           <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <FaSearch className="text-gray-400" />
-            </div>
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500" />
             <input
               type="text"
-              placeholder="Enter vehicle name or brand to search..."
-              className="w-full pl-12 pr-4 py-4 text-lg border-2 border-gray-300 rounded-3xl focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 bg-gray-100"
-              value={vehicleSearch}
-              onChange={(e) => setVehicleSearch(e.target.value)}
+              placeholder="Search by vehicle, license plate or owner..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full text-[12px] pl-12 pr-4 py-3 border-3 border-gray-300 rounded-[100px] focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white/80"
             />
           </div>
-          
-          <div className="mt-2 flex items-center justify-between text-sm">
-            <span className="text-gray-500">
-              Found {filteredVehicles.length} vehicles.
-              {vehicleSearch.trim() && ` cho "${vehicleSearch}"`}
-            </span>
-            <span className="text-gray-400">Total: {vehicleData.length} in the database.</span>
+        </div>
+         </div>
+          <div className="flex items-center justify-between mb-4 gap-4">
+            <h2 className="text-[18px] font-semibold text-gray-800 flex items-center gap-2">
+              <Car className="w-6 h-6 text-blue-600" />
+              Assigned Vehicles ({searchedVehicles.length})
+            </h2>
+            {/* Filter Section */}
+            <div className="flex items-center space-x-2 bg-white/40 rounded-xl p-2 shadow-sm border border-gray-200">
+              <Filter className="w-5 h-5 text-gray-600" />
+              <span className="text-gray-700 font-medium">Filter:</span>
+              <div className="flex space-x-2">
+                {(["all", "New", "Pending", "Approval", "In Progress"] as const).map((status) => (
+                  <button
+                    key={status}
+                    onClick={() => setFilter(status)}
+                    className={`px-1.5 py-2 rounded-lg font-medium transition-all duration-200 capitalize ${
+                      filter === status
+                        ? "bg-blue-500 text-white hover:bg-blue-800"
+                        : "bg-gray-100 text-gray-600 hover:bg-gray-400"
+                    }`}
+                  >
+                    {status === "all" ? "All Tasks" : status.replace("-", " ")}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="max-h-[56vh] overflow-y-auto rounded-xl rounded-scroll">              
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {/* Vehicle List */}            
+              <div className="lg:col-span-2 space-y-4">              
+                {searchedVehicles
+                 .filter(
+            (vehicle) =>
+              vehicle.vehicle.toLowerCase().includes(searchTerm.toLowerCase()) ||
+              vehicle.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
+              (vehicle.licensePlate &&
+                vehicle.licensePlate.toLowerCase().includes(searchTerm.toLowerCase()))
+          )
+                .map((vehicle) => (
+                  <div
+                    key={vehicle.id}
+                    className="w-205 relative bg-[url('/images/image13.png')] bg-cover bg-no-repeat before:absolute before:inset-0 before:bg-black before:opacity-30 before:rounded-lg group relative rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden cursor-pointer transform hover:-translate-y-1"
+
+                  >
+                    {/* Content */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>                 
+                    <div className="relative p-6">
+                      {/* Main content*/}
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-4">
+                          <div className="p-3 bg-gradient-to-r from-blue-100 to-cyan-100 rounded-xl">
+                            <Car className="w-6 h-6 text-blue-600" />
+                          </div>
+                          <div>
+                            <div className="bg-white/80 p-1 rounded-lg inline-block">
+                              <h3 className="text-xl font-semibold text-black group-hover:text-blue-600 transition-colors">
+                                {vehicle.vehicle}
+                              </h3>
+                              <p className="text-gray-900 flex items-center gap-2 mt-1">
+                                <User className="w-4 h-4" />
+                                {vehicle.customer}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                        <div className={`px-4 py-2 rounded-full bg-gradient-to-r ${getStatusColor(vehicle.status)} text-white font-medium flex items-center gap-2 shadow-lg`}>
+                          {getStatusIcon(vehicle.status)}
+                          {vehicle.status}
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4 mb-4">
+                        <div className="flex items-center font-bold gap-2 text-white">
+                          <IdCard className="w-4 h-4" />
+                          <span className="text-sm">{vehicle.licensePlate}</span>
+                        </div>
+                        <div className="flex items-center font-bold gap-2 text-white">
+                          <Calendar className="w-4 h-4" />
+                          <span className="text-sm">{vehicle.assignedDate}</span>
+                        </div>
+                      </div>
+                      {vehicle.status === "New" ? (
+                        <div className="flex items-center justify-between mb-4 gap-4">
+                          <button 
+                            onClick={() => router.push(`conditionInspection/checkCondition?id=${vehicle.id}`)}
+                            className="w-full py-3 bg-gradient-to-r from-blue-600/70 to-cyan-600 hover:from-blue-700/70 hover:to-cyan-700 text-white font-semibold rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center gap-2"
+                          >
+                            <Zap className="w-5 h-5" />
+                            Start Inspection
+                          </button>
+                          <button className="w-full py-3 bg-gray-600 text-white font-semibold rounded-xl transition-all duration-300 shadow-lg flex items-center justify-center gap-2 cursor-not-allowed opacity-80">
+                            <Wrench className="w-5 h-5" />
+                            Start Repair
+                          </button>
+                        </div>
+                      ) : vehicle.status === "Pending" ? (
+                        <div className="flex items-center justify-between mb-4 gap-4">
+                          <button 
+                            onClick={() => router.push(`conditionInspection/checkCondition?id=${vehicle.id}`)}
+                            className="w-full py-3 bg-gradient-to-r from-blue-500/70 to-purple-700 hover:from-blue-700/70 hover:to-purple-700 text-white font-semibold rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center gap-2"
+                          >
+                            <Eye className="w-5 h-5" />
+                            View Inspection
+                          </button>
+                          <button className="w-full py-3 bg-gray-600 text-white font-semibold rounded-xl transition-all duration-300 shadow-lg flex items-center justify-center gap-2 cursor-not-allowed opacity-80">
+                            <Wrench className="w-5 h-5" />
+                            Start Repair
+                          </button>
+                        </div>
+                      ) : vehicle.status === "Approval" ? (
+                        <div className="flex items-center justify-between mb-4 gap-4">
+                          <button
+                            onClick={() => router.push(`conditionInspection/checkCondition?id=${vehicle.id}`)} // Navigate to checkCondition page
+                            className="w-full py-3 bg-gradient-to-r from-emerald-500/70 to-green-700 hover:from-emerald-700/70 hover:to-green-700 text-white font-semibold rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center gap-2"
+                          >
+                            <Eye className="w-5 h-5" />
+                            View Inspection
+                          </button>
+                          <button
+                            onClick={() => router.push(`conditionInspection/repairProgress?id=${vehicle.id}`)} // Navigate to repairProgress page
+                            className="w-full py-3 bg-gradient-to-r from-emerald-500/70 to-green-700 hover:from-emerald-700/70 hover:to-green-700 text-white font-semibold rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center gap-2"
+                          >
+                            <Wrench className="w-5 h-5" />
+                            Start Repair
+                          </button>
+                        </div>
+                      ) : vehicle.status === "In Progress" ? ( 
+                          <div className="flex items-center justify-between mb-4 gap-4">
+                          <button
+                            onClick={() => router.push(`conditionInspection/checkCondition?id=${vehicle.id}`)} // Navigate to checkCondition page
+                            className="w-full py-3 bg-gradient-to-r from-amber-300/70 to-orange-300/70 hover:from-amber-400/70 hover:to-orange-400/70 text-white font-semibold rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center gap-2"
+                          >
+                            <Eye className="w-5 h-5" />
+                            View Inspection
+                          </button>
+                          <button
+                            onClick={() => router.push(`conditionInspection/repairProgress?id=${vehicle.id}`)} // Navigate to repairProgress page
+                            className="w-full py-3 bg-gradient-to-r from-amber-300/70 to-orange-300/70 hover:from-amber-400/70 hover:to-orange-400/70 text-white font-semibold rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center gap-2"
+                          >
+                            <Wrench className="w-5 h-5" />
+                            Start Repair
+                          </button>
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                ))}
+                {searchedVehicles.length === 0 && (
+                  <div className="text-center py-20 absolute left-130">
+                    <div className="bg-white/80 rounded-2xl p-8 shadow-lg">
+                      <Car className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-gray-600 mb-2">No vehicles found</h3>
+                      <p className="text-gray-500">No vehicles match the selected filter criteria.</p>
+                      <button
+                  onClick={() => setSearchTerm("")}
+                  className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-bold"
+                  >
+                  Clear search
+              </button>
+                    </div>
+                    
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
-
-        {/* Results Section */}
-        {filteredVehicles.length > 0 ? (
-          <div className="space-y-8  max-h-[47vh] overflow-y-auto rounded-xl rounded-scroll">
-            {filteredVehicles.map((vehicle) => (
-              <div key={vehicle.id} className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-                {/* Vehicle Header */}
-                <div className="bg-gradient-to-r from-gray-50 to-blue-50 px-8 py-2 border-b border-gray-100">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h2 className="text-2xl font-bold text-gray-800 mb-1">
-                        {vehicle.name}
-                      </h2>
-                      <p className="text-[15px] text-gray-600">Automaker: <span className="font-semibold">{vehicle.make}</span></p>
-                    </div>                    
-                  </div>
+        {/* Image Slideshow */}
+        <div className="lg:col-span1">
+          <div className="">
+            <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
+              <div className="relative h-131 w-85 overflow-hidden">
+                {/* Slideshow */}
+                <div className="relative h-full">
+                  <img
+                    src={placeholderImages[currentImageIndex]}
+                    alt={`Professional inspection ${currentImageIndex + 1}`}
+                    className="w-full h-full object-cover transition-all duration-1000 transform hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
                 </div>
-
-                {/* Vehicle Sections */}
-                <div className="p-8 py-4">
-                  <div className="space-y-3">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
-                      {vehicle.sections.map((section) => {
-                        const isExpanded = expandedSections[`${vehicle.id}-${section.id}`];
-                        const IconComponent = section.icon;
-
-                        return (
-                          <div
-                            key={section.id}
-                            className={`border-2 rounded-xl ${section.color} self-start`}
-                          >
-                            {/* Section Header */}
-                            <button
-                              onClick={() => toggleSection(vehicle.id, section.id)}
-                              className="w-full px-6 py-2 flex items-center justify-between hover:bg-opacity-70 transition-all duration-200"
-                            >
-                              <div className="flex items-center">
-                                <div
-                                  className={`w-10 h-10 ${section.iconBg} rounded-lg flex items-center justify-center mr-4`}
-                                >
-                                  <IconComponent className="text-white text-xl" />
-                                </div>
-                                <h3 className="text-lg font-semibold text-gray-700">
-                                  {section.title}
-                                </h3>
-                              </div>
-                              <div className="text-gray-500">
-                                {isExpanded ? <FaChevronUp /> : <FaChevronDown />}
-                              </div>
-                            </button>
-
-                            {/* Section Content */}
-                            {isExpanded && (
-                              <div className="px-6 pb-6 bg-white bg-opacity-50">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                  {Object.entries(section.data).map(([key, value]) => (
-                                    <div
-                                      key={key}
-                                      className="flex justify-between items-center py-2 border-b border-gray-200 last:border-b-0"
-                                    >
-                                      <span className="font-medium text-gray-700">{key}:</span>
-                                      <span className="text-gray-800 font-semibold text-right">
-                                        {value}
-                                      </span>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
+                {/* Overlay text */}
+                <div className="absolute bottom-6 left-6 text-white">
+                  <h3 className="text-2xl font-bold mb-2">Professional</h3>
+                  <p className="text-lg opacity-90">Vehicle Inspection</p>
+                </div>
+                {/* Navigation dots */}
+                <div className="absolute bottom-4 right-6 flex space-x-2">
+                  {placeholderImages.map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setCurrentImageIndex(index)}
+                      className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                        index === currentImageIndex 
+                          ? 'bg-white shadow-lg' 
+                          : 'bg-white/50 hover:bg-white/70'
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
+              {/* Stats panel */}
+              <div className="p-3 bg-gradient-to-r from-gray-50 to-blue-50">
+                <div className="grid grid-cols-4 gap-3 text-center">
+                  <div>
+                    <div className="text-xl font-bold text-green-600">
+                      {assignedVehicles.filter(v => v.status === "New").length}
                     </div>
+                    <div className="text-xs text-gray-600">New</div>
+                  </div>
+                  <div>
+                    <div className="text-xl font-bold text-blue-600">
+                      {assignedVehicles.filter(v => v.status === "Approval").length}
+                    </div>
+                    <div className="text-xs text-gray-600">Approval</div>
+                  </div>
+                  <div>
+                    <div className="text-xl font-bold text-amber-600">
+                      {assignedVehicles.filter(v => v.status === "Pending").length}
+                    </div>
+                    <div className="text-xs text-gray-600">Pending</div>
+                  </div>
+                  <div>
+                    <div className="text-xl font-bold text-cyan-600">
+                      {assignedVehicles.filter(v => v.status === "In Progress").length}
+                    </div>
+                    <div className="text-xs text-gray-600">In Progress</div>
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
-        ) : (
-          <div className="bg-white rounded-2xl shadow-lg p-12 text-center border border-gray-100">
-            <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <FaSearch className="text-3xl text-gray-400" />
             </div>
-            <h3 className="text-2xl font-semibold text-gray-700 mb-2">No vehicles found</h3>
-              <p className="text-gray-500 text-lg">
-                No vehicles match your search &quot;
-                <span className="font-medium">{vehicleSearch}</span>
-                &quot;
-              </p>
-             <p className="text-gray-400 mt-2">Try adjusting your search keywords</p>
-          </div>  
-        )}
+          </div>
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
 }
