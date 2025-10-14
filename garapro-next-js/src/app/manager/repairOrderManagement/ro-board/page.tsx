@@ -4,26 +4,24 @@ import { useState, useEffect } from "react"
 import { Plus, Filter, LayoutGrid, List, Link } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import RoDragDropBoard from "./ro-drag-drop-board"
-import ListView from "../jobList/list-view"
+import ListView from "./ro-list-view"
 import EditTaskModal from "@/app/manager/repairOrderManagement/components/edit-task-modal"
 import CreateTask from "@/app/manager/repairOrderManagement/components/create-task"
-import { jobService } from "@/services/manager/job-service"
 import { repairOrderService } from "@/services/manager/repair-order-service"
 import { repairOrderHubService, type RoBoardCardDto } from "@/services/manager/repair-order-hub"
-import type { Job } from "@/types/job"
 import type { RepairOrder } from "@/types/manager/repair-order"
 import type { OrderStatus } from "@/types/manager/order-status"
 import { SearchForm } from '@/app/manager/components/layout/search-form'
+import type { Job } from "@/types/job"
 
 
 type ViewMode = "board" | "list"
 
 export default function BoardPage() {
-  const [jobs, setJobs] = useState<Job[]>([])
   const [repairOrders, setRepairOrders] = useState<RepairOrder[]>([])
   const [statuses, setStatuses] = useState<OrderStatus[]>([])
   const [showCreateForm, setShowCreateForm] = useState(false)
-  const [editingJob, setEditingJob] = useState<Job | null>(null)
+  const [editingRepairOrder, setEditingRepairOrder] = useState<RepairOrder | null>(null)
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState<ViewMode>("board")
   const [signalRConnected, setSignalRConnected] = useState(false)
@@ -88,32 +86,71 @@ export default function BoardPage() {
     }
   }
 
-  const handleCreateJob = async (jobData: Omit<Job, "id">) => {
+  // Wrapper function to convert Job to RepairOrder
+  const handleCreateRepairOrderWrapper = async (jobData: Omit<Job, "id">) => {
     try {
-      const newJob = await jobService.createJob(jobData)
-      setJobs((prev) => [...prev, newJob])
+      // Create a basic repair order from job data
+      const newRepairOrder: Omit<RepairOrder, "repairOrderId"> = {
+        receiveDate: new Date().toISOString(),
+        roType: 1, // Default type
+        roTypeName: jobData.title || "Repair Order",
+        estimatedCompletionDate: null,
+        completionDate: null,
+        cost: 0,
+        estimatedAmount: 0,
+        paidAmount: 0,
+        paidStatus: "unpaid",
+        estimatedRepairTime: 0,
+        note: jobData.description || "",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        isArchived: false,
+        archivedAt: null,
+        archivedByUserId: null,
+        branchId: "default-branch",
+        statusId: "pending-status", // Default status
+        vehicleId: "default-vehicle", // This should be updated with actual vehicle data
+        userId: "default-user", // This should be updated with actual user data
+        repairRequestId: "default-request", // This should be updated with actual request data
+        customerName: jobData.company || "Unknown Customer",
+        customerPhone: jobData.contact || "",
+        technicianNames: [],
+        totalJobs: 0,
+        completedJobs: 0,
+        progressPercentage: 0
+      };
+      
+      // In a real implementation, you would call an API to create the repair order
+      // For now, we'll just add it to the local state
+      const createdRepairOrder: RepairOrder = {
+        ...newRepairOrder,
+        repairOrderId: `ro-${Date.now()}` // Simple ID generation for demo
+      } as RepairOrder;
+      
+      setRepairOrders((prev) => [...prev, createdRepairOrder])
       setShowCreateForm(false)
     } catch (error) {
-      console.error("Failed to create job:", error)
+      console.error("Failed to create repair order:", error)
     }
   }
 
-  const handleUpdateJob = async (jobData: Job) => {
+  const handleUpdateRepairOrder = async (repairOrderData: RepairOrder) => {
     try {
-      const updatedJob = await jobService.updateJob(jobData.id, jobData)
-      setJobs((prev) => prev.map((job) => (job.id === updatedJob.id ? updatedJob : job)))
-      setEditingJob(null)
+      // In a real implementation, you would call an API to update the repair order
+      setRepairOrders((prev) => prev.map((ro) => (ro.repairOrderId === repairOrderData.repairOrderId ? repairOrderData : ro)))
+      setEditingRepairOrder(null)
     } catch (error) {
-      console.error("Failed to update job:", error)
+      console.error("Failed to update repair order:", error)
     }
   }
 
-  const handleDeleteJob = async (jobId: string) => {
+  const handleDeleteRepairOrder = async (repairOrderId: string) => {
     try {
-      await jobService.deleteJob(jobId)
-      setJobs((prev) => prev.filter((job) => job.id !== jobId))
+      // In a real implementation, you would call an API to delete the repair order
+      setRepairOrders((prev) => prev.filter((ro) => ro.repairOrderId !== repairOrderId))
+      console.log(`Deleted repair order ${repairOrderId}`)
     } catch (error) {
-      console.error("Failed to delete job:", error)
+      console.error("Failed to delete repair order:", error)
     }
   }
 
@@ -133,21 +170,6 @@ export default function BoardPage() {
       }
     } catch (error) {
       console.error("Failed to move repair order:", error)
-    }
-  }
-
-  const handleEditRepairOrder = (repairOrder: RepairOrder) => {
-    // Implement edit functionality
-    console.log("Edit repair order:", repairOrder)
-  }
-
-  const handleDeleteRepairOrder = async (repairOrderId: string) => {
-    try {
-      // In a real implementation, you would call an API to delete the repair order
-      setRepairOrders((prev) => prev.filter((ro) => ro.repairOrderId !== repairOrderId))
-      console.log(`Deleted repair order ${repairOrderId}`)
-    } catch (error) {
-      console.error("Failed to delete repair order:", error)
     }
   }
 
@@ -208,7 +230,7 @@ export default function BoardPage() {
       {showCreateForm ? (
         <CreateTask
           onClose={() => setShowCreateForm(false)}
-          onSubmit={handleCreateJob}
+          onSubmit={handleCreateRepairOrderWrapper}
         />
       ) : (
         <>
@@ -273,16 +295,16 @@ export default function BoardPage() {
                 repairOrders={repairOrders}
                 loading={loading}
                 onMoveRepairOrder={handleMoveRepairOrder}
-                onEditRepairOrder={handleEditRepairOrder}
+                onEditRepairOrder={setEditingRepairOrder}
                 onDeleteRepairOrder={handleDeleteRepairOrder}
                 statuses={statuses}
               />
             ) : (
               <ListView
-                jobs={jobs}
+                repairOrders={repairOrders}
                 loading={loading}
-                onEditJob={setEditingJob}
-                onDeleteJob={handleDeleteJob}
+                onEditRepairOrder={setEditingRepairOrder}
+                onDeleteRepairOrder={handleDeleteRepairOrder}
               />
             )}
           </div>
@@ -291,11 +313,11 @@ export default function BoardPage() {
 
       {/* Edit Modal */}
       <EditTaskModal
-        job={editingJob}
-        isOpen={!!editingJob}
-        onClose={() => setEditingJob(null)}
-        onSubmit={handleUpdateJob}
-        onDelete={handleDeleteJob}
+        repairOrder={editingRepairOrder}
+        isOpen={!!editingRepairOrder}
+        onClose={() => setEditingRepairOrder(null)}
+        onSubmit={handleUpdateRepairOrder}
+        onDelete={handleDeleteRepairOrder}
       />
     </div>
   )

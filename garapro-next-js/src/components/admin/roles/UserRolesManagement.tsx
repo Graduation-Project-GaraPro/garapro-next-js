@@ -1,193 +1,313 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Search, Plus, Users, Edit } from 'lucide-react'
-import { toast } from 'sonner'
-
-// Import components and hooks
 import { RoleTable } from '@/components/admin/roles/RoleTables'
 import { RoleDialogs } from '@/components/admin/roles/RoleDialogs'
-import { useRoles, usePermissions, useRoleOperations, useDebounce } from '@/hooks/admin/roles/useRoles'
-import { Role } from '@/services/role-service'
-import { userService } from '@/services/user-service'
+import { roleService } from '@/services/role-service'
+import { Role, PermissionCategory } from '@/services/role-service'
+import { Plus, Search } from 'lucide-react'
+import { toast } from 'sonner'
+
 export function UserRolesManagement() {
-  // Search state
+  // State management
+  const [roles, setRoles] = useState<Role[]>([])
+  const [permissions, setPermissions] = useState<PermissionCategory[]>([])
+  const [loading, setLoading] = useState(true)
+  const [permissionsLoading, setPermissionsLoading] = useState(true)
+  const [operationLoading, setOperationLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
-  const debouncedSearchTerm = useDebounce(searchTerm, 300)
 
   // Dialog states
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [isViewDetailsDialogOpen, setIsViewDetailsDialogOpen] = useState(false)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [isDuplicateDialogOpen, setIsDuplicateDialogOpen] = useState(false)
+  const [isViewUsersDialogOpen, setIsViewUsersDialogOpen] = useState(false)
+
+  // Selected data states
   const [selectedRole, setSelectedRole] = useState<Role | null>(null)
   const [selectedRoleForView, setSelectedRoleForView] = useState<Role | null>(null)
   const [selectedRoleForDelete, setSelectedRoleForDelete] = useState<Role | null>(null)
   const [selectedRoleForDuplicate, setSelectedRoleForDuplicate] = useState<Role | null>(null)
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [isViewDetailsDialogOpen, setIsViewDetailsDialogOpen] = useState(false)
-  const [isDuplicateDialogOpen, setIsDuplicateDialogOpen] = useState(false)
-  const [isViewUsersDialogOpen, setIsViewUsersDialogOpen] = useState(false)
   const [usersWithRole, setUsersWithRole] = useState<any[]>([])
+  const [usersWithRoleCount, setUsersWithRoleCount] = useState<number>(0)
+
   const [loadingUsers, setLoadingUsers] = useState(false)
 
-  // Data hooks
-  const { roles, loading, refetch } = useRoles({ 
-    search: debouncedSearchTerm,
-    limit: 50 
-  })
-  const { permissions, loading: permissionsLoading } = usePermissions()
-  const { loading: operationLoading, createRole, updateRole, deleteRole, duplicateRole } = useRoleOperations()
+  // Fetch data
+  const fetchRoles = useCallback(async () => {
+    try {
+      setLoading(true)
+      const rolesData = await roleService.getRoles()
+      setRoles(rolesData)
+    } catch (error) {
+      console.error('Failed to fetch roles:', error)
+      toast.error('Failed to load roles', {
+        description: 'Please try again later.'
+      })
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
-  // Handlers
-  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const fetchPermissions = useCallback(async () => {
+    try {
+      setPermissionsLoading(true)
+      const permissionsData = await roleService.getGroupedPermissions()
+      setPermissions(permissionsData)
+    } catch (error) {
+      console.error('Failed to fetch permissions:', error)
+      toast.error('Failed to load permissions', {
+        description: 'Please try again later.'
+      })
+    } finally {
+      setPermissionsLoading(false)
+    }
+  }, [])
+
+  // Trong page.tsx
+const fetchRolesWithUserCounts = useCallback(async () => {
+  try {
+    setLoading(true)
+    const rolesData = await roleService.getRoles()
+    
+    // Fetch user counts cho từng role
+    const rolesWithUserCounts = await Promise.all(
+      rolesData.map(async (role) => {
+        try {
+          const userCount = await roleService.getUsersCountByRole(role.id)
+          return { ...role, users: userCount }
+        } catch (error) {
+          console.error(`Failed to get user count for role ${role.id}:`, error)
+          return { ...role, users: 0 }
+        }
+      })
+    )
+    
+    setRoles(rolesWithUserCounts)
+  } catch (error) {
+    console.error('Failed to fetch roles:', error)
+    toast.error('Failed to load roles', {
+      description: 'Please try again later.'
+    })
+  } finally {
+    setLoading(false)
+  }
+}, [])
+
+
+  useEffect(() => {
+    fetchRoles()
+    fetchPermissions()
+  }, [fetchRoles, fetchPermissions])
+
+  // Search handler
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value)
-  }, [])
+  }
 
-  const handleCreateRole = useCallback(() => {
+  // Filter roles based on search term
+  const filteredRoles = roles.filter(role =>
+    role.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    role.description.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
+  // Role action handlers
+  const handleCreateRole = () => {
     setIsCreateDialogOpen(true)
-  }, [])
+  }
 
-  const handleEditRole = useCallback((role: Role) => {
+  const handleEditRole = (role: Role) => {
     setSelectedRole(role)
     setIsEditDialogOpen(true)
-    // Close view dialog if open
-    if (isViewDetailsDialogOpen) {
-      setIsViewDetailsDialogOpen(false)
-    }
-  }, [isViewDetailsDialogOpen])
+  }
 
-  const handleViewUsers = useCallback(async (role: Role) => {
+  const handleViewDetails = async (role: Role) => {
     setSelectedRoleForView(role)
-    setIsViewUsersDialogOpen(true)
-    setLoadingUsers(true)
-    
+    const users = await roleService.getUsersCountByRole(role.id)
+    setUsersWithRoleCount(users)
+    setIsViewDetailsDialogOpen(true)
+  }
 
+  const handleDeleteRole = (role: Role) => {
+    setSelectedRoleForDelete(role)
+    setIsDeleteDialogOpen(true)
+  }
 
+  const handleDuplicateRole = (role: Role) => {
+    setSelectedRoleForDuplicate(role)
+    setIsDuplicateDialogOpen(true)
+  }
+
+  const handleViewUsers = async (role: Role) => {
     try {
-      // Simulate API call to get users with this role
-      // In real application, you would call your API here
-      const users = await userService.getUserByRoleId(role.id);
-      setUsersWithRole(users);
+      setLoadingUsers(true)
+      setSelectedRoleForView(role)
+      const users = await roleService.getUsersWithRole(role.id)
+      setUsersWithRole(users)
+      setIsViewUsersDialogOpen(true)
     } catch (error) {
-      toast.error('Failed to load users')
-      console.error('Error loading users:', error)
+      console.error('Failed to fetch users with role:', error)
+      toast.error('Failed to load users', {
+        description: 'Could not fetch users with this role.'
+      })
     } finally {
       setLoadingUsers(false)
     }
-  }, [])
+  }
 
-  const handleDeleteRole = useCallback((role: Role) => {
-    setSelectedRoleForDelete(role)
-    setIsDeleteDialogOpen(true)
-  }, [])
-
-  const handleViewDetails = useCallback((role: Role) => {
-    setSelectedRoleForView(role)
-    setIsViewDetailsDialogOpen(true)
-  }, [])
-
-  const handleDuplicateRole = useCallback((role: Role) => {
-    setSelectedRoleForDuplicate(role)
-    setIsDuplicateDialogOpen(true)
-  }, [])
-
-  // Dialog actions
-  const handleCreateSubmit = useCallback(async (roleData: {
-    name: string
-    description: string
-    permissions: string[]
-  }) => {
-    try {
-      await createRole(roleData)
-      toast.success('Role created successfully')
-      setIsCreateDialogOpen(false)
-      refetch()
-    } catch (error) {
-      // Error is handled by the useRoleOperations hook
-    }
-  }, [createRole, refetch])
-
-  const handleEditSubmit = useCallback(async (roleData: {
-    name: string
-    description: string
-    permissions: string[]
-  }) => {
-    if (!selectedRole) return
-    
-    try {
-      await updateRole(selectedRole.id, roleData)
-      toast.success('Role updated successfully')
-      setIsEditDialogOpen(false)
-      setSelectedRole(null)
-      refetch()
-    } catch (error) {
-      // Error is handled by the useRoleOperations hook
-    }
-  }, [selectedRole, updateRole, refetch])
-
-  const handleDeleteConfirm = useCallback(async () => {
-    if (!selectedRoleForDelete) return
-    
-    try {
-      await deleteRole(selectedRoleForDelete.id)
-      toast.success('Role deleted successfully')
-      setIsDeleteDialogOpen(false)
-      setSelectedRoleForDelete(null)
-      refetch()
-    } catch (error) {
-      // Error is handled by the useRoleOperations hook
-    }
-  }, [selectedRoleForDelete, deleteRole, refetch])
-
-  const handleDuplicateSubmit = useCallback(async (newName: string) => {
-    if (!selectedRoleForDuplicate) return
-    
-    try {
-      await duplicateRole(selectedRoleForDuplicate.id, newName)
-      toast.success('Role duplicated successfully')
-      setIsDuplicateDialogOpen(false)
-      setSelectedRoleForDuplicate(null)
-      refetch()
-    } catch (error) {
-      // Error is handled by the useRoleOperations hook
-    }
-  }, [selectedRoleForDuplicate, duplicateRole, refetch])
-
-  // Close handlers
-  const handleCreateClose = useCallback(() => {
+  // Dialog close handlers
+  const handleCreateClose = () => {
     setIsCreateDialogOpen(false)
-  }, [])
+  }
 
-  const handleEditClose = useCallback(() => {
+  const handleEditClose = () => {
     setIsEditDialogOpen(false)
     setSelectedRole(null)
-    // Reopen view dialog if it was opened before edit
-    if (selectedRoleForView) {
-      setIsViewDetailsDialogOpen(true)
-    }
-  }, [selectedRoleForView])
+  }
 
-  const handleDeleteClose = useCallback(() => {
-    setIsDeleteDialogOpen(false)
-    setSelectedRoleForDelete(null)
-  }, [])
-
-  const handleViewClose = useCallback(() => {
+  const handleViewClose = () => {
     setIsViewDetailsDialogOpen(false)
     setSelectedRoleForView(null)
-  }, [])
+  }
 
-  const handleViewUsersClose = useCallback(() => {
-    setIsViewUsersDialogOpen(false)
-    setUsersWithRole([])
-  }, [])
+  const handleDeleteClose = () => {
+    setIsDeleteDialogOpen(false)
+    setSelectedRoleForDelete(null)
+  }
 
-  const handleDuplicateClose = useCallback(() => {
+  const handleDuplicateClose = () => {
     setIsDuplicateDialogOpen(false)
     setSelectedRoleForDuplicate(null)
-  }, [])
+  }
+
+  const handleViewUsersClose = () => {
+    setIsViewUsersDialogOpen(false)
+    setUsersWithRole([])
+  }
+
+  // Form submission handlers
+  const handleCreateSubmit = async (roleData: any) => {
+    try {
+      setOperationLoading(true)
+      
+      const promise = roleService.createRole(roleData)
+      
+      toast.promise(promise, {
+        loading: 'Creating role...',
+        success: (data) => {
+          fetchRoles() // Refresh the list
+          setIsCreateDialogOpen(false)
+          return `Role "${data.name}" has been created successfully`
+        },
+        error: (error) => {
+          console.error('Failed to create role:', error.message)
+          return error.message || 'Failed to create role. Please try again.'
+        }
+      })
+
+      await promise
+    } catch (error) {
+      // Error is handled in toast.promise
+    } finally {
+      setOperationLoading(false)
+    }
+  }
+
+  const handleEditSubmit = async (roleData: any) => {
+    try {
+      setOperationLoading(true)
+      
+      const promise = roleService.updateRole({
+        ...roleData,
+        id: selectedRole?.id
+      })
+      
+      toast.promise(promise, {
+        loading: 'Updating role...',
+        success: (data) => {
+          fetchRoles() // Refresh the list
+          setIsEditDialogOpen(false)
+          setSelectedRole(null)
+          return `Role "${data.name}" has been updated successfully`
+        },
+        error: (error) => {
+          console.error('Failed to update role:', error)
+          return error.message || 'Failed to update role. Please try again.'
+        }
+      })
+
+      await promise
+    } catch (error) {
+      // Error is handled in toast.promise
+    } finally {
+      setOperationLoading(false)
+    }
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!selectedRoleForDelete) return
+  
+    try {
+      setOperationLoading(true)
+      
+      const deletePromise = roleService.deleteRole(selectedRoleForDelete.id)
+      
+      toast.promise(deletePromise, {
+        loading: 'Deleting role...',
+        success: () => {
+          fetchRoles() // Refresh the list
+          setIsDeleteDialogOpen(false)
+          setSelectedRoleForDelete(null)
+          return `Role "${selectedRoleForDelete.name}" has been deleted successfully`
+        },
+        error: (error) => {
+          console.error('Failed to delete role:', error)
+          return error.message || 'Failed to delete role. Please try again.'
+        }
+      })
+  
+      await deletePromise
+    } catch (error) {
+      // Error is handled in toast.promise
+    } finally {
+      setOperationLoading(false)
+    }
+  }
+
+  const handleDuplicateSubmit = async (newName: string) => {
+    if (!selectedRoleForDuplicate) return
+
+    try {
+      setOperationLoading(true)
+      
+      const promise = roleService.duplicateRole(selectedRoleForDuplicate.id, newName)
+      
+      toast.promise(promise, {
+        loading: 'Duplicating role...',
+        success: (data) => {
+          fetchRoles() // Refresh the list
+          setIsDuplicateDialogOpen(false)
+          setSelectedRoleForDuplicate(null)
+          return `Role "${selectedRoleForDuplicate.name}" has been duplicated as "${data.name}"`
+        },
+        error: (error) => {
+          console.error('Failed to duplicate role:', error)
+          return error.message || 'Failed to duplicate role. Please try again.'
+        }
+      })
+
+      await promise
+    } catch (error) {
+      // Error is handled in toast.promise
+    } finally {
+      setOperationLoading(false)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -221,7 +341,7 @@ export function UserRolesManagement() {
         </CardHeader>
         <CardContent>
           <RoleTable
-            roles={roles}
+            roles={filteredRoles}
             loading={loading}
             onEdit={handleEditRole}
             onView={handleViewDetails}
@@ -245,6 +365,7 @@ export function UserRolesManagement() {
         
         // View dialog
         isViewOpen={isViewDetailsDialogOpen}
+        usersWithRoleCount={usersWithRoleCount}
         selectedRoleForView={selectedRoleForView}
         onViewClose={handleViewClose}
         

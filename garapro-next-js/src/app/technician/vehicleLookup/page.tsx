@@ -333,7 +333,7 @@ export default function VehicleInformation() {
         </div>
 
         {/* Search Section */}
-        <div className="bg-white rounded-2xl shadow-xl p-8 py-7 mb-3 border border-gray-100">
+        <div className="bg-white rounded-2xl shadow-xl p-8 py-6 mb-3 border border-gray-100">
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
               <FaSearch className="text-gray-400" />
@@ -362,7 +362,7 @@ export default function VehicleInformation() {
             {filteredVehicles.map((vehicle: Vehicle) => (
               <div 
                 key={vehicle.id} 
-                className="bg-gray-100 rounded-2xl shadow-lg border-2 border-gray-200 p-6 hover:shadow-xl transition-all duration-300 cursor-pointer hover:scale-[1.01]"
+                className="bg-gray-100 py-4 rounded-2xl shadow-lg border-2 border-gray-200 p-6 hover:shadow-xl transition-all duration-300 cursor-pointer hover:scale-[1.01]"
                 onClick={() => openVehicleModal(vehicle)}
               >
                 <div className="flex items-center justify-between">
@@ -382,25 +382,31 @@ export default function VehicleInformation() {
               </div>
             ))}
           </div>
-        ) : (
-          <div className="bg-white rounded-2xl shadow-lg p-12 text-center border border-gray-100">
-            <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <FaSearch className="text-3xl text-gray-400" />
-            </div>
-            <h3 className="text-2xl font-semibold text-gray-700 mb-2">No vehicles found</h3>
-            <p className="text-gray-500 text-lg">
-              No vehicles match your search &quot;
-              <span className="font-medium">{vehicleSearch}</span>
-              &quot;
-            </p>
-            <p className="text-gray-400 mt-2">Try adjusting your search keywords</p>
-          </div>  
+        ) : (          
+          <div className="flex flex-col items-center justify-center py-10 px-6 bg-white rounded-xl shadow-md text-center max-w-md mx-auto">
+             <div className="bg-gray-100 p-4 rounded-full mb-4">
+                <FaSearch className="text-4xl text-gray-400" />
+              </div>
+                <h3 className="text-2xl font-bold text-gray-700 mb-2">
+                  No vehicles found
+                </h3>
+                  <p className="text-gray-500 text-xm mb-4">
+                    No vehicles match your search criteria &quot;
+                    <span className="font-medium">{vehicleSearch}</span>
+                      &quot;
+                  </p>
+                    <button
+                      onClick={() => setVehicleSearch("")}
+                      className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-bold">
+                        Clear search
+                    </button>
+            </div> 
         )}
       </div>
 
       {/* Modal */}
       {showModal && selectedVehicle && (
-        <div className="fixed inset-0 bg-white/70 bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/60 bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden">
             {/* Modal Header */}
             <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4 flex items-center justify-between">

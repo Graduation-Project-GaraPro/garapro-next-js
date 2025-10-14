@@ -1,27 +1,27 @@
 "use client"
 
 import { useState } from "react"
-import { MoreHorizontal, Edit, Trash2, Clock, DollarSign, User, Car, ExternalLink, ArrowUpDown } from "lucide-react"
+import { MoreHorizontal, Edit, Trash2, DollarSign, User, Car, ExternalLink, ArrowUpDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useRouter } from "next/navigation"
-import type { Job, JobStatus } from "@/types/job"
+import type { RepairOrder } from "@/types/manager/repair-order"
 
 interface ListViewProps {
-  jobs: Job[]
+  repairOrders: RepairOrder[]
   loading: boolean
-  onEditJob: (job: Job) => void
-  onDeleteJob: (jobId: string) => void
+  onEditRepairOrder: (repairOrder: RepairOrder) => void
+  onDeleteRepairOrder: (repairOrderId: string) => void
 }
 
-type SortField = "title" | "company" | "status" | "progress" | "dueDate" | "createdAt"
+type SortField = "roTypeName" | "customerName" | "statusId" | "estimatedAmount" | "estimatedCompletionDate" | "receiveDate"
 type SortOrder = "asc" | "desc"
 
-export default function ListView({ jobs, loading, onEditJob, onDeleteJob }: ListViewProps) {
+export default function ListView({ repairOrders, loading, onEditRepairOrder, onDeleteRepairOrder }: ListViewProps) {
   const router = useRouter()
-  const [sortField, setSortField] = useState<SortField>("createdAt")
+  const [sortField, setSortField] = useState<SortField>("receiveDate")
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc")
 
   const handleSort = (field: SortField) => {
@@ -33,18 +33,18 @@ export default function ListView({ jobs, loading, onEditJob, onDeleteJob }: List
     }
   }
 
-  const sortedJobs = [...jobs].sort((a, b) => {
+  const sortedRepairOrders = [...repairOrders].sort((a, b) => {
     let aValue: string | number | Date
     let bValue: string | number | Date
 
     // Handle different data types
     switch (sortField) {
-      case "progress":
-        aValue = a.progress || 0
-        bValue = b.progress || 0
+      case "estimatedAmount":
+        aValue = a.estimatedAmount || 0
+        bValue = b.estimatedAmount || 0
         break
-      case "dueDate":
-      case "createdAt":
+      case "estimatedCompletionDate":
+      case "receiveDate":
         aValue = new Date(a[sortField] || 0)
         bValue = new Date(b[sortField] || 0)
         break
@@ -58,52 +58,25 @@ export default function ListView({ jobs, loading, onEditJob, onDeleteJob }: List
     return 0
   })
 
-  const handleRowClick = (job: Job, e: React.MouseEvent) => {
+  const handleRowClick = (repairOrder: RepairOrder, e: React.MouseEvent) => {
     // Prevent navigation when clicking on dropdown or other interactive elements
     if ((e.target as HTMLElement).closest('[role="menuitem"], button')) {
       return
     }
-    router.push(`/manager/repairOrderManagement/orders/${job.id}`)
+    router.push(`/manager/repairOrderManagement/orders/${repairOrder.repairOrderId}`)
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "work not started":
-        return "bg-gray-100 text-gray-700 border-gray-200"
-      case "in progress":
-        return "bg-blue-100 text-blue-700 border-blue-200"
-      case "completed":
-        return "bg-green-100 text-green-700 border-green-200"
-      case "on hold":
-        return "bg-yellow-100 text-yellow-700 border-yellow-200"
-      default:
-        return "bg-gray-100 text-gray-700 border-gray-200"
-    }
-  }
-
-  const getJobStatusColor = (status: JobStatus) => {
-    switch (status) {
-      case "requires-auth":
+  const getStatusColor = (statusId: string) => {
+    // This would need to be updated to use the actual status data
+    switch (statusId.toLowerCase()) {
+      case "pending-status":
         return "bg-red-100 text-red-700 border-red-200"
-      case "in-progress":
+      case "in-progress-status":
         return "bg-yellow-100 text-yellow-700 border-yellow-200"
-      case "ready-to-start":
+      case "completed-status":
         return "bg-green-100 text-green-700 border-green-200"
       default:
         return "bg-gray-100 text-gray-700 border-gray-200"
-    }
-  }
-
-  const getJobStatusText = (status: JobStatus) => {
-    switch (status) {
-      case "requires-auth":
-        return "Requires Authorization"
-      case "in-progress":
-        return "In Progress"
-      case "ready-to-start":
-        return "Ready to Start"
-      default:
-        return status
     }
   }
 
@@ -116,7 +89,7 @@ export default function ListView({ jobs, loading, onEditJob, onDeleteJob }: List
               <TableHead>Repair Order</TableHead>
               <TableHead>Customer</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Progress</TableHead>
+              <TableHead>Amount</TableHead>
               <TableHead>Due Date</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
@@ -147,7 +120,7 @@ export default function ListView({ jobs, loading, onEditJob, onDeleteJob }: List
               <Button 
                 variant="ghost" 
                 size="sm" 
-                onClick={() => handleSort("title")}
+                onClick={() => handleSort("roTypeName")}
                 className="h-auto p-0 font-semibold hover:bg-transparent"
               >
                 Repair Order
@@ -158,7 +131,7 @@ export default function ListView({ jobs, loading, onEditJob, onDeleteJob }: List
               <Button 
                 variant="ghost" 
                 size="sm" 
-                onClick={() => handleSort("company")}
+                onClick={() => handleSort("customerName")}
                 className="h-auto p-0 font-semibold hover:bg-transparent"
               >
                 Customer
@@ -169,7 +142,7 @@ export default function ListView({ jobs, loading, onEditJob, onDeleteJob }: List
               <Button 
                 variant="ghost" 
                 size="sm" 
-                onClick={() => handleSort("status")}
+                onClick={() => handleSort("statusId")}
                 className="h-auto p-0 font-semibold hover:bg-transparent"
               >
                 Status
@@ -180,10 +153,10 @@ export default function ListView({ jobs, loading, onEditJob, onDeleteJob }: List
               <Button 
                 variant="ghost" 
                 size="sm" 
-                onClick={() => handleSort("progress")}
+                onClick={() => handleSort("estimatedAmount")}
                 className="h-auto p-0 font-semibold hover:bg-transparent"
               >
-                Progress
+                Amount
                 <ArrowUpDown className="ml-2 h-3 w-3" />
               </Button>
             </TableHead>
@@ -191,7 +164,7 @@ export default function ListView({ jobs, loading, onEditJob, onDeleteJob }: List
               <Button 
                 variant="ghost" 
                 size="sm" 
-                onClick={() => handleSort("dueDate")}
+                onClick={() => handleSort("estimatedCompletionDate")}
                 className="h-auto p-0 font-semibold hover:bg-transparent"
               >
                 Due Date
@@ -202,84 +175,64 @@ export default function ListView({ jobs, loading, onEditJob, onDeleteJob }: List
           </TableRow>
         </TableHeader>
         <TableBody>
-          {sortedJobs.map((job) => (
+          {sortedRepairOrders.map((repairOrder) => (
             <TableRow 
-              key={job.id} 
+              key={repairOrder.repairOrderId} 
               className="cursor-pointer hover:bg-gray-50"
-              onClick={(e) => handleRowClick(job, e)}
+              onClick={(e) => handleRowClick(repairOrder, e)}
             >
               <TableCell className="font-medium">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-blue-600">RO #{job.id}</span>
+                    <span className="text-sm font-semibold text-blue-600">RO #{repairOrder.repairOrderId.substring(0, 8)}</span>
                     <ExternalLink className="w-3 h-3 text-gray-400" />
                   </div>
-                  <div className="text-sm text-gray-900">{job.title}</div>
+                  <div className="text-sm text-gray-900">{repairOrder.roTypeName}</div>
                   <div className="flex items-center gap-1 text-xs text-gray-600">
                     <Car className="w-3 h-3" />
-                    <span>2003 Volkswagen Jetta • GJK2247-TX</span>
+                    <span>Vehicle ID: {repairOrder.vehicleId}</span>
                   </div>
                 </div>
               </TableCell>
               <TableCell>
                 <div className="space-y-1">
-                  <div className="text-sm font-medium">{job.company}</div>
-                  {job.contact && <div className="text-xs text-gray-600">{job.contact}</div>}
-                  {job.location && <div className="text-xs text-gray-500">{job.location}</div>}
+                  <div className="text-sm font-medium">{repairOrder.customerName}</div>
+                  {repairOrder.customerPhone && <div className="text-xs text-gray-600">{repairOrder.customerPhone}</div>}
                 </div>
               </TableCell>
               <TableCell>
                 <div className="space-y-1">
                   <Badge
                     variant="outline"
-                    className={`text-xs font-medium ${getJobStatusColor(job.status)}`}
+                    className={`text-xs font-medium ${getStatusColor(repairOrder.statusId)}`}
                   >
-                    {getJobStatusText(job.status)}
-                  </Badge>
-                  <Badge
-                    variant="outline"
-                    className={`text-xs font-medium ${getStatusColor(job.statusText || "Work Not Started")}`}
-                  >
-                    {job.statusText || "Work Not Started"}
+                    {repairOrder.statusId}
                   </Badge>
                 </div>
               </TableCell>
               <TableCell>
                 <div className="space-y-2">
-                  <div className="flex items-center gap-1">
-                    <div className="flex-1 bg-gray-200 rounded-full h-1.5 max-w-[60px]">
-                      <div
-                        className="bg-blue-500 h-1.5 rounded-full transition-all duration-300"
-                        style={{ width: `${job.progress || 0}%` }}
-                      />
-                    </div>
-                    <span className="text-xs font-medium text-gray-900">{job.progress || 0}%</span>
-                  </div>
                   <div className="flex items-center gap-3 text-xs text-gray-600">
                     <div className="flex items-center gap-1">
                       <User className="w-3 h-3" />
-                      <span>Tech: SB</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      <span>0/2 hrs</span>
+                      <span>Tech: {repairOrder.technicianNames.join(", ") || "Unassigned"}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <DollarSign className="w-3 h-3 text-green-600" />
-                      <span className="font-semibold text-green-600">$452.95</span>
+                      <span className="font-semibold text-green-600">${repairOrder.estimatedAmount?.toFixed(2) || "0.00"}</span>
                     </div>
                   </div>
                 </div>
               </TableCell>
               <TableCell>
                 <div className="text-sm">
-                  {job.dueDate ? (
+                  {repairOrder.estimatedCompletionDate ? (
                     <div>
-                      <div className="font-medium">{new Date(job.dueDate).toLocaleDateString()}</div>
+                      <div className="font-medium">{new Date(repairOrder.estimatedCompletionDate).toLocaleDateString()}</div>
                       <div className="text-xs text-gray-500">
-                        {new Date(job.dueDate).toLocaleDateString() === new Date().toLocaleDateString() 
+                        {new Date(repairOrder.estimatedCompletionDate).toLocaleDateString() === new Date().toLocaleDateString() 
                           ? "Today" 
-                          : new Date(job.dueDate) < new Date() 
+                          : new Date(repairOrder.estimatedCompletionDate) < new Date() 
                             ? "Overdue" 
                             : "Upcoming"}
                       </div>
@@ -297,11 +250,11 @@ export default function ListView({ jobs, loading, onEditJob, onDeleteJob }: List
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => onEditJob(job)}>
+                    <DropdownMenuItem onClick={() => onEditRepairOrder(repairOrder)}>
                       <Edit className="w-4 h-4 mr-2" />
                       Edit
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onDeleteJob(job.id)} className="text-red-600">
+                    <DropdownMenuItem onClick={() => onDeleteRepairOrder(repairOrder.repairOrderId)} className="text-red-600">
                       <Trash2 className="w-4 h-4 mr-2" />
                       Delete
                     </DropdownMenuItem>
@@ -310,7 +263,7 @@ export default function ListView({ jobs, loading, onEditJob, onDeleteJob }: List
               </TableCell>
             </TableRow>
           ))}
-          {sortedJobs.length === 0 && (
+          {sortedRepairOrders.length === 0 && (
             <TableRow>
               <TableCell colSpan={6} className="text-center py-8">
                 <div className="text-gray-500">

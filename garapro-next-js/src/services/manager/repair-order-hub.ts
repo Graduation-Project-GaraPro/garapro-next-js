@@ -53,8 +53,8 @@ class RepairOrderHubService {
         await this.reconnect();
       });
 
-      // Notify successful connection
-      this.invokeClientMethod("Connected", this.connection.connectionId || "");
+      // Note: We don't invoke a "Connected" method on the server as it doesn't exist
+      // The server will automatically send events to the client
     } catch (error) {
       console.error("SignalR Connection Error: ", error);
       this.isConnected = false;
@@ -102,20 +102,6 @@ class RepairOrderHubService {
 
   public onConnected(callback: (connectionId: string) => void): void {
     this.connection?.on("Connected", callback);
-  }
-
-  // Invoke client methods
-  private async invokeClientMethod(methodName: string, ...args: unknown[]): Promise<void> {
-    if (!this.connection || !this.isConnected) {
-      console.warn(`Cannot invoke ${methodName}: Not connected to SignalR`);
-      return;
-    }
-
-    try {
-      await this.connection.invoke(methodName, ...args);
-    } catch (error) {
-      console.error(`Error invoking ${methodName}:`, error);
-    }
   }
 
   // Update repair order status (for drag and drop)
