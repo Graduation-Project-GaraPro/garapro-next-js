@@ -77,14 +77,14 @@ export default function ManagerDashboard() {
           <div className="flex items-center space-x-4">
             <BarChart3 className="h-8 w-8 text-primary" />
             <div>
-              <h3 className="text-lg font-semibold">Job Board</h3>
+              <h3 className="text-lg font-semibold">Repair Order Board</h3>
               <p className="text-sm text-muted-foreground">
                 Monitor repair orders and job management
               </p>
             </div>
           </div>
           <div className="mt-4">
-            <Link href="/manager/repairOrderManagement/jobBoard">
+            <Link href="/manager/repairOrderManagement/ro-board">
               <Button className="w-full">
                 Open Job Board
               </Button>

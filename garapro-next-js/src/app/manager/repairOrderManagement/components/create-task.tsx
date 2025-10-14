@@ -10,8 +10,29 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, Plus, X } from "lucide-react"
 import type { Job } from "@/types/job"
 import { labelService } from "@/services/manager/label-service"
-import type { Label } from "@/types/manager/label"
+import type { Label as LabelType } from "@/types/manager/label"
 import { LABOR_RATES_STORAGE_KEY, type LaborRate } from "@/app/manager/garageSetting/ro-settings/tabs/labor-rates-tab"
+import { AddCustomerDialog } from "./add-customer-dialog"
+import { AddVehicleDialog } from "./add-vehicle-dialog"
+
+// Define types for customer and vehicle
+interface Customer {
+  id: string
+  name: string
+  phone: string
+  email: string
+  address: string
+  vehicles: Vehicle[]
+}
+
+interface Vehicle {
+  id: string
+  licensePlate: string
+  brand: string
+  model: string
+  year: number
+  color: string
+}
 
 interface CreateTaskProps {
   onClose: () => void
@@ -20,24 +41,27 @@ interface CreateTaskProps {
 
 export default function CreateTask({ onClose, onSubmit }: CreateTaskProps) {
   const [formData, setFormData] = useState({
-    title: "",
     company: "",
     contact: "",
     location: "",
     odometer: "",
     odometerNotWorking: false,
-    appointmentOption: "drop-off",
-    laborRate: "standard-150",
+    repairOrderType: "walkin",
     vehicleConcern: "",
     progress: 0,
   })
 
   const [customerSearch, setCustomerSearch] = useState("")
-  const [selectedVehicle, setSelectedVehicle] = useState("")
-  const [labels, setLabels] = useState<Label[]>([])
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
+  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null)
+  const [labels, setLabels] = useState<LabelType[]>([])
   const [selectedLabelId, setSelectedLabelId] = useState<string>("")
   const [rates, setRates] = useState<LaborRate[]>([])
   const [selectedRateId, setSelectedRateId] = useState<string>("")
+  
+  // Dialog states
+  const [isAddCustomerDialogOpen, setIsAddCustomerDialogOpen] = useState(false)
+  const [isAddVehicleDialogOpen, setIsAddVehicleDialogOpen] = useState(false)
 
   useEffect(() => {
     labelService
@@ -66,6 +90,7 @@ export default function CreateTask({ onClose, onSubmit }: CreateTaskProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     onSubmit({
+      title: "Repair Order", // Default title since we removed the input field
       ...formData,
       labelId: selectedLabelId ? Number(selectedLabelId) : undefined,
       laborRateId: selectedRateId || undefined,
@@ -79,19 +104,18 @@ export default function CreateTask({ onClose, onSubmit }: CreateTaskProps) {
 
   const handleReset = () => {
     setFormData({
-      title: "",
       company: "",
       contact: "",
       location: "",
       odometer: "",
       odometerNotWorking: false,
-      appointmentOption: "drop-off",
-      laborRate: "standard-150",
+      repairOrderType: "walkin",
       vehicleConcern: "",
       progress: 0,
     })
     setCustomerSearch("")
-    setSelectedVehicle("")
+    setSelectedCustomer(null)
+    setSelectedVehicle(null)
     setSelectedLabelId("")
     setSelectedRateId("")
   }
@@ -101,8 +125,98 @@ export default function CreateTask({ onClose, onSubmit }: CreateTaskProps) {
     onClose()
   }
 
+  // Handle adding a new customer
+  const handleAddCustomer = (customerData: Omit<Customer, "id" | "vehicles">) => {
+    // In a real app, this would call an API to create the customer
+    const newCustomer: Customer = {
+      id: `cust-${Date.now()}`,
+      ...customerData,
+      vehicles: []
+    }
+    setSelectedCustomer(newCustomer)
+    setCustomerSearch(customerData.name)
+  }
+
+  // Handle adding a new vehicle
+  const handleAddVehicle = (vehicleData: Omit<Vehicle, "id">) => {
+    if (!selectedCustomer) return
+    
+    // In a real app, this would call an API to create the vehicle
+    const newVehicle: Vehicle = {
+      id: `veh-${Date.now()}`,
+      ...vehicleData
+    }
+    
+    // Update the selected customer with the new vehicle
+    const updatedCustomer = {
+      ...selectedCustomer,
+      vehicles: [...selectedCustomer.vehicles, newVehicle]
+    }
+    
+    setSelectedCustomer(updatedCustomer)
+    setSelectedVehicle(newVehicle)
+  }
+
+  // Mock function to simulate searching for customers
+  const searchCustomers = (searchTerm: string): Customer[] => {
+    // This would be replaced with an actual API call in a real application
+    if (!searchTerm) return []
+    
+    // Mock data for demonstration
+    const mockCustomers: Customer[] = [
+      {
+        id: "1",
+        name: "John Smith",
+        phone: "555-1234",
+        email: "john@example.com",
+        address: "123 Main St",
+        vehicles: [
+          {
+            id: "v1",
+            licensePlate: "ABC-123",
+            brand: "Toyota",
+            model: "Camry",
+            year: 2020,
+            color: "Blue"
+          }
+        ]
+      },
+      {
+        id: "2",
+        name: "Jane Doe",
+        phone: "555-5678",
+        email: "jane@example.com",
+        address: "456 Oak Ave",
+        vehicles: [
+          {
+            id: "v2",
+            licensePlate: "XYZ-789",
+            brand: "Honda",
+            model: "Civic",
+            year: 2019,
+            color: "Red"
+          }
+        ]
+      }
+    ]
+    
+    return mockCustomers.filter(customer => 
+      customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      customer.phone.includes(searchTerm) ||
+      customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      customer.vehicles.some(vehicle => 
+        vehicle.licensePlate.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    )
+  }
+
+  // Mock function to get vehicles for a selected customer
+  const getVehiclesForCustomer = (customer: Customer): Vehicle[] => {
+    return customer.vehicles
+  }
+
   return (
-    <div className="w-full bg-gray-100 min-h-screen">
+    <div className="w-full bg-gray-100">
       {/* Header */}
       <div className="bg-[#154c79] text-white px-6 py-4">
         <h1 className="text-xl font-medium">Create new repair order</h1>
@@ -127,11 +241,41 @@ export default function CreateTask({ onClose, onSubmit }: CreateTaskProps) {
                   />
                   <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                 </div>
-                <Button type="button" variant="outline" className="whitespace-nowrap bg-transparent">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  className="whitespace-nowrap bg-transparent"
+                  onClick={() => setIsAddCustomerDialogOpen(true)}
+                >
                   <Plus className="w-4 h-4 mr-2" />
                   ADD NEW CUSTOMER
                 </Button>
               </div>
+              
+              {/* Customer search results */}
+              {customerSearch && (
+                <div className="mt-2 border rounded-md max-h-60 overflow-y-auto hide-scrollbar">
+                  {searchCustomers(customerSearch).map((customer) => (
+                    <div 
+                      key={customer.id}
+                      className="p-3 border-b last:border-b-0 hover:bg-gray-50 cursor-pointer"
+                      onClick={() => {
+                        setSelectedCustomer(customer)
+                        setCustomerSearch(customer.name)
+                        setSelectedVehicle(null) // Reset vehicle selection when customer changes
+                      }}
+                    >
+                      <div className="font-medium">{customer.name}</div>
+                      <div className="text-sm text-gray-600">{customer.phone} | {customer.email}</div>
+                    </div>
+                  ))}
+                  {searchCustomers(customerSearch).length === 0 && (
+                    <div className="p-3 text-center text-gray-500">
+                      No customers found. Add a new customer.
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -143,17 +287,44 @@ export default function CreateTask({ onClose, onSubmit }: CreateTaskProps) {
                 Vehicle
               </Label>
               <div className="flex gap-2 mt-1">
-                <Select value={selectedVehicle} onValueChange={setSelectedVehicle}>
+                <Select 
+                  value={selectedVehicle?.id || ""} 
+                  onValueChange={(value) => {
+                    if (selectedCustomer) {
+                      const vehicle = getVehiclesForCustomer(selectedCustomer).find(v => v.id === value)
+                      setSelectedVehicle(vehicle || null)
+                    }
+                  }}
+                  disabled={!selectedCustomer}
+                >
                   <SelectTrigger className="flex-1">
                     <SelectValue placeholder="Select vehicle..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="vehicle1">2023 Honda Civic</SelectItem>
-                    <SelectItem value="vehicle2">2022 Toyota Camry</SelectItem>
-                    <SelectItem value="vehicle3">2021 Ford F-150</SelectItem>
+                    {selectedCustomer && getVehiclesForCustomer(selectedCustomer).length > 0 ? (
+                      getVehiclesForCustomer(selectedCustomer).map((vehicle) => (
+                        <SelectItem key={vehicle.id} value={vehicle.id}>
+                          {vehicle.licensePlate} - {vehicle.brand} {vehicle.model} ({vehicle.year})
+                        </SelectItem>
+                      ))
+                    ) : selectedCustomer ? (
+                      <SelectItem value="__no-vehicles__" disabled>
+                        No vehicles found. Add a new vehicle.
+                      </SelectItem>
+                    ) : (
+                      <SelectItem value="__select-customer-first__" disabled>
+                        Select a customer first
+                      </SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
-                <Button type="button" variant="outline" className="whitespace-nowrap bg-transparent">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  className="whitespace-nowrap bg-transparent"
+                  onClick={() => selectedCustomer && setIsAddVehicleDialogOpen(true)}
+                  disabled={!selectedCustomer}
+                >
                   <Plus className="w-4 h-4 mr-2" />
                   ADD NEW VEHICLE
                 </Button>
@@ -165,16 +336,6 @@ export default function CreateTask({ onClose, onSubmit }: CreateTaskProps) {
           <div className="space-y-4">
             <h3 className="text-base font-medium text-gray-700">Repair order information:</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="title">Service Title *</Label>
-                <Input
-                  id="title"
-                  value={formData.title}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
-                  placeholder="e.g., Oil Change, Brake Repair"
-                  required
-                />
-              </div>
               <div>
                 <Label className="text-sm text-gray-600">Odometer in</Label>
                 <div className="flex items-center gap-2">
@@ -212,49 +373,20 @@ export default function CreateTask({ onClose, onSubmit }: CreateTaskProps) {
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label className="text-sm text-gray-600">Labor Rate</Label>
-              <Select value={selectedRateId} onValueChange={setSelectedRateId}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Select labor rate" />
-                </SelectTrigger>
-                <SelectContent>
-                  {rates.map((r) => (
-                    <SelectItem key={r.id} value={r.id}>{r.name} - ${r.rate}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label className="text-sm text-gray-600">Appointment option</Label>
+                <Label className="text-sm text-gray-600">Repair Order Type</Label>
                 <Select
-                  value={formData.appointmentOption}
-                  onValueChange={(value) => setFormData((prev) => ({ ...prev, appointmentOption: value }))}
+                  value={formData.repairOrderType}
+                  onValueChange={(value) => setFormData((prev) => ({ ...prev, repairOrderType: value }))}
                 >
                   <SelectTrigger className="mt-1">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="drop-off">Drop-off Vehicle</SelectItem>
-                    <SelectItem value="wait">Wait for Service</SelectItem>
-                    <SelectItem value="appointment">Scheduled Appointment</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label className="text-sm text-gray-600">Labor Rate</Label>
-                <Select
-                  value={formData.laborRate}
-                  onValueChange={(value) => setFormData((prev) => ({ ...prev, laborRate: value }))}
-                >
-                  <SelectTrigger className="mt-1">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="standard-150">Standard Repair - $150.00</SelectItem>
-                    <SelectItem value="premium-200">Premium Repair - $200.00</SelectItem>
-                    <SelectItem value="diagnostic-120">Diagnostic - $120.00</SelectItem>
+                    <SelectItem value="walkin">Walk-in</SelectItem>
+                    <SelectItem value="scheduled">Scheduled</SelectItem>
+                    <SelectItem value="breakdown">Breakdown</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -278,12 +410,43 @@ export default function CreateTask({ onClose, onSubmit }: CreateTaskProps) {
               <X className="w-4 h-4 mr-2" />
               Cancel
             </Button>
-            <Button type="submit" className="bg-[#154c79] hover:bg-[#123c66]">
+            <Button 
+              type="submit" 
+              className="bg-[#154c79] hover:bg-[#123c66]"
+              disabled={!selectedCustomer || !selectedVehicle}
+            >
               Create Repair Order
             </Button>
           </div>
         </form>
       </div>
+      
+      {/* Add Customer Dialog */}
+      <AddCustomerDialog
+        open={isAddCustomerDialogOpen}
+        onOpenChange={setIsAddCustomerDialogOpen}
+        onCustomerAdd={handleAddCustomer}
+      />
+      
+      {/* Add Vehicle Dialog */}
+      {selectedCustomer && (
+        <AddVehicleDialog
+          open={isAddVehicleDialogOpen}
+          onOpenChange={setIsAddVehicleDialogOpen}
+          customerName={selectedCustomer.name}
+          onVehicleAdd={handleAddVehicle}
+        />
+      )}
+      
+      <style jsx>{`
+        .hide-scrollbar {
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
     </div>
   )
 }

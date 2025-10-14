@@ -35,8 +35,8 @@ const data = {
   // Top level navigation items
   topNav: [
     {
-      title: "Job Board",
-      url: "/manager/repairOrderManagement/jobBoard",
+      title: "Repair Order Board",
+      url: "/manager/repairOrderManagement/ro-board",
       icon: Calendar,
     },
     {
