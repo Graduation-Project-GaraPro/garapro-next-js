@@ -259,6 +259,20 @@ class ApiClient {
 export const apiClient = new ApiClient();
 
 // Update interceptors to match your backend
+apiClient.addRequestInterceptor((config) => {
+  // Set authentication token from localStorage if available
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      config.headers = {
+        ...config.headers,
+        'Authorization': `Bearer ${token}`
+      };
+    }
+  }
+  return config;
+});
+
 apiClient.addResponseInterceptor((response) => {
   // Handle authentication response from your backend
   const authHeader = response.headers.get('authorization');

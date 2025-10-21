@@ -37,11 +37,30 @@ class RepairOrderService {
    */
   async createRepairOrder(repairOrder: CreateRepairOrderRequest): Promise<RepairOrder | null> {
     try {
-      const response = await apiClient.post<RepairOrder>(this.baseUrl, repairOrder)
-      return response.data
+      console.log('Sending repair order data:', JSON.stringify(repairOrder, null, 2));
+      const response = await apiClient.post<RepairOrder>(this.baseUrl, repairOrder);
+      console.log('Repair order API response:', response);
+      return response.data;
     } catch (error) {
-      console.error("Failed to create repair order:", error)
-      return null
+      console.error('Failed to create repair order - Error details:', error);
+      
+      // Try to get more details about the error response
+      if (error && typeof error === 'object') {
+        if ('status' in error) {
+          console.error('Error status:', error.status);
+        }
+        if ('message' in error) {
+          console.error('Error message:', error.message);
+        }
+        // Log the full error object for debugging
+        console.error('Full error object:', JSON.stringify(error, null, 2));
+      }
+      
+      // Re-throw the error with more details
+      if (error instanceof Error) {
+        throw new Error(`Failed to create repair order: ${error.message}`);
+      }
+      throw error;
     }
   }
 

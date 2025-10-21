@@ -30,24 +30,14 @@ export interface RepairOrder {
 }
 
 export interface CreateRepairOrderRequest {
+  customerId: string
+  vehicleId: string
   receiveDate: string
   roType: number
-  estimatedCompletionDate: string | null
-  completionDate: string | null
-  cost: number
+  estimatedCompletionDate: string
   estimatedAmount: number
-  paidAmount: number
-  paidStatus: string
-  estimatedRepairTime: number
   note: string
-  isArchived: boolean
-  branchId: string
-  statusId: string
-  vehicleId: string
-  userId: string
-  repairRequestId: string
-  customerName: string
-  customerPhone: string
+  estimatedRepairTime: number
 }
 
 export interface UpdateRepairOrderRequest extends Partial<CreateRepairOrderRequest> {

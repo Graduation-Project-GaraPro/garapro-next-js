@@ -9,11 +9,11 @@ import EditTaskModal from "@/app/manager/repairOrderManagement/components/edit-t
 import CreateTask from "@/app/manager/repairOrderManagement/components/create-task"
 import { repairOrderService } from "@/services/manager/repair-order-service"
 import { repairOrderHubService, type RoBoardCardDto } from "@/services/manager/repair-order-hub"
-import type { RepairOrder } from "@/types/manager/repair-order"
+import type { RepairOrder, CreateRepairOrderRequest } from "@/types/manager/repair-order"
 import type { OrderStatus } from "@/types/manager/order-status"
-import { SearchForm } from '@/app/manager/components/layout/search-form'
 import type { Job } from "@/types/job"
-
+import { toast } from "sonner"
+import { SearchForm } from "@/app/manager/components/layout/search-form"
 
 type ViewMode = "board" | "list"
 
@@ -86,51 +86,66 @@ export default function BoardPage() {
     }
   }
 
-  // Wrapper function to convert Job to RepairOrder
+  // Wrapper function to convert Job to RepairOrder and call the API
   const handleCreateRepairOrderWrapper = async (jobData: Omit<Job, "id">) => {
     try {
-      // Create a basic repair order from job data
-      const newRepairOrder: Omit<RepairOrder, "repairOrderId"> = {
-        receiveDate: new Date().toISOString(),
-        roType: 1, // Default type
-        roTypeName: jobData.title || "Repair Order",
-        estimatedCompletionDate: null,
-        completionDate: null,
-        cost: 0,
-        estimatedAmount: 0,
-        paidAmount: 0,
-        paidStatus: "unpaid",
-        estimatedRepairTime: 0,
-        note: jobData.description || "",
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        isArchived: false,
-        archivedAt: null,
-        archivedByUserId: null,
-        branchId: "default-branch",
-        statusId: "pending-status", // Default status
-        vehicleId: "default-vehicle", // This should be updated with actual vehicle data
-        userId: "default-user", // This should be updated with actual user data
-        repairRequestId: "default-request", // This should be updated with actual request data
-        customerName: jobData.company || "Unknown Customer",
-        customerPhone: jobData.contact || "",
-        technicianNames: [],
-        totalJobs: 0,
-        completedJobs: 0,
-        progressPercentage: 0
+      // Extract the additional properties that were spread into the jobData
+      const additionalData = jobData as Omit<Job, "id"> & {
+        customerId?: string;
+        vehicleId?: string;
+        receiveDate?: string;
+        roType?: number;
+        estimatedCompletionDate?: string;
+        estimatedAmount?: number;
+        note?: string;
+        labelId?: number;
+        estimatedRepairTime?: number;
       };
+
+      // Validate required fields
+      if (!additionalData.customerId) {
+        toast.error("Please select a customer");
+        console.error("Customer ID is required");
+        return;
+      }
       
-      // In a real implementation, you would call an API to create the repair order
-      // For now, we'll just add it to the local state
-      const createdRepairOrder: RepairOrder = {
-        ...newRepairOrder,
-        repairOrderId: `ro-${Date.now()}` // Simple ID generation for demo
-      } as RepairOrder;
+      if (!additionalData.vehicleId) {
+        toast.error("Please select a vehicle");
+        console.error("Vehicle ID is required");
+        return;
+      }
+
+      // Map jobData to CreateRepairOrderRequest - only send the fields that are required
+      const createRequest: CreateRepairOrderRequest = {
+        customerId: additionalData.customerId,
+        vehicleId: additionalData.vehicleId,
+        receiveDate: additionalData.receiveDate || new Date().toISOString(),
+        roType: additionalData.roType !== undefined ? additionalData.roType : 0, // 0: walkin, 1: scheduled, 2: breakdown
+        estimatedCompletionDate: additionalData.estimatedCompletionDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // Default to 7 days from now
+        estimatedAmount: additionalData.estimatedAmount || 0,
+        note: additionalData.note || "",
+        estimatedRepairTime: additionalData.estimatedRepairTime || 0
+      };
+
+      // Log the request data for debugging
+      console.log('Creating repair order with data:', JSON.stringify(createRequest, null, 2));
       
-      setRepairOrders((prev) => [...prev, createdRepairOrder])
-      setShowCreateForm(false)
+      // Call the repair order service to create the repair order
+      const createdRepairOrder = await repairOrderService.createRepairOrder(createRequest);
+      
+      if (createdRepairOrder) {
+        // Add the created repair order to the local state
+        setRepairOrders((prev) => [...prev, createdRepairOrder]);
+        setShowCreateForm(false);
+        toast.success("Repair order created successfully");
+        console.log("Successfully created repair order:", createdRepairOrder);
+      } else {
+        toast.error("Failed to create repair order");
+        console.error("Failed to create repair order - API returned null");
+      }
     } catch (error) {
-      console.error("Failed to create repair order:", error)
+      toast.error("Failed to create repair order. Please try again.");
+      console.error("Failed to create repair order:", error);
     }
   }
 

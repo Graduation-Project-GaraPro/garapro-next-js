@@ -36,24 +36,31 @@ class RepairOrderHubService {
       // Get the base URL from environment variables
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://localhost:7113";
       
-      this.connection = new HubConnectionBuilder()
-        .withUrl(`${baseUrl}/api/repairorderhub`)
-        .configureLogging(LogLevel.Information)
-        .build();
+      // Get the authentication token from localStorage
+      const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
+      
+      // Configure the connection with authentication
+      // Note: SignalR automatically appends "/negotiate" to the URL
+      const builder = new HubConnectionBuilder()
+        .withUrl(`${baseUrl}/api/repairorderhub`, {
+          accessTokenFactory: () => token || ""
+        })
+        .configureLogging(LogLevel.Information);
 
-      // Start the connection
+      this.connection = builder.build();
+
+      // Start
       await this.connection.start();
       this.isConnected = true;
       console.log("SignalR Connected");
 
-      // Handle reconnection
+      // Handle
       this.connection.onclose(async () => {
         this.isConnected = false;
         console.log("SignalR Disconnected. Reconnecting...");
         await this.reconnect();
       });
-
-      // Note: We don't invoke a "Connected" method on the server as it doesn't exist
+      
       // The server will automatically send events to the client
     } catch (error) {
       console.error("SignalR Connection Error: ", error);
@@ -115,18 +122,6 @@ class RepairOrderHubService {
       return response.success;
     } catch (error) {
       console.error("Failed to update repair order status:", error);
-      return false;
-    }
-  }
-
-  // Batch update repair order statuses
-  public async batchUpdateRepairOrderStatuses(updates: { repairOrderId: string; newStatusId: string }[]): Promise<boolean> {
-    try {
-      const response = await apiClient.post<unknown>("/api/RepairOrder/status/batch-update", updates);
-
-      return response.success;
-    } catch (error) {
-      console.error("Failed to batch update repair order statuses:", error);
       return false;
     }
   }

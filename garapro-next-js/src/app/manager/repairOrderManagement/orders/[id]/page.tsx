@@ -19,7 +19,8 @@ import {
   InspectionsTab, 
   EstimateTab, 
   WorkProgressTab, 
-  PaymentTab 
+  PaymentTab,
+  QuotationTab
 } from "./components"
 
 interface OrderDetailsProps {
@@ -74,7 +75,8 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
   const tabs = [
     { id: "vehicle-info", label: "VEHICLE INFO", icon: FileText },
     { id: "inspections", label: "INSPECTIONS", icon: Clipboard },
-    { id: "estimate", label: "ESTIMATE", icon: Calculator },
+    { id: "quotation", label: "QUOTATION", icon: Clipboard },
+    { id: "estimate", label: "JOBS", icon: Calculator },
     { id: "work-in-progress", label: "WORK-IN-PROGRESS", icon: Wrench },
     { id: "payment", label: "PAYMENT", icon: CreditCard },
   ]
@@ -83,6 +85,7 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
     const tabComponents = {
       "vehicle-info": <VehicleInformation orderId={orderId} />,
       inspections: <InspectionsTab orderId={orderId} />,
+      quotation: <QuotationTab orderId={orderId} />,
       estimate: <EstimateTab orderId={orderId} />,
       "work-in-progress": <WorkProgressTab orderId={orderId} />,
       payment: <PaymentTab orderId={orderId} />
