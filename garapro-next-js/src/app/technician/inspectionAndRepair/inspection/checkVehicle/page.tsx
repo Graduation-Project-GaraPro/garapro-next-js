@@ -248,9 +248,8 @@ export default function CheckConditionPage() {
                       {/* Header with gradient */}
                       <div className="text-center mb-2">
                         <div className="flex items-center gap-2 justify-center">
-  <h3 className="text-[16px] font-bold text-gray-800">Vehicle Details</h3>
-</div>
-
+                          <h3 className="text-[16px] font-bold text-gray-800">Vehicle Details</h3>
+                        </div>
                         <div className="w-20 h-1 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full mx-auto"></div>
                       </div>
                       <div className="p-3 bg-gradient-to-r from-blue-50 to-purple-50">

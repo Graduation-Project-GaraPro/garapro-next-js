@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { getMyJobs } from "@/services/technician/jobTechnicianService";
 import { useRouter } from "next/navigation";
 import {
   CheckCircle,
@@ -21,11 +22,11 @@ import {
 } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
-// Define types for task status and priority
+//Define types for task status and priority
 type TaskStatus = "new" | "in-progress" | "completed";
 type TaskPriority = "high" | "medium" | "low";
 
-// Define the structure of a task
+// // Define the structure of a task
 interface Task {
   id: number;
   vehicle: string;
@@ -58,10 +59,13 @@ interface PriorityConfigMap {
 }
 
 export default function TaskManagement() {
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [filter, setFilter] = useState<TaskStatus | "all">("all");
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-  const router = useRouter(); 
   const [searchTerm, setSearchTerm] = useState("");
+  const router = useRouter();
 
   // Function to check if a task should be hidden (completed tasks after deadline)
   const shouldHideCompletedTask = (task: Task): boolean => {
@@ -73,70 +77,43 @@ export default function TaskManagement() {
     // Hide completed tasks if current date is after the task deadline
     return today > taskDate;
   };
+  useEffect(() => {
+    const fetchJobs = async () => {
+      try {
+        const token = localStorage.getItem("token"); // 👈 Lấy JWT token khi login
+        if (!token) {
+          setError("Missing authentication token");
+          setLoading(false);
+          return;
+        }
 
-  // Sample task data with enhanced properties
-  const currentTasks: Task[] = [
-    {
-      id: 1,
-      vehicle: "Toyota Camry 2020",
-      issue: "Engine Check",
-      time: "19/01/2025",
-      status: "new",
-      progress: 0,
-      priority: "high",
-      technician: "John Doe",
-      licensePlate: "30A-12345",
-      owner: "Nguyễn Văn An",
-      phone: "0901234567",
-      description: "Xe có tiếng kêu bất thường từ động cơ, đèn check engine bật sáng. Khách hàng phản ánh xe giật cục khi tăng tốc.",
-    },
-    {
-      id: 2,
-      vehicle: "Honda Civic 2019",
-      issue: "Brake Inspection",
-      time: "19/01/2025",
-      status: "new",
-      progress: 0,
-      priority: "medium",
-      technician: "Jane Smith",
-      licensePlate: "31A-12345",
-      owner: "Nguyễn Văn An",
-      phone: "0901234567",
-      description: "Xe có tiếng kêu bất thường từ động cơ, đèn check engine bật sáng. Khách hàng phản ánh xe giật cục khi tăng tốc.",
-    },
-    {
-      id: 3,
-      vehicle: "Ford F-150 2021",
-      issue: "Oil Change",
-      time: "19/01/2025",
-      status: "in-progress",
-      progress: 20,
-      priority: "low",
-      technician: "Mike Johnson",
-      licensePlate: "30A-12346",
-      owner: "Nguyễn Văn An",
-      phone: "0901234567",
-      description: "Xe có tiếng kêu bất thường từ động cơ, đèn check engine bật sáng. Khách hàng phản ánh xe giật cục khi tăng tốc.",
+        const data = await getMyJobs(token);
+        const mappedTasks: Task[] = data.map((item: any) => ({
+          id: item.JobTechnicianId || item.Id,
+          vehicle: item.Vehicle?.Model || "Unknown",
+          issue: item.Inspection?.CustomerConcern || "N/A",
+          time: new Date(item.Deadline).toLocaleDateString("en-GB"),
+          status: item.Status?.toLowerCase() || "new",
+          progress: item.Progress || 0,
+          priority: item.Priority?.toLowerCase() || "medium",
+          technician: item.Technician?.FullName || "Technician",
+          licensePlate: item.Vehicle?.LicensePlate || "N/A",
+          owner: item.Vehicle?.OwnerName || "Unknown",
+          phone: item.Vehicle?.OwnerPhone || "N/A",
+          description: item.Inspection?.Finding || "No description",
+        }));
 
-    },
-      {
-      id: 4,
-      vehicle: "Porsche 911 2019",
-      issue: "Oil Change",
-      time: "23/09/2025", // Changed to today's date for testing
-      status: "completed",
-      progress: 100,
-      priority: "low",
-      technician: "William",
-      licensePlate: "92A-12345",
-      owner: "Nguyễn Văn An",
-      phone: "0901234567",
-      description: "Xe có tiếng kêu bất thường từ động cơ, đèn check engine bật sáng. Khách hàng phản ánh xe giật cục khi tăng tốc.",
-
-    },
+        setTasks(mappedTasks);
+      } catch (err: any) {
+        setError("Failed to load job list");
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchJobs();
+  }, []);
  
-  ];
-
   // Enhanced status configuration with explicit typing
   const statusConfig: StatusConfigMap = {
     new: {
@@ -155,6 +132,7 @@ export default function TaskManagement() {
       icon: CheckCircle,
       bgGradient: "from-green-300/70 to-emerald-100/70",
     },
+    
   };
 
   // Priority configuration with explicit typing
@@ -165,7 +143,7 @@ export default function TaskManagement() {
   };
 
   // Filter tasks to hide completed tasks that are past their deadline
-  const visibleTasks = currentTasks.filter(task => !shouldHideCompletedTask(task));
+  const visibleTasks = tasks.filter(task => !shouldHideCompletedTask(task));
 
   const filteredTasks = (filter === "all"
     ? visibleTasks
@@ -176,7 +154,21 @@ export default function TaskManagement() {
     vehicle.owner.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (vehicle.licensePlate &&
       vehicle.licensePlate.toLowerCase().includes(searchTerm.toLowerCase())));     
+if (loading) {
+  return (
+    <div className="flex items-center justify-center h-screen text-xl font-semibold text-gray-700">
+      Loading your jobs...
+    </div>
+  );
+}
 
+if (error) {
+  return (
+    <div className="flex items-center justify-center h-screen text-red-600 text-lg font-semibold">
+      {error}
+    </div>
+  );
+}
   return (
     <div className="bg-[url('/images/image5.jpg')] bg-cover bg-no-repeat h-[640px] p-6 rounded-lg shadow-md ">
       <div className="flex items-center justify-between mb-2 gap-4">
