@@ -18,12 +18,13 @@ import {
   FileText, 
   Search,
   CreditCard, 
-  ClipboardList
+  ClipboardList,PauseCircle,
+  Loader
 } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
 //Define types for task status and priority
-type TaskStatus = "new" | "in-progress" | "completed";
+type TaskStatus = "new" | "in-progress" | "completed" | "on-hold";;
 type TaskPriority = "high" | "medium" | "low";
 
 // // Define the structure of a task
@@ -31,6 +32,7 @@ interface Task {
   id: number;
   vehicle: string;
   issue: string;
+  jobName: string;
   time: string;
   status: TaskStatus;
   progress: number;
@@ -41,21 +43,76 @@ interface Task {
   phone: string;
   description: string;
 }
+/** --- Types that match API JSON structure (camelCase) --- **/
+interface BrandResp { brandId?: string; brandName?: string; country?: string; }
+interface ModelResp { modelId?: string; modelName?: string; manufacturingYear?: number; }
+interface ColorResp { colorId?: string; colorName?: string; hexCode?: string; }
+
+interface VehicleResp {
+  vehicleId?: string;
+  licensePlate?: string;
+  vin?: string;
+  brand?: BrandResp;
+  model?: ModelResp;
+  color?: ColorResp;
+}
+
+interface CustomerResp {
+  customerId?: string;
+  fullName?: string;
+  email?: string;
+  phoneNumber?: string;
+}
+
+interface TechnicianResp {
+  technicianId?: string;
+  fullName?: string;
+  email?: string;
+  phoneNumber?: string;
+}
+
+interface RepairResp {
+  repairId?: string;
+  description?: string;
+  notes?: string;
+  startTime?: string;
+  endTime?: string;
+  actualTime?: string;
+  estimatedTime?: string;
+}
+
+interface JobResponse {
+  jobId?: string;
+  jobName?: string;
+  status?: string;
+  deadline?: string;
+  totalAmount?: number;
+  note?: string;
+  createdAt?: string;
+  updatedAt?: string | null;
+  level?: string;
+  serviceName?: string;
+  repairOrderId?: string;
+  vehicle?: VehicleResp;
+  customer?: CustomerResp;
+  repair?: RepairResp | null;
+  technicians?: TechnicianResp[]; // note: API returns technicians array
+}
+
+interface StatusConfig {
+  color: string;
+  icon: LucideIcon;
+  bgGradient: string;
+}
+interface StatusConfigMap { [key: string]: StatusConfig; }
+interface PriorityConfigMap { [key: string]: string; }
+
 
 // Define the structure of statusConfig
 interface StatusConfig {
   color: string;
   icon: LucideIcon;
   bgGradient: string;
-}
-
-// Define the structure of statusConfig and priorityConfig with index signatures
-interface StatusConfigMap {
-  [key: string]: StatusConfig; // Index signature to allow string keys
-}
-
-interface PriorityConfigMap {
-  [key: string]: string; // Index signature for priorityConfig
 }
 
 export default function TaskManagement() {
@@ -67,53 +124,119 @@ export default function TaskManagement() {
   const [searchTerm, setSearchTerm] = useState("");
   const router = useRouter();
 
-  // Function to check if a task should be hidden (completed tasks after deadline)
   const shouldHideCompletedTask = (task: Task): boolean => {
     if (task.status !== "completed") return false;
-    
     const today = new Date();
-    const taskDate = new Date(task.time.split('/').reverse().join('-')); // Convert DD/MM/YYYY to YYYY-MM-DD
-    
-    // Hide completed tasks if current date is after the task deadline
-    return today > taskDate;
+    // time stored as DD/MM/YYYY in your UI mapping; parse safely
+    try {
+      const [d, m, y] = task.time.split("/");
+      const taskDate = new Date(Number(y), Number(m) - 1, Number(d));
+      return today > taskDate;
+    } catch {
+      return false;
+    }
   };
   useEffect(() => {
     const fetchJobs = async () => {
       try {
-        const token = localStorage.getItem("token"); // 👈 Lấy JWT token khi login
-        if (!token) {
-          setError("Missing authentication token");
-          setLoading(false);
-          return;
-        }
+        setLoading(true);
+        setError("");
+        const data: JobResponse[] = await getMyJobs();
 
-        const data = await getMyJobs(token);
-        const mappedTasks: Task[] = data.map((item: any) => ({
-          id: item.JobTechnicianId || item.Id,
-          vehicle: item.Vehicle?.Model || "Unknown",
-          issue: item.Inspection?.CustomerConcern || "N/A",
-          time: new Date(item.Deadline).toLocaleDateString("en-GB"),
-          status: item.Status?.toLowerCase() || "new",
-          progress: item.Progress || 0,
-          priority: item.Priority?.toLowerCase() || "medium",
-          technician: item.Technician?.FullName || "Technician",
-          licensePlate: item.Vehicle?.LicensePlate || "N/A",
-          owner: item.Vehicle?.OwnerName || "Unknown",
-          phone: item.Vehicle?.OwnerPhone || "N/A",
-          description: item.Inspection?.Finding || "No description",
-        }));
+        if (!data || !Array.isArray(data) || data.length === 0) {
+        setTasks([]); // không có nhiệm vụ
+        return;
+      }
+
+        const mappedTasks: Task[] = data.map((item) => {
+          // build a display name for vehicle (brand + model) if available
+          const vehicleName = item.vehicle
+            ? `${item.vehicle.brand?.brandName || ""} ${item.vehicle.model?.modelName || ""}`.trim() || "Unknown"
+            : "Unknown";
+
+        //   // default status mapping from API statuses (e.g., "InProgress" -> "in-progress")
+        //   const normalizedStatus = item.status
+        //     ? item.status.toLowerCase() === "inprogress" || item.status.toLowerCase() === "in-progress"
+        //       ? "in-progress"
+        //       : item.status.toLowerCase()
+        //     : "new";
+        //     let progress = 0;
+        // switch (normalizedStatus) {
+        //   case "in-progress":
+        //     progress = 50;
+        //     break;
+        //   case "completed":
+        //     progress = 100;
+        //     break;
+        //   default:
+        //     progress = 0;
+        // }
+        let normalizedStatus: TaskStatus = "new";
+          if (item.status) {
+            const statusLower = item.status.toLowerCase();
+            if (statusLower === "inprogress" || statusLower === "in-progress") {
+              normalizedStatus = "in-progress";
+            } else if (statusLower === "onhold" || statusLower === "on-hold") {
+              normalizedStatus = "on-hold";
+            } else if (statusLower === "completed") {
+              normalizedStatus = "completed";
+            } else if (statusLower === "new") {
+              normalizedStatus = "new";
+            }
+          }
+
+          let progress = 0;
+          switch (normalizedStatus) {
+            case "in-progress":
+              progress = 50;
+              break;
+            case "completed":
+              progress = 100;
+              break;
+            case "on-hold":
+              progress = 30;
+              break;
+            default:
+              progress = 0;
+          }
+
+          // convert deadline to dd/mm/yyyy for UI (if exists)
+          const deadlineStr = item.deadline ? new Date(item.deadline).toLocaleDateString("en-GB") : "N/A";
+
+          return {
+            id: item.jobId || (item.repairOrderId ?? Math.random()), // fallback id
+            vehicle: vehicleName,
+            issue: item.note || "N/A",
+            jobName: item.jobName|| "N/A",
+            time: deadlineStr,
+            status: (normalizedStatus as TaskStatus) || "new",
+            progress, // API doesn't return progress in your sample; set 0 or adapt if exists
+            priority: "medium", // API sample doesn't include priority
+            technician:
+              item.technicians && item.technicians.length > 0
+                ? item.technicians[0].fullName || "Technician"
+                : "Technician",
+            licensePlate: item.vehicle?.licensePlate || "N/A",
+            owner: item.customer?.fullName || "Unknown",
+            phone: item.customer?.phoneNumber || "N/A",
+            description: item.repair?.description || item.note || "No description",
+          } as Task;
+        });
 
         setTasks(mappedTasks);
-      } catch (err: any) {
+      } catch (err: unknown) {
+        if (err instanceof Error && err.message.includes("authentication")) {
+        setError("Missing authentication token. Please login again.");
+      } else {
         setError("Failed to load job list");
-        console.error(err);
-      } finally {
-        setLoading(false);
       }
-    };
+    } finally {
+      setLoading(false);
+    }
+  };
+
     fetchJobs();
   }, []);
- 
   // Enhanced status configuration with explicit typing
   const statusConfig: StatusConfigMap = {
     new: {
@@ -131,6 +254,11 @@ export default function TaskManagement() {
       color: "bg-green-100/70 text-green-900 border-green-200/70",
       icon: CheckCircle,
       bgGradient: "from-green-300/70 to-emerald-100/70",
+    },
+    "on-hold": {
+      color: "bg-red-100/70 text-red-900 border-red-200/70",
+      icon: PauseCircle,
+      bgGradient: "from-red-300/70 to-rose-100/70",
     },
     
   };
@@ -154,21 +282,7 @@ export default function TaskManagement() {
     vehicle.owner.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (vehicle.licensePlate &&
       vehicle.licensePlate.toLowerCase().includes(searchTerm.toLowerCase())));     
-if (loading) {
-  return (
-    <div className="flex items-center justify-center h-screen text-xl font-semibold text-gray-700">
-      Loading your jobs...
-    </div>
-  );
-}
 
-if (error) {
-  return (
-    <div className="flex items-center justify-center h-screen text-red-600 text-lg font-semibold">
-      {error}
-    </div>
-  );
-}
   return (
     <div className="bg-[url('/images/image5.jpg')] bg-cover bg-no-repeat h-[640px] p-6 rounded-lg shadow-md ">
       <div className="flex items-center justify-between mb-2 gap-4">
@@ -215,7 +329,7 @@ if (error) {
               <Filter className="w-5 h-5 text-gray-800" />
               <span className="text-gray-900 font-medium text-[18px]">Filter:</span>
               <div className="flex space-x-2">
-                {(["all", "new", "in-progress", "completed"] as const).map((status) => (
+                {(["all", "new", "in-progress",  "on-hold","completed"] as const).map((status) => (
                   <button
                     key={status}
                     onClick={() => setFilter(status)}
@@ -232,20 +346,53 @@ if (error) {
             </div>
           </div> 
         </div>
-        {/* Tasks Grid */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 max-h-[55vh] overflow-y-auto rounded-xl rounded-scroll">
-          {filteredTasks
-           .filter(
-            (vehicle) =>
-              vehicle.vehicle.toLowerCase().includes(searchTerm.toLowerCase()) ||
-              vehicle.owner.toLowerCase().includes(searchTerm.toLowerCase()) ||
-              (vehicle.licensePlate &&
-                vehicle.licensePlate.toLowerCase().includes(searchTerm.toLowerCase()))
-          )
-          .map((task) => {
-            const StatusIcon = statusConfig[task.status]?.icon || Clock;
-            const isCompleted = task.status === "completed";
 
+        {/* Loading state */}
+      {loading && (
+        <div className="flex flex-col items-center justify-center py-10 px-6 bg-white rounded-xl shadow-md text-center max-w-md mx-auto">
+          <div className="bg-gray-100 p-4 rounded-full mb-4">
+                  <Loader className="w-8 h-8 text-gray-800 animate-spin" />
+                </div>
+          <h3 className="text-2xl font-bold text-gray-700 mb-2">Loading your jobs...</h3>
+          <p className="text-gray-500 text-sm mb-4">
+            Please wait while we fetch your assigned tasks.
+          </p>
+        </div>
+      )}
+
+      {/* Error state */}
+      {error && !loading && (
+        <div className="flex flex-col items-center justify-center py-10 px-6 bg-white rounded-xl shadow-md text-center max-w-md mx-auto">
+          <div className="bg-gray-100 p-4 rounded-full mb-4">
+                  <AlertTriangle className="w-8 h-8 text-gray-800" />
+                </div>
+          <h3 className="text-2xl font-bold text-red-600 mb-2">Error Loading Jobs</h3>
+            <p className="text-gray-600">{error}</p>
+        </div>
+      )}
+
+          {!loading && !error && tasks.length === 0 && (
+             <div className="flex flex-col items-center justify-center py-10 px-6 bg-white rounded-xl shadow-md text-center max-w-md mx-auto">            
+               <div className="bg-gray-100 p-4 rounded-full mb-4">
+                  <AlertTriangle className="w-8 h-8 text-gray-800" />
+                </div>
+              <h2 className="text-2xl font-semibold text-gray-800 mb-2">
+                You have not been assigned any tasks at this time.
+              </h2>
+              <p className="text-gray-500">
+                Check back later for new assignments.
+              </p>
+            </div>
+      )}
+
+
+        {/* Tasks Grid */}
+        {!loading && !error && tasks.length > 0 && (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 max-h-[55vh] overflow-y-auto rounded-xl rounded-scroll">
+            {filteredTasks.length > 0 ? (
+              filteredTasks.map((task) => {
+                const StatusIcon = statusConfig[task.status]?.icon || Clock;
+                const isCompleted = task.status === "completed";
             return (
               <div
                 key={task.id}
@@ -260,10 +407,9 @@ if (error) {
                       </div>
                       <div>
                         <h3 className="text-lg font-bold text-gray-900">{task.vehicle}</h3>
-                        <p className="text-gray-700 text-sm font-bold italic">{task.issue}</p>
+                        <p className="text-gray-700 text-sm font-bold italic">{task.jobName}</p>
                       </div>
                     </div>
-
                     <div
                       className={`px-3 py-1 rounded-full text-xs font-semibold border ${priorityConfig[task.priority]}`}
                     >
@@ -311,8 +457,8 @@ if (error) {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2 text-sm text-gray-800 font-medium ">
                          <User className="w-4 h-4" />
-                          <span className="font-medium">Technician: </span>
-                          <span className="text-gray-800">{task.technician}</span>
+                          <span className="font-medium">Customer: </span>
+                          <span className="text-gray-800">{task.owner}</span>
                       </div>
                          
                       <div className="flex items-center font-bold gap-2 text-gray-800 ">
@@ -349,31 +495,28 @@ if (error) {
                 </div>
               </div>
             );
-          })}
-        </div>
-
-        {/* Empty State */}
-        {filteredTasks.length === 0 && (
-        
-      <div className="flex flex-col items-center justify-center py-10 px-6 bg-white rounded-xl shadow-md text-center max-w-md mx-auto">
+         })
+            ) : (
+              <div className="col-span-full flex items-center justify-center min-h-[50vh]">
+                <div className="flex flex-col items-center justify-center py-6 px-18 bg-white/80 rounded-xl shadow-md text-center max-w-md">
                   <div className="bg-gray-100 p-4 rounded-full mb-4">
-                    <AlertTriangle className="text-6xl text-gray-800" />
+                    <AlertTriangle className="w-8 h-8 text-gray-800" />
                   </div>
-                    <h3 className="text-2xl font-bold text-gray-700 mb-2">
-                      No vehicles found
-                    </h3>
-                      <p className="text-gray-500 text-xm mb-4">
-                       No vehicles match your search criteria &quot;
-                       <span className="font-medium">{searchTerm}</span>
-                        &quot;
-                      </p>
-                      <button
-                        onClick={() => setSearchTerm("")}
-                        className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-bold"
-                        >
-                        Clear search
-                    </button>
+                  <h3 className="text-2xl font-bold text-gray-700 mb-2">No Vehicles Found</h3>
+                  <p className="text-gray-500 text-sm mb-4">
+                    No vehicles match your search criteria &quot;
+                    <span className="font-medium">{searchTerm}</span>&quot;
+                  </p>
+                  <button
+                    onClick={() => setSearchTerm("")}
+                    className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-bold"
+                  >
+                    Clear Search
+                  </button>
                 </div>
+              </div>
+            )}
+          </div>
         )}
         {/* Detail Modal */}
         {selectedTask && (

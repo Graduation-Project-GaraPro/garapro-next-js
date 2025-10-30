@@ -1,20 +1,76 @@
+// /services/technician/jobTechnicianService.ts
 import axios from "axios";
 
-const API_URL = "https://localhost:7113/odata/JobTechnician/my-jobs";
+const API_URL = "https://localhost:7113/odata/JobTechnician";
 
+// Interface for status update
+export interface JobStatusUpdate {
+  JobId: string;
+  JobStatus: number; // 0=Pending, 1=New, 2=InProgress, 3=Completed, 4=OnHold
+}
 
-const TEST_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3ZDJjNGM5ZS0xZDNjLTQ0ODUtYTNiNS05NjA1YTFkMTQ2MjkiLCJqdGkiOiJlMmYzZWZmNi1lMWQ0LTRmMTYtYjg3YS0yNTg3MTY2OThkZDQiLCJlbWFpbCI6IjA5MDAwMDAwMDdAbXlhcHAuY29tIiwibmFtZWlkIjoiN2QyYzRjOWUtMWQzYy00NDg1LWEzYjUtOTYwNWExZDE0NjI5IiwidW5pcXVlX25hbWUiOiIwOTAwMDAwMDA3IiwiRmlyc3ROYW1lIjoiRGVmYXVsdCIsIkxhc3ROYW1lIjoiVGVjaG5pY2lhbjEiLCJMYXN0TG9naW4iOiIxMC8yMS8yMDI1IDg6NDc6MTEgQU0iLCJyb2xlIjoiVGVjaG5pY2lhbiIsIm5iZiI6MTc2MTAzNjQzMSwiZXhwIjoxNzYxMDM4MjMxLCJpYXQiOjE3NjEwMzY0MzEsImlzcyI6Ik15QXV0aEFwcCIsImF1ZCI6Ik15QXV0aEFwcFVzZXJzIn0.SO3ea-csaWbzsM6cBG-k3iBr_ZQQZAnW4knidZ6-LQA"; // token JWT của bạn
-
-export const getMyJobs = async (token?: string) => {
+// Lấy danh sách công việc của technician
+export const getMyJobs = async () => {
   try {
-    const response = await axios.get(API_URL, {
+    const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
+    if (!token) {
+      throw new Error("Missing authentication token");
+    }
+
+    const response = await axios.get(`${API_URL}/my-jobs`, {
       headers: {
-        Authorization: `Bearer ${token || TEST_TOKEN}`, 
+        Authorization: `Bearer ${token}`,
       },
     });
     return response.data.value || response.data;
   } catch (error) {
     console.error("Error fetching jobs:", error);
+
+    throw error;
+  }
+};
+
+// Lấy chi tiết 1 công việc
+export const getJobById = async (id: string) => {
+  try {
+    const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
+    if (!token) {
+      throw new Error("Missing authentication token");
+    }
+
+    const response = await axios.get(`${API_URL}/my-jobs/${id}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching job detail:", error);
+    throw error;
+  }
+};
+
+// Cập nhật trạng thái công việc
+export const updateJobStatus = async (data: JobStatusUpdate) => {
+  try {
+    const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
+    if (!token) {
+      throw new Error("Missing authentication token");
+    }
+
+    const response = await axios.put(
+      `${API_URL}/update-status`,
+      data,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error updating job status:", error);
     throw error;
   }
 };

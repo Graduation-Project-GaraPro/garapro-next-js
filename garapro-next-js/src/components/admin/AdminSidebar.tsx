@@ -15,7 +15,8 @@ import {
   FileCheck,
   Megaphone,
   DollarSign,
-  MapPin
+  MapPin,
+  Wrench
 } from 'lucide-react'
 
 const menuItems = [
@@ -39,9 +40,7 @@ const menuItems = [
     href: '/admin/policies',
     icon: FileCheck,
     submenu: [
-      { title: 'All Policies', href: '/admin/policies' },
-      { title: 'Compliance', href: '/admin/policies/compliance' },
-      { title: 'Audit Logs', href: '/admin/policies/audit' },
+      { title: 'Security Policies', href: '/admin/policies/security' }
     ]
   },
   {
@@ -52,7 +51,7 @@ const menuItems = [
       { title: 'Overview', href: '/admin/statistics' },
       { title: 'Advanced Analytics', href: '/admin/statistics/advanced' },
       { title: 'Real-time Analytics', href: '/admin/statistics/realtime' },
-      { title: 'Performance Analytics', href: '/admin/statistics/performance' }
+      { title: 'Revenue Reports', href: '/admin/financial-reports' }      
     ]
   },
   {
@@ -61,8 +60,8 @@ const menuItems = [
     icon: FileText,
     submenu: [
       { title: 'All Logs', href: '/admin/logs' },
-      { title: 'Log Analytics', href: '/admin/logs/analytics' },
-      { title: 'Log Management', href: '/admin/logs/management' },
+      { title: 'Log Analytics', href: '/admin/logs/analytics' }
+      
     ]
   },
   {
@@ -71,16 +70,8 @@ const menuItems = [
     icon: Megaphone,
     submenu: [
       { title: 'All Campaigns', href: '/admin/campaigns' },
-      { title: 'Create Campaign', href: '/admin/campaigns/create' },
-      { title: 'Campaign Analytics', href: '/admin/campaigns/analytics' },
-    ]
-  },
-  {
-    title: 'Revenue Reports',
-    href: '/admin/revenue',
-    icon: DollarSign,
-    submenu: [
-      { title: 'Reports', href: '/admin/revenue' },   
+      { title: 'Create Campaign', href: '/admin/campaigns/create' }
+     
     ]
   },
   {
@@ -91,6 +82,15 @@ const menuItems = [
       { title: 'All Branches', href: '/admin/branches' },
       { title: 'Create Branch', href: '/admin/branches/create' }
      
+    ]
+  },
+  {
+    title: 'Garage Services',
+    href: '/admin/services',
+    icon: Wrench,
+    submenu: [
+      { title: 'All Services', href: '/admin/services' },
+      { title: 'Create Service', href: '/admin/services/create' }    
     ]
   }
 ]

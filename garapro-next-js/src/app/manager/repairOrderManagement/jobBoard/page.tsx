@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { Plus, Filter, LayoutGrid, List, Link } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import DragDropBoard from "./drag-drop-board"
+import ListView from "../jobList/list-view"
 import EditTaskModal from "@/app/manager/repairOrderManagement/components/edit-task-modal"
 import CreateTask from "@/app/manager/repairOrderManagement/components/create-task"
 import { jobService } from "@/services/manager/job-service"
@@ -12,12 +13,15 @@ import { SearchForm } from '@/app/manager/components/layout/search-form'
 import { labelService } from "@/services/manager/label-service"
 import type { Label as LabelType } from "@/types/manager/label"
 
+type ViewMode = "board" | "list"
+
 export default function BoardPage() {
   const [jobs, setJobs] = useState<Job[]>([])
   const [labels, setLabels] = useState<LabelType[]>([])
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [editingJob, setEditingJob] = useState<Job | null>(null)
   const [loading, setLoading] = useState(true)
+  const [viewMode, setViewMode] = useState<ViewMode>("board")
 
   useEffect(() => {
     loadJobs()
@@ -125,10 +129,24 @@ export default function BoardPage() {
                   Active
                 </Button>
                 <div className="flex border border-gray-200 rounded-lg overflow-hidden">
-                  <Button variant="ghost" size="sm" className="px-2 py-1.5 hover:bg-gray-50 border-r border-gray-200">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className={`px-2 py-1.5 border-r border-gray-200 ${
+                      viewMode === "board" ? "bg-blue-50 text-blue-600" : "hover:bg-gray-50"
+                    }`}
+                    onClick={() => setViewMode("board")}
+                  >
                     <LayoutGrid className="w-4 h-4" />
                   </Button>
-                  <Button variant="ghost" size="sm" className="px-2 py-1.5 hover:bg-gray-50 border-r border-gray-200">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className={`px-2 py-1.5 border-r border-gray-200 ${
+                      viewMode === "list" ? "bg-blue-50 text-blue-600" : "hover:bg-gray-50"
+                    }`}
+                    onClick={() => setViewMode("list")}
+                  >
                     <List className="w-4 h-4" />
                   </Button>
                   <Button variant="ghost" size="sm" className="px-2 py-1.5 hover:bg-gray-50">
@@ -143,14 +161,23 @@ export default function BoardPage() {
             </div>
           </div>
           <div className="flex-1 h-0 min-h-0 overflow-hidden">
-            <DragDropBoard
-              jobs={jobs}
-              loading={loading}
-              onMoveJob={handleMoveJob}
-              onEditJob={setEditingJob}
-              onDeleteJob={handleDeleteJob}
-              labels={labels}
-            />
+            {viewMode === "board" ? (
+              <DragDropBoard
+                jobs={jobs}
+                loading={loading}
+                onMoveJob={handleMoveJob}
+                onEditJob={setEditingJob}
+                onDeleteJob={handleDeleteJob}
+                labels={labels}
+              />
+            ) : (
+              <ListView
+                jobs={jobs}
+                loading={loading}
+                onEditJob={setEditingJob}
+                onDeleteJob={handleDeleteJob}
+              />
+            )}
           </div>
         </>
       )}

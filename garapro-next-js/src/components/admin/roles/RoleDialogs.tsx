@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
+
 import {
   Dialog,
   DialogContent,
@@ -13,21 +14,31 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Shield, Users, Edit } from 'lucide-react'
-import { Role, Permission } from '@/services/role-service'
+import { Role, PermissionCategory, Permission } from '@/services/role-service'
 import { useRoleValidation } from '@/hooks/admin/roles/useRoles'
-import { User } from '@/services/user-service'
 
 interface RoleDialogsProps {
   // Create dialog
+  // Create dialog
   isCreateOpen: boolean
   onCreateClose: () => void
-  onCreateSubmit: (roleData: { name: string; description: string; permissions: string[] }) => void
+  onCreateSubmit: (roleData: { 
+    name: string; 
+    description: string; 
+    permissionIds: string[];
+    isDefault: boolean;
+  }) => void
   
   // Edit dialog
   isEditOpen: boolean
   selectedRole: Role | null
   onEditClose: () => void
-  onEditSubmit: (roleData: { name: string; description: string; permissions: string[] }) => void
+  onEditSubmit: (roleData: { 
+    name: string; 
+    description: string; 
+    permissionIds: string[];
+    isDefault: boolean;
+  }) => void
   
   // View dialog
   isViewOpen: boolean
@@ -49,11 +60,11 @@ interface RoleDialogsProps {
   // View Users dialog
   isViewUsersOpen: boolean
   onViewUsersClose: () => void
-  usersWithRole: User[]
+  usersWithRole: any[]
   loadingUsers: boolean
   
   // Data
-  permissions: Permission[]
+  permissions: PermissionCategory[]
   loading: boolean
 
   // Action handlers
@@ -83,6 +94,7 @@ export const RoleDialogs = ({
   isViewUsersOpen,
   onViewUsersClose,
   usersWithRole,
+  usersWithRoleCount,
   loadingUsers,
   permissions,
   onViewUsers,        
@@ -93,15 +105,18 @@ export const RoleDialogs = ({
   const [createForm, setCreateForm] = useState({
     name: '',
     description: '',
-    permissions: [] as string[]
+    permissionIds: [] as string[],
+    isDefault: false
   })
   const [shouldValidateCreate, setShouldValidateCreate] = useState(false)
 
   // Edit form state
   const [editForm, setEditForm] = useState({
+    roleId: '',
     name: '',
     description: '',
-    permissions: [] as string[]
+    permissionIds: [] as string[],
+    isDefault: false
   })
   const [shouldValidateEdit, setShouldValidateEdit] = useState(false)
 
@@ -115,13 +130,23 @@ export const RoleDialogs = ({
   const createErrors = useRoleValidation(createForm, shouldValidateCreate)
   const editErrors = useRoleValidation(editForm, shouldValidateEdit)
 
+  // Helper function to get all permission IDs from a role
+  const getAllPermissionIds = (role: Role): string[] => {
+    return role.permissionCategories.flatMap(category => 
+      category.permissions.map(permission => permission.id)
+    )
+  }
+
   // Update edit form when selected role changes
   useEffect(() => {
     if (selectedRole && isEditOpen) {
+      const allPermissionIds = getAllPermissionIds(selectedRole)
       setEditForm({
+        id: selectedRole.id,
         name: selectedRole.name,
         description: selectedRole.description,
-        permissions: [...selectedRole.permissions]
+        permissionIds: allPermissionIds,
+        isDefault: selectedRole.isDefault
       })
     }
   }, [selectedRole, isEditOpen])
@@ -129,7 +154,7 @@ export const RoleDialogs = ({
   // Reset forms when dialogs close
   useEffect(() => {
     if (!isCreateOpen) {
-      setCreateForm({ name: '', description: '', permissions: [] })
+      setCreateForm({ name: '', description: '', permissionIds: [], isDefault: false })
       setShouldValidateCreate(false)
     }
   }, [isCreateOpen])
@@ -138,7 +163,7 @@ export const RoleDialogs = ({
     if (!isEditOpen) {
       // Only reset form if edit dialog was not opened from quick action
       if (editOpenedFrom !== 'quick-action') {
-        setEditForm({ name: '', description: '', permissions: [] })
+        setEditForm({ roleId: '', name: '', description: '', permissionIds: [], isDefault: false })
       }
       setShouldValidateEdit(false)
       setEditOpenedFrom(null)
@@ -188,7 +213,7 @@ export const RoleDialogs = ({
     setShouldValidateCreate(true)
     setCreateForm(prev => ({
       ...prev,
-      permissions: togglePermission(permissionId, prev.permissions)
+      permissionIds: togglePermission(permissionId, prev.permissionIds)
     }))
   }, [togglePermission])
 
@@ -196,7 +221,7 @@ export const RoleDialogs = ({
     setShouldValidateEdit(true)
     setEditForm(prev => ({
       ...prev,
-      permissions: togglePermission(permissionId, prev.permissions)
+      permissionIds: togglePermission(permissionId, prev.permissionIds)
     }))
   }, [togglePermission])
 
@@ -213,14 +238,6 @@ export const RoleDialogs = ({
       onEditRole(selectedRoleForView)
     }
   }, [selectedRoleForView, onEditRole])
-
-  // Group permissions by category
-  const groupedPermissions = permissions.reduce((acc, permission) => {
-    const category = permission.category || 'Other'
-    if (!acc[category]) acc[category] = []
-    acc[category].push(permission)
-    return acc
-  }, {} as Record<string, Permission[]>)
 
   return (
     <>
@@ -265,19 +282,34 @@ export const RoleDialogs = ({
                 {createErrors.description && <p className="text-sm text-red-500 mt-1">{createErrors.description}</p>}
               </div>
 
+              {/* THÊM isDefault field */}
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="create-is-default"
+                  checked={createForm.isDefault}
+                  onCheckedChange={(checked) => 
+                    setCreateForm(prev => ({ ...prev, isDefault: checked as boolean }))
+                  }
+                />
+                <Label htmlFor="create-is-default" className="text-sm cursor-pointer">
+                  Set as default role for new users
+                </Label>
+              </div>
+
               <div>
                 <Label>Permissions *</Label>
-                {createErrors.permissions && <p className="text-sm text-red-500 mt-1">{createErrors.permissions}</p>}
+                {createErrors.permissionIds && <p className="text-sm text-red-500 mt-1">{createErrors.permissionIds}</p>}
                 <div className="mt-2 space-y-4">
-                  {Object.entries(groupedPermissions).map(([category, categoryPermissions]) => (
-                    <div key={category}>
-                      <h4 className="text-sm font-medium text-gray-700 mb-2">{category}</h4>
+                  {permissions.map((category) => (
+                    <div key={category.id}>
+                      <h4 className="text-sm font-medium text-gray-700 mb-2">{category.name}</h4>
+                      <p className="text-xs text-gray-500 mb-2">{category.description}</p>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                        {categoryPermissions.map((permission) => (
+                        {category.permissions.map((permission) => (
                           <div key={permission.id} className="flex items-center space-x-2">
                             <Switch
                               id={`create-${permission.id}`}
-                              checked={createForm.permissions.includes(permission.id)}
+                              checked={createForm.permissionIds.includes(permission.id)}
                               onCheckedChange={() => handleCreatePermissionToggle(permission.id)}
                             />
                             <Label htmlFor={`create-${permission.id}`} className="text-sm cursor-pointer">
@@ -345,19 +377,38 @@ export const RoleDialogs = ({
                   {editErrors.description && <p className="text-sm text-red-500 mt-1">{editErrors.description}</p>}
                 </div>
 
+                {/* THÊM isDefault field */}
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="edit-is-default"
+                    checked={editForm.isDefault}
+                    onCheckedChange={(checked) => 
+                      setEditForm(prev => ({ ...prev, isDefault: checked as boolean }))
+                    }
+                    disabled={selectedRole.isDefault} // Không cho phép thay đổi nếu là default role
+                  />
+                  <Label htmlFor="edit-is-default" className="text-sm cursor-pointer">
+                    Set as default role for new users
+                    {selectedRole.isDefault && (
+                      <span className="text-xs text-gray-500 ml-1">(Cannot change default role)</span>
+                    )}
+                  </Label>
+                </div>
+
                 <div>
                   <Label>Permissions *</Label>
-                  {editErrors.permissions && <p className="text-sm text-red-500 mt-1">{editErrors.permissions}</p>}
+                  {editErrors.permissionIds && <p className="text-sm text-red-500 mt-1">{editErrors.permissionIds}</p>}
                   <div className="mt-2 space-y-4">
-                    {Object.entries(groupedPermissions).map(([category, categoryPermissions]) => (
-                      <div key={category}>
-                        <h4 className="text-sm font-medium text-gray-700 mb-2">{category}</h4>
+                    {permissions.map((category) => (
+                      <div key={category.id}>
+                        <h4 className="text-sm font-medium text-gray-700 mb-2">{category.name}</h4>
+                        <p className="text-xs text-gray-500 mb-2">{category.description}</p>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                          {categoryPermissions.map((permission) => (
+                          {category.permissions.map((permission) => (
                             <div key={permission.id} className="flex items-center space-x-2">
                               <Switch
                                 id={`edit-${permission.id}`}
-                                checked={editForm.permissions.includes(permission.id)}
+                                checked={editForm.permissionIds.includes(permission.id)}
                                 onCheckedChange={() => handleEditPermissionToggle(permission.id)}
                               />
                               <Label htmlFor={`edit-${permission.id}`} className="text-sm cursor-pointer">
@@ -424,25 +475,26 @@ export const RoleDialogs = ({
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-600">Total Permissions</label>
-                  <p className="text-sm">{selectedRoleForView.permissions.length}</p>
+                  <p className="text-sm">
+                    {selectedRoleForView.permissionCategories.reduce((total, category) => 
+                      total + category.permissions.length, 0
+                    )}
+                  </p>
                 </div>
               </div>
 
               <div>
                 <label className="text-sm font-medium text-gray-600">Permissions</label>
                 <div className="mt-2 space-y-3">
-                  {Object.entries(groupedPermissions).map(([category, categoryPermissions]) => {
-                    const rolePermissionsInCategory = categoryPermissions.filter(p => 
-                      selectedRoleForView.permissions.includes(p.id)
-                    )
-                    
-                    if (rolePermissionsInCategory.length === 0) return null
+                  {selectedRoleForView.permissionCategories.map((category) => {
+                    if (category.permissions.length === 0) return null
                     
                     return (
-                      <div key={category}>
-                        <h4 className="text-sm font-medium text-gray-700 mb-1">{category}</h4>
+                      <div key={category.id}>
+                        <h4 className="text-sm font-medium text-gray-700 mb-1">{category.name}</h4>
+                        <p className="text-xs text-gray-500 mb-2">{category.description}</p>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                          {rolePermissionsInCategory.map((permission) => (
+                          {category.permissions.map((permission) => (
                             <div key={permission.id} className="flex items-center space-x-2 p-2 bg-gray-50 rounded">
                               <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                               <div>
@@ -455,6 +507,9 @@ export const RoleDialogs = ({
                       </div>
                     )
                   })}
+                  {selectedRoleForView.permissionCategories.every(cat => cat.permissions.length === 0) && (
+                    <p className="text-sm text-gray-500 text-center py-4">No permissions assigned</p>
+                  )}
                 </div>
               </div>
 
@@ -467,7 +522,7 @@ export const RoleDialogs = ({
                     onClick={handleViewUsersClick}
                   >
                     <Users className="mr-2 h-4 w-4" />
-                    View Users ({selectedRoleForView.users})
+                    View Users ({usersWithRoleCount})
                   </Button>
                   {!selectedRoleForView.isDefault && (
                     <Button 
