@@ -3,74 +3,131 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { X } from 'lucide-react'
-import { CreateBranchRequest } from '@/services/branch-service'
-import { User } from '@/services/user-service'
+import { CreateBranchRequest, User } from '@/services/branch-service'
 
 interface StaffSectionProps {
   formData: CreateBranchRequest
   errors: Record<string, string>
-  drivers: User[]
-  onStaffToggle: (driver: User, selected: boolean) => void
-  onStaffRemove: (index: number) => void
+  managers: User[]
+  technicians: User[]
+  onStaffToggle: (staffId: string, selected: boolean) => void
+  onStaffRemove: (staffId: string) => void
 }
 
 export const StaffSection = ({ 
   formData, 
   errors, 
-  drivers, 
+  managers, 
+  technicians, 
   onStaffToggle, 
   onStaffRemove 
 }: StaffSectionProps) => {
-  const selectedStaffEmails = useMemo(() => 
-    new Set(formData.staff.map(s => s.email)), 
-    [formData.staff]
+  const selectedStaffIds = useMemo(() => 
+    new Set(formData.staffIds), 
+    [formData.staffIds]
   )
+
+  const allStaff = useMemo(() => [...managers, ...technicians], [managers, technicians])
+  const selectedStaff = useMemo(() => 
+    allStaff.filter(staff => selectedStaffIds.has(staff.id)),
+    [allStaff, selectedStaffIds]
+  )
+
+  const getStaffRole = (staff: User) => {
+    return managers.some(m => m.id === staff.id) ? 'Manager' : 'Technician'
+  }
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Staff Members</CardTitle>
-        <CardDescription>Select staff members from existing accounts</CardDescription>
+        <CardDescription>Select staff members to assign to this branch</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label>Select Drivers</Label>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            {drivers.map((d) => {
-              const isSelected = selectedStaffEmails.has(d.email)
-              return (
-                <label key={d.id} className="flex items-center gap-2 p-2 border rounded">
-                  <input
-                    type="checkbox"
-                    checked={isSelected}
-                    onChange={(e) => onStaffToggle(d, e.target.checked)}
-                  />
-                  <span className="text-sm">{d.name} ({d.email})</span>
-                </label>
-              )
-            })}
-          </div>
-        </div>
-
-        {formData.staff.length > 0 && (
+      <CardContent className="space-y-6">
+        {/* Managers Section */}
+        {managers.length > 0 && (
           <div className="space-y-2">
-            <Label>Added Staff</Label>
+            <Label>Managers</Label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {managers.map((manager) => {
+                const isSelected = selectedStaffIds.has(manager.id)
+                return (
+                  <label 
+                    key={manager.id} 
+                    className={`flex items-center gap-2 p-2 border rounded cursor-pointer hover:bg-gray-50 ${
+                      isSelected ? 'border-blue-500 bg-blue-50' : ''
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={(e) => onStaffToggle(manager.id, e.target.checked)}
+                    />
+                    <div className="flex-1">
+                      <div className="text-sm font-medium">{manager.fullName}</div>
+                      <div className="text-xs text-muted-foreground">{manager.email}</div>
+                    </div>
+                  </label>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Technicians Section */}
+        {technicians.length > 0 && (
+          <div className="space-y-2">
+            <Label>Technicians</Label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {technicians.map((technician) => {
+                const isSelected = selectedStaffIds.has(technician.id)
+                return (
+                  <label 
+                    key={technician.id} 
+                    className={`flex items-center gap-2 p-2 border rounded cursor-pointer hover:bg-gray-50 ${
+                      isSelected ? 'border-blue-500 bg-blue-50' : ''
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={(e) => onStaffToggle(technician.id, e.target.checked)}
+                    />
+                    <div className="flex-1">
+                      <div className="text-sm font-medium">{technician.fullName}</div>
+                      <div className="text-xs text-muted-foreground">{technician.email}</div>
+                    </div>
+                  </label>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Selected Staff */}
+        {selectedStaff.length > 0 && (
+          <div className="space-y-2">
+            <Label>Selected Staff ({selectedStaff.length})</Label>
             <div className="space-y-2">
-              {formData.staff.map((staff, index) => (
-                <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+              {selectedStaff.map((staff) => (
+                <div key={staff.id} className="flex items-center justify-between p-3 border rounded-lg">
                   <div>
-                    <div className="font-medium">{staff.name}</div>
+                    <div className="font-medium">{staff.fullName}</div>
                     <div className="text-sm text-muted-foreground">
-                      {staff.role} - {staff.email} - {staff.phone}
+                      {getStaffRole(staff)} • {staff.email}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Joined: {new Date(staff.createdAt).toLocaleDateString()}
+                      {staff.isActive ? '' : ' • Inactive'}
                     </div>
                   </div>
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={() => onStaffRemove(index)}
-                    className="text-red-600"
-                    aria-label={`Remove ${staff.name} from staff`}
+                    onClick={() => onStaffRemove(staff.id)}
+                    className="text-red-600 hover:text-red-700"
+                    aria-label={`Remove ${staff.fullName} from staff`}
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -79,7 +136,14 @@ export const StaffSection = ({
             </div>
           </div>
         )}
-        {errors.staff && <p className="text-sm text-red-500">{errors.staff}</p>}
+
+        {allStaff.length === 0 && (
+          <div className="text-center py-4 text-muted-foreground">
+            No staff members available
+          </div>
+        )}
+        
+        {errors.staffIds && <p className="text-sm text-red-500">{errors.staffIds}</p>}
       </CardContent>
     </Card>
   )

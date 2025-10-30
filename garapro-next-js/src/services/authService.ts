@@ -119,7 +119,17 @@ class AuthService {
       throw new Error(error.error || "Đăng nhập thất bại");
     }
   
-    return response.json();
+    const authData = await response.json()
+    
+    // Lưu token và user info vào localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('authToken', authData.token)
+      localStorage.setItem('userId', authData.userId)
+      localStorage.setItem('userEmail', authData.email)
+      localStorage.setItem('userRoles', JSON.stringify(authData.roles))
+    }
+
+    return authData
   }
 
   logout(): void {

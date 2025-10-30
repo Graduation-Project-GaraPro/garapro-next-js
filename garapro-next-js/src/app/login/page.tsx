@@ -99,7 +99,7 @@ export default function LoginPage() {
 
       localStorage.setItem("auth_token", result.token);
       // Redirect to dashboard
-      window.location.href = "/dashboard";
+      window.location.href = "/";
     } catch (err) {
       console.error("❌ Google login failed:", err);
       setErrors({ general: "Google login failed" });
