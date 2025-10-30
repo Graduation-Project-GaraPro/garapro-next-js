@@ -97,9 +97,17 @@ export default function LoginPage() {
       const result = await authService.googleLogin({ idToken });
       console.log("✅ Google login success:", result);
 
-      localStorage.setItem("auth_token", result.token);
-      // Redirect to dashboard
-      window.location.href = "/";
+      // localStorage.setItem("auth_token", result.token);
+      // // Redirect to dashboard
+      // window.location.href = "/dashboard";
+       // Kiểm tra role để điều hướng
+    const hasTechnicianRole = result.roles.includes("Technician");
+
+    if (hasTechnicianRole) {
+      window.location.href = "/technician";
+    } else {
+        window.location.href = "/dashboard";
+    }
     } catch (err) {
       console.error("❌ Google login failed:", err);
       setErrors({ general: "Google login failed" });
@@ -147,9 +155,15 @@ export default function LoginPage() {
 
       console.log("✅ Phone login success:", result);
 
-      localStorage.setItem("auth_token", result.token);
-      // Redirect to dashboard or home page
-      window.location.href = "/";
+      localStorage.setItem("authToken", result.token);
+       const hasTechnicianRole = result.roles.includes("Technician");
+    if (hasTechnicianRole) {
+      window.location.href = "/technician";
+    } else {
+      window.location.href = "/dashboard";
+    }
+      // // Redirect to dashboard or home page
+      // window.location.href = "/";
     } catch (err) {
       console.error("❌ Phone login failed:", err);
       setErrors({ 
