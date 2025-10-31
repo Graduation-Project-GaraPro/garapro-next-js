@@ -2,21 +2,53 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Textarea } from '@/components/ui/textarea'
 import { CreateBranchRequest } from '@/services/branch-service'
-import { User } from '@/services/user-service'
-import { US_STATES } from '@/constants/branch'
 
 interface BasicInfoSectionProps {
   formData: CreateBranchRequest
   errors: Record<string, string>
-  managers: User[]
   onChange: (field: keyof CreateBranchRequest, value: string) => void
 }
+
+// Vietnamese cities for the dropdown
+const VIETNAM_CITIES = [
+  'Hồ Chí Minh',
+  'Hà Nội',
+  'Đà Nẵng',
+  'Hải Phòng',
+  'Cần Thơ',
+  'Biên Hòa',
+  'Nha Trang',
+  'Huế',
+  'Vũng Tàu',
+  'Buôn Ma Thuột'
+]
+
+// Vietnamese districts for the dropdown
+const VIETNAM_DISTRICTS = [
+  'Quận 1',
+  'Quận 2',
+  'Quận 3',
+  'Quận 4',
+  'Quận 5',
+  'Quận 6',
+  'Quận 7',
+  'Quận 8',
+  'Quận 9',
+  'Quận 10',
+  'Quận 11',
+  'Quận 12',
+  'Quận Bình Thạnh',
+  'Quận Gò Vấp',
+  'Quận Phú Nhuận',
+  'Quận Tân Bình',
+  'Quận Tân Phú'
+]
 
 export const BasicInfoSection = ({ 
   formData, 
   errors, 
-  managers, 
   onChange 
 }: BasicInfoSectionProps) => (
   <Card>
@@ -25,104 +57,99 @@ export const BasicInfoSection = ({
       <CardDescription>Provide the essential details for your new branch</CardDescription>
     </CardHeader>
     <CardContent className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="name">Branch Name *</Label>
-          <Input
-            id="name"
-            value={formData.name}
-            onChange={(e) => onChange('name', e.target.value)}
-            placeholder="e.g., Downtown Auto Service"
-            className={errors.name ? 'border-red-500' : ''}
-            data-testid="branch-name"
-          />
-          {errors.name && <p className="text-sm text-red-500">{errors.name}</p>}
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="managerId">Manager *</Label>
-          <Select value={formData.managerId} onValueChange={(value) => onChange('managerId', value)}>
-            <SelectTrigger className={errors.managerId ? 'border-red-500' : ''}>
-              <SelectValue placeholder="Select Manager" />
-            </SelectTrigger>
-            <SelectContent>
-              {managers.map((m) => (
-                <SelectItem key={m.id} value={String(m.id)}>
-                  {m.name} ({m.email})
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {errors.managerId && <p className="text-sm text-red-500">{errors.managerId}</p>}
-        </div>
+      {/* Branch Name */}
+      <div className="space-y-2">
+        <Label htmlFor="branchName">Branch Name *</Label>
+        <Input
+          id="branchName"
+          value={formData.branchName}
+          onChange={(e) => onChange('branchName', e.target.value)}
+          placeholder="e.g., Central Branch"
+          className={errors.branchName ? 'border-red-500' : ''}
+          data-testid="branch-name"
+        />
+        {errors.branchName && <p className="text-sm text-red-500">{errors.branchName}</p>}
       </div>
 
+      {/* Address Details */}
       <div className="space-y-2">
-        <Label htmlFor="address">Address *</Label>
+        <Label htmlFor="street">Street Address *</Label>
         <Input
-          id="address"
-          value={formData.address}
-          onChange={(e) => onChange('address', e.target.value)}
+          id="street"
+          value={formData.street}
+          onChange={(e) => onChange('street', e.target.value)}
           placeholder="123 Main Street"
-          className={errors.address ? 'border-red-500' : ''}
+          className={errors.street ? 'border-red-500' : ''}
         />
-        {errors.address && <p className="text-sm text-red-500">{errors.address}</p>}
+        {errors.street && <p className="text-sm text-red-500">{errors.street}</p>}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="city">City *</Label>
+          <Label htmlFor="ward">Ward *</Label>
           <Input
-            id="city"
-            value={formData.city}
-            onChange={(e) => onChange('city', e.target.value)}
-            placeholder="City"
-            className={errors.city ? 'border-red-500' : ''}
+            id="ward"
+            value={formData.ward}
+            onChange={(e) => onChange('ward', e.target.value)}
+            placeholder="Ward 1"
+            className={errors.ward ? 'border-red-500' : ''}
           />
-          {errors.city && <p className="text-sm text-red-500">{errors.city}</p>}
+          {errors.ward && <p className="text-sm text-red-500">{errors.ward}</p>}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="state">State *</Label>
-          <Select value={formData.state} onValueChange={(value) => onChange('state', value)}>
-            <SelectTrigger className={errors.state ? 'border-red-500' : ''}>
-              <SelectValue placeholder="Select State" />
+          <Label htmlFor="district">District *</Label>
+          <Select 
+            value={formData.district} 
+            onValueChange={(value) => onChange('district', value)}
+          >
+            <SelectTrigger className={errors.district ? 'border-red-500' : ''}>
+              <SelectValue placeholder="Select District" />
             </SelectTrigger>
             <SelectContent>
-              {US_STATES.map((state) => (
-                <SelectItem key={state} value={state}>
-                  {state}
+              {VIETNAM_DISTRICTS.map((district) => (
+                <SelectItem key={district} value={district}>
+                  {district}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-          {errors.state && <p className="text-sm text-red-500">{errors.state}</p>}
+          {errors.district && <p className="text-sm text-red-500">{errors.district}</p>}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="zipCode">ZIP Code *</Label>
-          <Input
-            id="zipCode"
-            value={formData.zipCode}
-            onChange={(e) => onChange('zipCode', e.target.value)}
-            placeholder="12345"
-            className={errors.zipCode ? 'border-red-500' : ''}
-          />
-          {errors.zipCode && <p className="text-sm text-red-500">{errors.zipCode}</p>}
+          <Label htmlFor="city">City *</Label>
+          <Select 
+            value={formData.city} 
+            onValueChange={(value) => onChange('city', value)}
+          >
+            <SelectTrigger className={errors.city ? 'border-red-500' : ''}>
+              <SelectValue placeholder="Select City" />
+            </SelectTrigger>
+            <SelectContent>
+              {VIETNAM_CITIES.map((city) => (
+                <SelectItem key={city} value={city}>
+                  {city}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {errors.city && <p className="text-sm text-red-500">{errors.city}</p>}
         </div>
       </div>
 
+      {/* Contact Information */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="phone">Phone *</Label>
+          <Label htmlFor="phoneNumber">Phone Number *</Label>
           <Input
-            id="phone"
-            value={formData.phone}
-            onChange={(e) => onChange('phone', e.target.value)}
-            placeholder="(555) 123-4567"
-            className={errors.phone ? 'border-red-500' : ''}
+            id="phoneNumber"
+            value={formData.phoneNumber}
+            onChange={(e) => onChange('phoneNumber', e.target.value)}
+            placeholder="0123456789"
+            className={errors.phoneNumber ? 'border-red-500' : ''}
           />
-          {errors.phone && <p className="text-sm text-red-500">{errors.phone}</p>}
+          {errors.phoneNumber && <p className="text-sm text-red-500">{errors.phoneNumber}</p>}
         </div>
 
         <div className="space-y-2">
@@ -137,6 +164,21 @@ export const BasicInfoSection = ({
           />
           {errors.email && <p className="text-sm text-red-500">{errors.email}</p>}
         </div>
+      </div>
+
+      {/* Description */}
+      <div className="space-y-2">
+        <Label htmlFor="description">Description</Label>
+        <Textarea
+          id="description"
+          value={formData.description}
+          onChange={(e) => onChange('description', e.target.value)}
+          placeholder="Describe this branch, its services, and any special features..."
+          rows={3}
+        />
+        <p className="text-sm text-muted-foreground">
+          Optional: Provide details about this branch location and services
+        </p>
       </div>
     </CardContent>
   </Card>

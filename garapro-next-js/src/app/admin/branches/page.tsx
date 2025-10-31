@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Search, MapPin, Phone, Mail, Users, Clock, Building2, Edit, Trash2, Eye, Settings, Download } from 'lucide-react'
+import { Plus, Search, MapPin, Phone, Mail, Users, Clock, Building2, Edit, Trash2, Eye, Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -10,20 +10,13 @@ import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { branchService, GarageBranch } from '@/services/branch-service'
 import Link from 'next/link'
-import Banner from '@/components/admin/Banner'
+import { toast } from 'sonner'
 
-
-
-interface BannerState {
-  type: 'success' | 'error'
-  message: string
-}
 export default function BranchesPage() {
   const [branches, setBranches] = useState<GarageBranch[]>([])
   const [loading, setLoading] = useState(true)
   const [isExporting, setIsExporting] = useState(false)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
-  const [banner, setBanner] = useState<BannerState | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [cityFilter, setCityFilter] = useState<string>('')
@@ -45,8 +38,9 @@ export default function BranchesPage() {
       })
       setBranches(response?.branches || [])
     } catch (error) {
-      console.error('Failed to load branches:', error, JSON.stringify(error));
-      setError('Failed to load branches. Please try again later.');
+      console.error('Failed to load branches:', error)
+      setError('Failed to load branches. Please try again later.')
+      toast.error('Failed to load branches')
     } finally {
       setLoading(false)
     }
@@ -60,9 +54,10 @@ export default function BranchesPage() {
     try {
       await branchService.toggleBranchStatus(branchId, !currentStatus)
       loadBranches()
+      toast.success(`Branch ${!currentStatus ? 'activated' : 'deactivated'} successfully`)
     } catch (error) {
       console.error('Failed to toggle branch status:', error)
-      setError('Failed to toggle branch status. Please try again.')
+      toast.error('Failed to toggle branch status')
     }
   }
 
@@ -83,7 +78,6 @@ export default function BranchesPage() {
   }
 
   const formatPhone = (phone: string) => {
-    // Simple phone formatting
     const cleaned = phone.replace(/\D/g, '')
     if (cleaned.length === 10) {
       return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6)}`
@@ -91,24 +85,11 @@ export default function BranchesPage() {
     return phone
   }
 
-  const getOperatingHoursSummary = (operatingHours: any) => {
-    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
-    const openDays = days.filter(day => operatingHours[day]?.isOpen)
-    return `${openDays.length}/7 days open`
-  }
-
-  const getServicesSummary = (services: any[]) => {
-    const activeServices = services.filter(service => service.isAvailable)
-    return `${activeServices.length} active services`
-  }
-
-  const getStaffSummary = (staff: any[]) => {
-    const activeStaff = staff.filter(member => member.isActive)
-    const technicians = activeStaff.filter(member => member.role === 'technician').length
-    const managers = activeStaff.filter(member => member.role === 'manager').length
-    const receptionists = activeStaff.filter(member => member.role === 'receptionist').length
-    
-    return `${activeStaff.length} staff (${technicians} tech, ${managers} mgr, ${receptionists} rec)`
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND'
+    }).format(amount)
   }
 
   const handleExport = async (format: 'csv' | 'excel') => {
@@ -127,10 +108,10 @@ export default function BranchesPage() {
       a.click()
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
-      setBanner({ type: 'success', message: 'Export started successfully.' })
+      toast.success('Export started successfully')
     } catch (error) {
       console.error('Export failed', error)
-      setBanner({ type: 'error', message: 'Failed to export branches.' })
+      toast.error('Failed to export branches')
     } finally {
       setIsExporting(false)
     }
@@ -141,7 +122,7 @@ export default function BranchesPage() {
   }
 
   const toggleSelectAll = () => {
-    const allIds = branches.map(b => b.id)
+    const allIds = branches.map(b => b.branchId)
     const allSelected = allIds.length > 0 && allIds.every(id => selectedIds.includes(id))
     setSelectedIds(allSelected ? [] : allIds)
   }
@@ -150,11 +131,11 @@ export default function BranchesPage() {
     if (selectedIds.length === 0) return
     try {
       await branchService.bulkActivateBranches(selectedIds)
-      setBanner({ type: 'success', message: 'Selected branches activated.' })
+      toast.success('Selected branches activated')
       setSelectedIds([])
       loadBranches()
     } catch (e) {
-      setBanner({ type: 'error', message: 'Failed to activate selected branches.' })
+      toast.error('Failed to activate selected branches')
     }
   }
 
@@ -162,11 +143,11 @@ export default function BranchesPage() {
     if (selectedIds.length === 0) return
     try {
       await branchService.bulkDeactivateBranches(selectedIds)
-      setBanner({ type: 'success', message: 'Selected branches deactivated.' })
+      toast.success('Selected branches deactivated')
       setSelectedIds([])
       loadBranches()
     } catch (e) {
-      setBanner({ type: 'error', message: 'Failed to deactivate selected branches.' })
+      toast.error('Failed to deactivate selected branches')
     }
   }
 
@@ -174,13 +155,16 @@ export default function BranchesPage() {
     if (selectedIds.length === 0) return
     try {
       await branchService.bulkDeleteBranches(selectedIds)
-      setBanner({ type: 'success', message: 'Selected branches deleted.' })
+      toast.success('Selected branches deleted')
       setSelectedIds([])
       loadBranches()
     } catch (e) {
-      setBanner({ type: 'error', message: 'Failed to delete selected branches.' })
+      toast.error('Failed to delete selected branches')
     }
   }
+
+  // Get unique cities for filter
+  const uniqueCities = [...new Set(branches.map(branch => branch.city))].filter(Boolean)
 
   return (
     <div className="space-y-6">
@@ -215,8 +199,6 @@ export default function BranchesPage() {
         </div>
       </div>
 
-      <Banner banner={banner} onClose={() => setBanner(null)} />
-
       {/* Error Message */}
       {error && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
@@ -240,7 +222,7 @@ export default function BranchesPage() {
           <div className="flex gap-4">
             <div className="flex-1">
               <Input
-                placeholder="Search branches..."
+                placeholder="Search branches by name..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
@@ -252,11 +234,9 @@ export default function BranchesPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Cities</SelectItem>
-                <SelectItem value="New York">New York</SelectItem>
-                <SelectItem value="Los Angeles">Los Angeles</SelectItem>
-                <SelectItem value="Chicago">Chicago</SelectItem>
-                <SelectItem value="Houston">Houston</SelectItem>
-                <SelectItem value="Phoenix">Phoenix</SelectItem>
+                {uniqueCities.map(city => (
+                  <SelectItem key={city} value={city}>{city}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <Select value={statusFilter || 'all'} onValueChange={v => setStatusFilter(v === 'all' ? '' : v)}>
@@ -291,17 +271,26 @@ export default function BranchesPage() {
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
               Loading branches...
             </div>
+          ) : branches.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No branches found
+            </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>
-                    <input type="checkbox" onChange={toggleSelectAll} checked={branches.length > 0 && branches.every(b => selectedIds.includes(b.id))} />
+                    <input 
+                      type="checkbox" 
+                      onChange={toggleSelectAll} 
+                      checked={branches.length > 0 && branches.every(b => selectedIds.includes(b.branchId))} 
+                    />
                   </TableHead>
                   <TableHead>Branch Information</TableHead>
-                  <TableHead>Location</TableHead>
+                  <TableHead>Location Details</TableHead>
                   <TableHead>Contact</TableHead>
-                  <TableHead>Services & Staff</TableHead>
+                  <TableHead>Services</TableHead>
+                  <TableHead>Staff</TableHead>
                   <TableHead>Operating Hours</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Actions</TableHead>
@@ -309,15 +298,22 @@ export default function BranchesPage() {
               </TableHeader>
               <TableBody>
                 {branches.map((branch) => (
-                  <TableRow key={branch.id}>
+                  <TableRow key={branch.branchId}>
                     <TableCell>
-                      <input type="checkbox" checked={selectedIds.includes(branch.id)} onChange={() => toggleSelect(branch.id)} />
+                      <input 
+                        type="checkbox" 
+                        checked={selectedIds.includes(branch.branchId)} 
+                        onChange={() => toggleSelect(branch.branchId)} 
+                      />
                     </TableCell>
                     <TableCell>
                       <div>
-                        <div className="font-medium">{branch.name}</div>
+                        <div className="font-medium">{branch.branchName}</div>
                         <div className="text-sm text-muted-foreground">
-                          Manager: {branch.managerName}
+                          {branchService.getManagerInfo(branch.staffs).name}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          Created: {new Date(branch.createdAt).toLocaleDateString()}
                         </div>
                       </div>
                     </TableCell>
@@ -325,10 +321,13 @@ export default function BranchesPage() {
                       <div className="text-sm">
                         <div className="flex items-center gap-1">
                           <MapPin className="h-3 w-3" />
-                          {branch.address}
+                          {branch.street}
                         </div>
-                        <div className="text-muted-foreground">
-                          {branch.city}, {branch.state} {branch.zipCode}
+                        <div className="text-muted-foreground ml-4">
+                          {branch.ward}, {branch.district}
+                        </div>
+                        <div className="text-muted-foreground ml-4">
+                          {branch.city}
                         </div>
                       </div>
                     </TableCell>
@@ -336,7 +335,7 @@ export default function BranchesPage() {
                       <div className="text-sm">
                         <div className="flex items-center gap-1">
                           <Phone className="h-3 w-3" />
-                          {formatPhone(branch.phone)}
+                          {formatPhone(branch.phoneNumber)}
                         </div>
                         <div className="flex items-center gap-1">
                           <Mail className="h-3 w-3" />
@@ -348,11 +347,35 @@ export default function BranchesPage() {
                       <div className="text-sm space-y-1">
                         <div className="flex items-center gap-1">
                           <Building2 className="h-3 w-3" />
-                          {getServicesSummary(branch.services)}
+                          {branchService.getActiveServicesCount(branch.services)} active
                         </div>
+                        <div className="text-xs text-muted-foreground">
+                          {branch.services.slice(0, 2).map(service => (
+                            <div key={service.serviceId}>
+                              {service.serviceName} - {formatCurrency(service.price)}
+                            </div>
+                          ))}
+                          {branch.services.length > 2 && (
+                            <div>+{branch.services.length - 2} more</div>
+                          )}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">
                         <div className="flex items-center gap-1">
                           <Users className="h-3 w-3" />
-                          {getStaffSummary(branch.staff)}
+                          {branchService.getActiveStaffCount(branch.staffs)} active
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {branch.staffs.slice(0, 2).map(staff => (
+                            <div key={staff.id}>
+                              {staff.firstName} {staff.lastName}
+                            </div>
+                          ))}
+                          {branch.staffs.length > 2 && (
+                            <div>+{branch.staffs.length - 2} more</div>
+                          )}
                         </div>
                       </div>
                     </TableCell>
@@ -360,35 +383,44 @@ export default function BranchesPage() {
                       <div className="text-sm">
                         <div className="flex items-center gap-1">
                           <Clock className="h-3 w-3" />
-                          {getOperatingHoursSummary(branch.operatingHours)}
+                          {branchService.getOpenDaysCount(branch.operatingHours)}/7 days
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {branch.operatingHours
+                            .filter(hours => hours.isOpen)
+                            .slice(0, 2)
+                            .map(hours => (
+                              <div key={hours.dayOfWeek}>
+                                {branchService.getDayName(hours.dayOfWeek)}: {hours.openTime} - {hours.closeTime}
+                              </div>
+                            ))}
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>{getStatusBadge(branch.isActive)}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Link href={`/admin/branches/${branch.id}`}>
+                        <Link href={`/admin/branches/${branch.branchId}`}>
                           <Button variant="ghost" size="sm">
                             <Eye className="h-4 w-4" />
                           </Button>
                         </Link>
-                        <Link href={`/admin/branches/${branch.id}/edit`}>
+                        <Link href={`/admin/branches/${branch.branchId}/edit`}>
                           <Button variant="ghost" size="sm">
                             <Edit className="h-4 w-4" />
                           </Button>
                         </Link>
-                        
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleStatusToggle(branch.id, branch.isActive)}
+                          onClick={() => handleStatusToggle(branch.branchId, branch.isActive)}
                         >
                           {branch.isActive ? 'Deactivate' : 'Activate'}
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleDelete(branch.id)}
+                          onClick={() => handleDelete(branch.branchId)}
                           className="text-red-600 hover:text-red-700"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -426,7 +458,7 @@ export default function BranchesPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {branches.reduce((total, branch) => total + branch.staff.length, 0)}
+                {branches.reduce((total, branch) => total + branch.staffs.length, 0)}
               </div>
               <p className="text-xs text-muted-foreground">
                 Across all branches
@@ -480,10 +512,10 @@ export default function BranchesPage() {
                   try {
                     await branchService.deleteBranch(confirmDeleteId)
                     setConfirmDeleteId(null)
-                    setBanner({ type: 'success', message: 'Branch deleted.' })
+                    toast.success('Branch deleted successfully')
                     loadBranches()
                   } catch (error) {
-                    setBanner({ type: 'error', message: 'Failed to delete branch.' })
+                    toast.error('Failed to delete branch')
                   }
                 }}
               >

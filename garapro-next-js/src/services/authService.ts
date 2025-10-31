@@ -131,7 +131,7 @@ class AuthService {
 
     const authData = await response.json();
 
-    // Store token and user info in localStorage
+    // Lưu token và user info vào localStorage
     if (typeof window !== "undefined") {
       localStorage.setItem("authToken", authData.token);
       localStorage.setItem("userId", authData.userId);
