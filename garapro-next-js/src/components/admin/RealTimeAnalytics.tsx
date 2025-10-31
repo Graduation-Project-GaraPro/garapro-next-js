@@ -46,6 +46,8 @@ import {
   Settings,
 } from "lucide-react";
 import ActiveUsersCard from "./users/ActiveUsersCard";
+import LiveActivityFeed from "./LiveActivityFeed";
+import LiveMetrics from "./LiveMetric";
 
 interface RealTimeMetric {
   id: string;
@@ -78,18 +80,6 @@ interface GeographicData {
 }
 
 const mockRealTimeMetrics: RealTimeMetric[] = [
-  {
-    id: "1",
-    title: "Active Users",
-    value: "1,247",
-    change: "+12",
-    changeType: "positive",
-    icon: Users,
-    color: "text-blue-600",
-    bgColor: "bg-blue-50",
-    trend: [1200, 1210, 1220, 1230, 1240, 1247],
-    isLive: true,
-  },
   {
     id: "2",
     title: "Live Orders",
@@ -286,7 +276,10 @@ export function RealTimeAnalytics() {
       {/* Real-time Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <ActiveUsersCard />
-        {mockRealTimeMetrics.map((metric) => (
+
+        <LiveMetrics />
+
+        {/* {mockRealTimeMetrics.map((metric) => (
           <Card key={metric.id} className="relative overflow-hidden">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
@@ -325,12 +318,12 @@ export function RealTimeAnalytics() {
               </div>
             </CardContent>
           </Card>
-        ))}
+        ))} */}
       </div>
 
       {/* Live Activity Feed */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
+        {/* <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <Activity className="h-5 w-5" />
@@ -374,7 +367,8 @@ export function RealTimeAnalytics() {
               ))}
             </div>
           </CardContent>
-        </Card>
+        </Card> */}
+        <LiveActivityFeed />
 
         {/* Geographic Distribution */}
         <Card>
