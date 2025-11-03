@@ -17,7 +17,7 @@ import { Badge } from "@/components/ui/badge"
 import {
   VehicleInformation, 
   InspectionsTab, 
-  EstimateTab, 
+  JobsTab, 
   WorkProgressTab, 
   PaymentTab,
   QuotationTab
@@ -76,7 +76,7 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
     { id: "vehicle-info", label: "VEHICLE INFO", icon: FileText },
     { id: "inspections", label: "INSPECTIONS", icon: Clipboard },
     { id: "quotation", label: "QUOTATION", icon: Clipboard },
-    { id: "estimate", label: "JOBS", icon: Calculator },
+    { id: "jobs", label: "JOBS", icon: Calculator },
     { id: "work-in-progress", label: "WORK-IN-PROGRESS", icon: Wrench },
     { id: "payment", label: "PAYMENT", icon: CreditCard },
   ]
@@ -86,7 +86,7 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
       "vehicle-info": <VehicleInformation orderId={orderId} />,
       inspections: <InspectionsTab orderId={orderId} />,
       quotation: <QuotationTab orderId={orderId} />,
-      estimate: <EstimateTab orderId={orderId} />,
+      jobs: <JobsTab orderId={orderId} />,
       "work-in-progress": <WorkProgressTab orderId={orderId} />,
       payment: <PaymentTab orderId={orderId} />
     }

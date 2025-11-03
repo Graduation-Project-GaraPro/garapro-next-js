@@ -100,6 +100,7 @@ export default function BoardPage() {
         note?: string;
         labelId?: number;
         estimatedRepairTime?: number;
+        selectedServiceIds?: string[];
       };
 
       // Validate required fields
@@ -122,9 +123,12 @@ export default function BoardPage() {
         receiveDate: additionalData.receiveDate || new Date().toISOString(),
         roType: additionalData.roType !== undefined ? additionalData.roType : 0, // 0: walkin, 1: scheduled, 2: breakdown
         estimatedCompletionDate: additionalData.estimatedCompletionDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // Default to 7 days from now
-        estimatedAmount: additionalData.estimatedAmount || 0,
         note: additionalData.note || "",
-        estimatedRepairTime: additionalData.estimatedRepairTime || 0
+        // Use calculated values if available, otherwise use defaults
+        estimatedAmount: additionalData.estimatedAmount || 0,
+        estimatedRepairTime: additionalData.estimatedRepairTime || 0,
+        // Add selected service IDs if available
+        selectedServiceIds: additionalData.selectedServiceIds || []
       };
 
       // Log the request data for debugging

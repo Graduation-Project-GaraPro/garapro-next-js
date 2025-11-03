@@ -1,5 +1,6 @@
 import { HubConnection, HubConnectionBuilder, LogLevel } from "@microsoft/signalr";
 import { apiClient } from "./api-client";
+import { PaidStatus } from "@/types/manager/repair-order";
 
 // Define the structure for the card data used in real-time updates
 export interface RoBoardCardDto {
@@ -16,6 +17,7 @@ export interface RoBoardCardDto {
     labelName: string;
     color: string;
   } | null;
+  paidStatus: PaidStatus;
 }
 
 class RepairOrderHubService {

@@ -16,6 +16,7 @@ import { AddVehicleDialog } from "./add-vehicle-dialog"
 import { customerService } from "@/services/manager/customer-service"
 import { vehicleService } from "@/services/manager/vehicle-service"
 import { toast } from "sonner"
+import { ServiceSelectionDialog } from "@/components/manager/service-selection-dialog"
 
 // Define types for customer and vehicle
 interface Customer {
@@ -43,13 +44,22 @@ interface CreateTaskProps {
   onSubmit: (job: Omit<Job, "id">) => void
 }
 
+// Define type for additional repair order properties
+interface RepairOrderProperties {
+  customerId: string
+  vehicleId: string
+  receiveDate: string
+  roType: number
+  estimatedCompletionDate: string
+  note: string
+  selectedServiceIds: string[]
+}
+
 export default function CreateTask({ onClose, onSubmit }: CreateTaskProps) {
   const [formData, setFormData] = useState({
     repairOrderType: "walkin",
     vehicleConcern: "",
     estimatedCompletionDate: "",
-    estimatedAmount: "",
-    estimatedRepairTime: "",
   })
 
   const [customerSearch, setCustomerSearch] = useState("")
@@ -57,6 +67,10 @@ export default function CreateTask({ onClose, onSubmit }: CreateTaskProps) {
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null)
   const [labels, setLabels] = useState<LabelType[]>([])
   const [selectedLabelId, setSelectedLabelId] = useState<string>("")
+  
+  // Service selection state
+  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([])
+  const [isServiceDialogOpen, setIsServiceDialogOpen] = useState(false)
   
   // Dialog states
   const [isAddCustomerDialogOpen, setIsAddCustomerDialogOpen] = useState(false)
@@ -168,30 +182,42 @@ export default function CreateTask({ onClose, onSubmit }: CreateTaskProps) {
       return
     }
     
+    if (selectedServiceIds.length === 0) {
+      toast.error("Please select at least one service")
+      return
+    }
+    
     // Prepare data to match backend request structure
-    const requestData = {
+    const requestData: RepairOrderProperties = {
       customerId: selectedCustomer.id,
       vehicleId: selectedVehicle.id,
       receiveDate: new Date().toISOString(),
       roType: formData.repairOrderType === "walkin" ? 0 : formData.repairOrderType === "scheduled" ? 1 : 2, // 0: walkin, 1: scheduled, 2: breakdown
       estimatedCompletionDate: formData.estimatedCompletionDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // Default to 7 days from now
-      estimatedAmount: parseFloat(formData.estimatedAmount) || 0,
       note: formData.vehicleConcern || "",
-      estimatedRepairTime: parseInt(formData.estimatedRepairTime) || 0
+      selectedServiceIds: selectedServiceIds
     }
     
     // Submit with the correct data structure
     onSubmit({
-      title: "Repair Order",
-      company: selectedCustomer.name || "",
-      contact: selectedCustomer.phone || "",
-      location: selectedCustomer.address || "",
-      status: "requires-auth" as const,
-      progress: 0,
+      // Job properties
+      jobId: "",
+      serviceId: "",
+      repairOrderId: "",
+      jobName: "Repair Order",
+      status: 0, // 0 = pending
+      deadline: null,
+      // note is included in requestData
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      level: 0,
+      assignedByManagerId: null,
+      assignedAt: null,
+      parts: [],
+      // Additional properties for repair order creation
       ...requestData
-    })
+    } as Omit<Job, "id"> & RepairOrderProperties)
+
     handleReset()
   }
 
@@ -200,14 +226,13 @@ export default function CreateTask({ onClose, onSubmit }: CreateTaskProps) {
       repairOrderType: "walkin",
       vehicleConcern: "",
       estimatedCompletionDate: "",
-      estimatedAmount: "",
-      estimatedRepairTime: "",
     })
     setCustomerSearch("")
     setSelectedCustomer(null)
     setSelectedVehicle(null)
     setSelectedLabelId("")
     setCustomerResults([])
+    setSelectedServiceIds([])
   }
 
   const handleClose = () => {
@@ -517,40 +542,47 @@ export default function CreateTask({ onClose, onSubmit }: CreateTaskProps) {
             </div>
           </div>
 
+          {/* Service Selection */}
+          <div className="space-y-2">
+            <h3 className="text-base font-medium text-gray-700">Select services:</h3>
+            <div>
+              <div className="mt-1">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  className="w-full justify-between py-6"
+                  onClick={() => setIsServiceDialogOpen(true)}
+                >
+                  <div className="flex flex-col items-start">
+                    <span className="font-medium">
+                      {selectedServiceIds.length > 0 
+                        ? `${selectedServiceIds.length} service(s) selected` 
+                        : "Select services..."}
+                    </span>
+                    {selectedServiceIds.length > 0 && (
+                      <span className="text-sm text-gray-500">
+                        Click to modify selection
+                      </span>
+                    )}
+                  </div>
+                  <Plus className="w-5 h-5" />
+                </Button>
+              </div>
+            </div>
+          </div>
+
           {/* Repair Order Information */}
           <div className="space-y-4">
             <h3 className="text-base font-medium text-gray-700">Repair order information:</h3>
             
-            {/* Estimated Repair Time */}
+            {/* Estimated Completion Date */}
             <div>
-              <Label className="text-sm text-gray-600">Estimated Repair Time (hours)</Label>
+              <Label className="text-sm text-gray-600">Estimated Completion Date</Label>
               <Input
-                type="number"
-                placeholder="Enter estimated repair time"
-                value={formData.estimatedRepairTime}
-                onChange={(e) => setFormData((prev) => ({ ...prev, estimatedRepairTime: e.target.value }))}
+                type="date"
+                value={formData.estimatedCompletionDate}
+                onChange={(e) => setFormData((prev) => ({ ...prev, estimatedCompletionDate: e.target.value }))}
               />
-            </div>
-            
-            {/* Estimated Completion Date and Amount */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label className="text-sm text-gray-600">Estimated Completion Date</Label>
-                <Input
-                  type="date"
-                  value={formData.estimatedCompletionDate}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, estimatedCompletionDate: e.target.value }))}
-                />
-              </div>
-              <div>
-                <Label className="text-sm text-gray-600">Estimated Amount ($)</Label>
-                <Input
-                  type="number"
-                  placeholder="Enter estimated amount"
-                  value={formData.estimatedAmount}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, estimatedAmount: e.target.value }))}
-                />
-              </div>
             </div>
             
             {/* Label and Repair Order Type */}
@@ -611,7 +643,7 @@ export default function CreateTask({ onClose, onSubmit }: CreateTaskProps) {
             <Button 
               type="submit" 
               className="bg-[#154c79] hover:bg-[#123c66]"
-              disabled={!selectedCustomer || !selectedVehicle}
+              disabled={!selectedCustomer || !selectedVehicle || selectedServiceIds.length === 0}
             >
               Create Repair Order
             </Button>
@@ -635,6 +667,15 @@ export default function CreateTask({ onClose, onSubmit }: CreateTaskProps) {
           onVehicleAdd={handleAddVehicle}
         />
       )}
+      
+      {/* Service Selection Dialog */}
+      <ServiceSelectionDialog
+        open={isServiceDialogOpen}
+        onOpenChange={setIsServiceDialogOpen}
+        selectedServiceIds={selectedServiceIds}
+        onSelectionChange={setSelectedServiceIds}
+        title="Select Services for Repair Order"
+      />
       
       <style jsx>{`
         .hide-scrollbar {

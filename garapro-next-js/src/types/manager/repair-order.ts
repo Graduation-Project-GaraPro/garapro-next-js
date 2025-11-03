@@ -8,7 +8,7 @@ export interface RepairOrder {
   cost: number
   estimatedAmount: number
   paidAmount: number
-  paidStatus: string
+  paidStatus: PaidStatus
   estimatedRepairTime: number
   note: string
   createdAt: string
@@ -29,15 +29,25 @@ export interface RepairOrder {
   progressPercentage: number
 }
 
+// Add the PaidStatus enum
+export enum PaidStatus {
+  Unpaid = "Unpaid",
+  Partial = "Partial",
+  Paid = "Paid"
+}
+
 export interface CreateRepairOrderRequest {
   customerId: string
   vehicleId: string
   receiveDate: string
   roType: number
   estimatedCompletionDate: string
-  estimatedAmount: number
   note: string
-  estimatedRepairTime: number
+  // Make these optional since they'll be calculated from services
+  estimatedAmount?: number
+  estimatedRepairTime?: number
+  // Add selected service IDs
+  selectedServiceIds?: string[]
 }
 
 export interface UpdateRepairOrderRequest extends Partial<CreateRepairOrderRequest> {
