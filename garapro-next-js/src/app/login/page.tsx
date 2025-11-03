@@ -112,6 +112,8 @@ export default function LoginPage() {
       // Redirect based on user role
       if (result.roles.includes("Manager")) {
         window.location.href = "/manager/repairOrderManagement/ro-board";
+      } else if (result.roles.includes("Technician")) {
+        window.location.href = "/technician";
       } else {
         // Redirect to dashboard for other roles
         window.location.href = "/dashboard";
@@ -172,6 +174,8 @@ export default function LoginPage() {
       // Redirect based on user role
       if (result.roles.includes("Manager")) {
         window.location.href = "/manager/repairOrderManagement/ro-board";
+      } else if (result.roles.includes("Technician")) {
+        window.location.href = "/technician";
       } else {
         // Redirect to dashboard for other roles
         window.location.href = "/dashboard";
@@ -325,7 +329,7 @@ export default function LoginPage() {
             
             <div className="text-center">
               <p className="text-sm text-gray-600">
-                Don’t have an account?{" "}
+                Don&apos;t have an account?{" "}
                 <Link href="/register">
                   <Button variant="link" className="p-0 text-blue-600 hover:text-blue-800 font-medium">
                     Register now
@@ -347,5 +351,4 @@ export default function LoginPage() {
       </Card>
     </div>
   );
-  
 }
