@@ -13,7 +13,7 @@ import Link from "next/link";
 
 declare global {
   interface Window {
-    google: any;
+    google: typeof google;
   }
 }
 
@@ -94,7 +94,7 @@ export default function LoginPage() {
     }
   };
 
-  const handleCredentialResponse = async (response: any) => {
+  const handleCredentialResponse = async (response: GoogleCredentialResponse) => {
     try {
       setIsLoading(true);
       const idToken = response.credential;
@@ -218,7 +218,7 @@ export default function LoginPage() {
           )}
   
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full g">
+            <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger className="w-full" value="phone">Phone Number</TabsTrigger>
             </TabsList>
             

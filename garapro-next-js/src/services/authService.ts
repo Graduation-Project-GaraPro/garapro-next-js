@@ -115,28 +115,21 @@ class AuthService {
     });
   
     if (!response.ok) {
-      // Try to parse error response as JSON first
-      try {
-        const errorText = await response.text();
-        const errorJson = JSON.parse(errorText);
-        throw new Error(errorJson.error || errorJson.message || "Đăng nhập thất bại");
-      } catch {
-        // If JSON parsing fails, use the status text
-        throw new Error(response.statusText || "Đăng nhập thất bại");
-      }
+      const error = await response.json();
+      throw new Error(error.error || "Đăng nhập thất bại");
     }
   
-    const authData = await response.json();
+    const authData = await response.json()
     
-    // Store token and user info in localStorage
+    // Lưu token và user info vào localStorage
     if (typeof window !== 'undefined') {
-      localStorage.setItem('authToken', authData.token);
-      localStorage.setItem('userId', authData.userId);
-      localStorage.setItem('userEmail', authData.email);
-      localStorage.setItem('userRoles', JSON.stringify(authData.roles));
+      localStorage.setItem('authToken', authData.token)
+      localStorage.setItem('userId', authData.userId)
+      localStorage.setItem('userEmail', authData.email)
+      localStorage.setItem('userRoles', JSON.stringify(authData.roles))
     }
-  
-    return authData;
+
+    return authData
   }
 
   logout(): void {

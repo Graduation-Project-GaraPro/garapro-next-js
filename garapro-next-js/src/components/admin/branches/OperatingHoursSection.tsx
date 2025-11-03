@@ -2,60 +2,103 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
-import { CreateBranchRequest, OperatingHours, DaySchedule } from '@/services/branch-service'
-import { WEEKDAYS } from '@/constants/branch'
+import { OperatingHour } from '@/services/branch-service'
 
 interface OperatingHoursSectionProps {
-  formData: CreateBranchRequest
-  onOperatingHoursChange: (day: keyof OperatingHours, field: keyof DaySchedule, value: string | boolean) => void
+  operatingHours: OperatingHour[]
+  onOperatingHoursChange: (day: string, field: keyof OperatingHour, value: string | boolean) => void
+}
+
+const DAY_NAMES: { [key: number]: string } = {
+  1: 'Monday',
+  2: 'Tuesday', 
+  3: 'Wednesday',
+  4: 'Thursday',
+  5: 'Friday',
+  6: 'Saturday',
+  7: 'Sunday'
 }
 
 export const OperatingHoursSection = ({ 
-  formData, 
+  operatingHours,
   onOperatingHoursChange 
-}: OperatingHoursSectionProps) => (
-  <Card>
-    <CardHeader>
-      <CardTitle>Operating Hours</CardTitle>
-      <CardDescription>Set the operating hours for each day of the week</CardDescription>
-    </CardHeader>
-    <CardContent>
-      <div className="space-y-4">
-        {WEEKDAYS.map((day) => (
-          <div key={day} className="flex items-center gap-4 p-3 border rounded-lg">
-            <div className="w-24 font-medium capitalize">{day}</div>
-            <Switch
-              checked={formData.operatingHours[day].isOpen}
-              onCheckedChange={(checked) => onOperatingHoursChange(day, 'isOpen', checked)}
-              aria-label={`${day} operating hours toggle`}
-            />
-            {formData.operatingHours[day].isOpen && (
-              <>
-                <div className="flex items-center gap-2">
-                  <Label>Open:</Label>
-                  <Input
-                    type="time"
-                    value={formData.operatingHours[day].openTime}
-                    onChange={(e) => onOperatingHoursChange(day, 'openTime', e.target.value)}
-                    className="w-32"
-                    aria-label={`${day} opening time`}
-                  />
+}: OperatingHoursSectionProps) => {
+  // Sort operating hours by day of week
+  const sortedOperatingHours = [...operatingHours].sort((a, b) => a.dayOfWeek - b.dayOfWeek)
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Operating Hours</CardTitle>
+        <CardDescription>Set the operating hours for each day of the week</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {sortedOperatingHours.map((hours) => (
+            <div key={hours.dayOfWeek} className="flex items-center gap-4 p-3 border rounded-lg">
+              <div className="w-32 font-medium">{DAY_NAMES[hours.dayOfWeek]}</div>
+              
+              <div className="flex items-center gap-2">
+                <Label htmlFor={`day-${hours.dayOfWeek}-switch`} className="text-sm">
+                  {hours.isOpen ? 'Open' : 'Closed'}
+                </Label>
+                <Switch
+                  id={`day-${hours.dayOfWeek}-switch`}
+                  checked={hours.isOpen}
+                  onCheckedChange={(checked) => 
+                    onOperatingHoursChange(hours.dayOfWeek.toString(), 'isOpen', checked)
+                  }
+                  aria-label={`${DAY_NAMES[hours.dayOfWeek]} operating hours toggle`}
+                />
+              </div>
+
+              {hours.isOpen && (
+                <div className="flex items-center gap-4 flex-1">
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor={`day-${hours.dayOfWeek}-open`} className="text-sm whitespace-nowrap">
+                      Open:
+                    </Label>
+                    <Input
+                      id={`day-${hours.dayOfWeek}-open`}
+                      type="time"
+                      value={hours.openTime}
+                      onChange={(e) => 
+                        onOperatingHoursChange(hours.dayOfWeek.toString(), 'openTime', e.target.value)
+                      }
+                      className="w-32"
+                      aria-label={`${DAY_NAMES[hours.dayOfWeek]} opening time`}
+                    />
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor={`day-${hours.dayOfWeek}-close`} className="text-sm whitespace-nowrap">
+                      Close:
+                    </Label>
+                    <Input
+                      id={`day-${hours.dayOfWeek}-close`}
+                      type="time"
+                      value={hours.closeTime}
+                      onChange={(e) => 
+                        onOperatingHoursChange(hours.dayOfWeek.toString(), 'closeTime', e.target.value)
+                      }
+                      className="w-32"
+                      aria-label={`${DAY_NAMES[hours.dayOfWeek]} closing time`}
+                    />
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Label>Close:</Label>
-                  <Input
-                    type="time"
-                    value={formData.operatingHours[day].closeTime}
-                    onChange={(e) => onOperatingHoursChange(day, 'closeTime', e.target.value)}
-                    className="w-32"
-                    aria-label={`${day} closing time`}
-                  />
-                </div>
-              </>
-            )}
+              )}
+            </div>
+          ))}
+        </div>
+        
+        {/* Summary */}
+        <div className="mt-6 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="text-sm font-medium text-blue-800">Operating Days Summary</div>
+          <div className="text-sm text-blue-600 mt-1">
+            {operatingHours.filter(h => h.isOpen).length} out of 7 days open
           </div>
-        ))}
-      </div>
-    </CardContent>
-  </Card>
-)
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
