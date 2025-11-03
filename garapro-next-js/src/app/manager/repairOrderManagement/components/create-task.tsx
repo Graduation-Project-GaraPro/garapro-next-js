@@ -7,37 +7,80 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, Plus, X } from "lucide-react"
+import { Search, Plus, X, Edit3 } from "lucide-react"
 import type { Job } from "@/types/job"
 import { labelService } from "@/services/manager/label-service"
-import type { Label } from "@/types/manager/label"
-import { LABOR_RATES_STORAGE_KEY, type LaborRate } from "@/app/manager/garageSetting/ro-settings/tabs/labor-rates-tab"
+import type { Label as LabelType } from "@/types/manager/label"
+import { AddCustomerDialog } from "./add-customer-dialog"
+import { AddVehicleDialog } from "./add-vehicle-dialog"
+import { customerService } from "@/services/manager/customer-service"
+import { vehicleService } from "@/services/manager/vehicle-service"
+import { toast } from "sonner"
+import { ServiceSelectionDialog } from "@/components/manager/service-selection-dialog"
+
+// Define types for customer and vehicle
+interface Customer {
+  id: string
+  name: string
+  phone: string
+  email: string
+  address: string
+  vehicles: Vehicle[]
+  birthday?: string // Add optional birthday field
+}
+
+interface Vehicle {
+  id: string
+  licensePlate: string
+  brand: string
+  model: string
+  year: number
+  color: string
+  vin?: string // Add optional VIN property
+}
 
 interface CreateTaskProps {
   onClose: () => void
   onSubmit: (job: Omit<Job, "id">) => void
 }
 
+// Define type for additional repair order properties
+interface RepairOrderProperties {
+  customerId: string
+  vehicleId: string
+  receiveDate: string
+  roType: number
+  estimatedCompletionDate: string
+  note: string
+  selectedServiceIds: string[]
+}
+
 export default function CreateTask({ onClose, onSubmit }: CreateTaskProps) {
   const [formData, setFormData] = useState({
-    title: "",
-    company: "",
-    contact: "",
-    location: "",
-    odometer: "",
-    odometerNotWorking: false,
-    appointmentOption: "drop-off",
-    laborRate: "standard-150",
+    repairOrderType: "walkin",
     vehicleConcern: "",
-    progress: 0,
+    estimatedCompletionDate: "",
   })
 
   const [customerSearch, setCustomerSearch] = useState("")
-  const [selectedVehicle, setSelectedVehicle] = useState("")
-  const [labels, setLabels] = useState<Label[]>([])
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
+  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null)
+  const [labels, setLabels] = useState<LabelType[]>([])
   const [selectedLabelId, setSelectedLabelId] = useState<string>("")
-  const [rates, setRates] = useState<LaborRate[]>([])
-  const [selectedRateId, setSelectedRateId] = useState<string>("")
+  
+  // Service selection state
+  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([])
+  const [isServiceDialogOpen, setIsServiceDialogOpen] = useState(false)
+  
+  // Dialog states
+  const [isAddCustomerDialogOpen, setIsAddCustomerDialogOpen] = useState(false)
+  const [isAddVehicleDialogOpen, setIsAddVehicleDialogOpen] = useState(false)
+  
+  // Loading states
+  const [isLoadingCustomers, setIsLoadingCustomers] = useState(false)
+  const [isLoadingVehicles, setIsLoadingVehicles] = useState(false)
+  const [customerResults, setCustomerResults] = useState<Customer[]>([])
+  const [vehicleOptions, setVehicleOptions] = useState<Vehicle[]>([])
 
   useEffect(() => {
     labelService
@@ -50,50 +93,146 @@ export default function CreateTask({ onClose, onSubmit }: CreateTaskProps) {
       .catch((e) => console.error("Failed to load labels", e))
   }, [])
 
+  // Search customers when search term changes
   useEffect(() => {
-    try {
-      const raw = typeof window !== "undefined" ? localStorage.getItem(LABOR_RATES_STORAGE_KEY) : null
-      if (raw) {
-        const parsed = JSON.parse(raw) as LaborRate[]
-        setRates(parsed)
-        if (parsed[0]) setSelectedRateId(parsed[0].id)
-      }
-    } catch (e) {
-      console.error("Failed to load labor rates", e)
+    if (customerSearch.trim() === "") {
+      setCustomerResults([])
+      return
     }
-  }, [])
+
+    const delayDebounceFn = setTimeout(() => {
+      searchCustomersFromApi(customerSearch)
+    }, 300)
+
+    return () => clearTimeout(delayDebounceFn)
+  }, [customerSearch])
+
+  // Fetch vehicles when customer is selected
+  useEffect(() => {
+    if (selectedCustomer) {
+      fetchVehiclesForCustomer(selectedCustomer.id)
+    } else {
+      setVehicleOptions([])
+      setSelectedVehicle(null)
+    }
+  }, [selectedCustomer])
+
+  const searchCustomersFromApi = async (searchTerm: string) => {
+    setIsLoadingCustomers(true)
+    try {
+      const apiCustomers = await customerService.searchCustomers(searchTerm)
+      const formattedCustomers: Customer[] = apiCustomers.map(apiCustomer => {
+        // Ensure we don't show "undefined undefined" in the name
+        const customerName = apiCustomer.lastName 
+          ? `${apiCustomer.firstName} ${apiCustomer.lastName}` 
+          : apiCustomer.firstName;
+          
+        return {
+          id: apiCustomer.userId,
+          name: customerName || "Unknown Customer", // Provide fallback name
+          phone: apiCustomer.phoneNumber || "", // Ensure phone is never undefined
+          email: apiCustomer.email || "", // Ensure email is never undefined
+          address: "", // Address not provided in API response
+          vehicles: [] // Vehicles would need to be fetched separately
+        }
+      })
+      setCustomerResults(formattedCustomers)
+    } catch (error) {
+      console.error("Failed to search customers:", error)
+      toast.error("Failed to search customers. Please try again.")
+      setCustomerResults([])
+    } finally {
+      setIsLoadingCustomers(false)
+    }
+  }
+
+  const fetchVehiclesForCustomer = async (customerId: string) => {
+    setIsLoadingVehicles(true)
+    try {
+      const vehicleData = await vehicleService.getVehiclesByCustomerId(customerId)
+      const formattedVehicles: Vehicle[] = vehicleData.map(v => ({
+        id: v.vehicle.vehicleID,
+        licensePlate: v.vehicle.licensePlate,
+        brand: v.vehicle.brandName,
+        model: v.vehicle.modelName,
+        year: v.vehicle.year,
+        color: v.vehicle.colorName
+      }))
+      setVehicleOptions(formattedVehicles)
+    } catch (error) {
+      console.error("Failed to fetch vehicles:", error)
+      toast.error("Failed to load vehicles. Please try again.")
+      setVehicleOptions([])
+    } finally {
+      setIsLoadingVehicles(false)
+    }
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Validate required fields
+    if (!selectedCustomer?.id) {
+      toast.error("Please select a customer")
+      return
+    }
+    
+    if (!selectedVehicle?.id) {
+      toast.error("Please select a vehicle")
+      return
+    }
+    
+    if (selectedServiceIds.length === 0) {
+      toast.error("Please select at least one service")
+      return
+    }
+    
+    // Prepare data to match backend request structure
+    const requestData: RepairOrderProperties = {
+      customerId: selectedCustomer.id,
+      vehicleId: selectedVehicle.id,
+      receiveDate: new Date().toISOString(),
+      roType: formData.repairOrderType === "walkin" ? 0 : formData.repairOrderType === "scheduled" ? 1 : 2, // 0: walkin, 1: scheduled, 2: breakdown
+      estimatedCompletionDate: formData.estimatedCompletionDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // Default to 7 days from now
+      note: formData.vehicleConcern || "",
+      selectedServiceIds: selectedServiceIds
+    }
+    
+    // Submit with the correct data structure
     onSubmit({
-      ...formData,
-      labelId: selectedLabelId ? Number(selectedLabelId) : undefined,
-      laborRateId: selectedRateId || undefined,
-      laborRate: rates.find((r) => r.id === selectedRateId)?.rate,
+      // Job properties
+      jobId: "",
+      serviceId: "",
+      repairOrderId: "",
+      jobName: "Repair Order",
+      status: 0, // 0 = pending
+      deadline: null,
+      // note is included in requestData
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      status: "requires-auth"
-    })
+      level: 0,
+      assignedByManagerId: null,
+      assignedAt: null,
+      parts: [],
+      // Additional properties for repair order creation
+      ...requestData
+    } as Omit<Job, "id"> & RepairOrderProperties)
+
     handleReset()
   }
 
   const handleReset = () => {
     setFormData({
-      title: "",
-      company: "",
-      contact: "",
-      location: "",
-      odometer: "",
-      odometerNotWorking: false,
-      appointmentOption: "drop-off",
-      laborRate: "standard-150",
+      repairOrderType: "walkin",
       vehicleConcern: "",
-      progress: 0,
+      estimatedCompletionDate: "",
     })
     setCustomerSearch("")
-    setSelectedVehicle("")
+    setSelectedCustomer(null)
+    setSelectedVehicle(null)
     setSelectedLabelId("")
-    setSelectedRateId("")
+    setCustomerResults([])
+    setSelectedServiceIds([])
   }
 
   const handleClose = () => {
@@ -101,8 +240,147 @@ export default function CreateTask({ onClose, onSubmit }: CreateTaskProps) {
     onClose()
   }
 
+  // Handle adding a new customer
+  const handleAddCustomer = async (customerData: Omit<Customer, "id" | "vehicles">) => {
+    try {
+      // Convert to API format
+      const nameParts = customerData.name.trim().split(' ')
+      const firstName = nameParts[0] || ''
+      const lastName = nameParts.slice(1).join(' ') || ''
+      
+      // Validate that we have valid name parts
+      if (!firstName || firstName === 'undefined' || firstName.trim() === '') {
+        toast.error("Please enter a valid first name")
+        return
+      }
+      
+      // Format birthday - handle empty values properly
+      const birthdayValue: string | null = null
+      // The birthday is not in customerData, so we'll leave it as null
+      
+      const apiCustomerData = {
+        firstName,
+        lastName,
+        phoneNumber: customerData.phone,
+        email: customerData.email,
+        birthday: birthdayValue
+      }
+      
+      const newApiCustomer = await customerService.createCustomer(apiCustomerData)
+      
+      // Convert back to our format with proper name handling
+      // Ensure we don't show "undefined undefined" in the name
+      const customerName = newApiCustomer.lastName 
+        ? `${newApiCustomer.firstName} ${newApiCustomer.lastName}` 
+        : newApiCustomer.firstName;
+        
+      const newCustomer: Customer = {
+        id: newApiCustomer.userId,
+        name: customerName || "Unknown Customer", // Provide fallback name
+        phone: newApiCustomer.phoneNumber || "", // Ensure phone is never undefined
+        email: newApiCustomer.email || "", // Ensure email is never undefined
+        address: "", // Address not provided in API response
+        vehicles: []
+      }
+      
+      // Auto-select the newly created customer
+      setSelectedCustomer(newCustomer)
+      setCustomerSearch(newCustomer.name) // Set to the actual name, not undefined
+      
+      // Show success toast with properly formatted name
+      toast.success(`Customer "${newCustomer.name}" created and selected successfully`)
+    } catch (error) {
+      console.error("Failed to create customer:", error)
+      toast.error("Failed to create customer. Please try again.")
+    }
+  }
+
+  // Handle adding a new vehicle
+  const handleAddVehicle = async (vehicleData: Omit<Vehicle, "id">) => {
+    if (!selectedCustomer) {
+      toast.error("Please select a customer first")
+      return
+    }
+    
+    try {
+      // Convert to API format with proper validation
+      // For now, we'll use default GUIDs for required fields
+      // In a real implementation, these would come from dropdown selections
+      const apiVehicleData = {
+        brandID: "00000000-0000-0000-0000-000000000000", // Placeholder - would need actual brand ID
+        userID: selectedCustomer.id,
+        modelID: "00000000-0000-0000-0000-000000000000", // Placeholder - would need actual model ID
+        colorID: "00000000-0000-0000-0000-000000000000", // Placeholder - would need actual color ID
+        licensePlate: vehicleData.licensePlate,
+        vin: vehicleData.vin || "00000000000000000", // Default VIN if not provided
+        year: vehicleData.year,
+        odometer: null // Odometer not in current form
+      }
+      
+      // Validate required fields before sending
+      if (!apiVehicleData.licensePlate) {
+        toast.error("License plate is required")
+        return
+      }
+      
+      if (!apiVehicleData.vin) {
+        toast.error("VIN is required")
+        return
+      }
+      
+      // Validate VIN format (17 characters, excluding I, O, Q)
+      const vinRegex = /^[A-HJ-NPR-Z0-9]{17}$/
+      if (!vinRegex.test(apiVehicleData.vin)) {
+        toast.error("VIN must be 17 characters and exclude I, O, Q")
+        return
+      }
+      
+      // Validate license plate format
+      const licensePlateRegex = /^[0-9]{2}[A-Z]{1,2}-[0-9]{4,5}$/
+      if (!licensePlateRegex.test(apiVehicleData.licensePlate)) {
+        toast.error("Invalid license plate format (e.g., 51F-12345)")
+        return
+      }
+      
+      const newApiVehicle = await vehicleService.createVehicle(apiVehicleData)
+      
+      // Convert back to our format
+      const newVehicle: Vehicle = {
+        id: newApiVehicle.vehicleID,
+        licensePlate: newApiVehicle.licensePlate,
+        brand: newApiVehicle.brandName,
+        model: newApiVehicle.modelName,
+        year: newApiVehicle.year,
+        color: newApiVehicle.colorName,
+        vin: newApiVehicle.vin
+      }
+      
+      // Add to vehicle options and select it
+      setVehicleOptions(prev => [...prev, newVehicle])
+      setSelectedVehicle(newVehicle)
+      
+      // Show success toast
+      toast.success(`Vehicle "${newVehicle.licensePlate}" added successfully`)
+    } catch (error) {
+      console.error("Failed to create vehicle:", error)
+      toast.error("Failed to create vehicle. Please check the form data and try again.")
+    }
+  }
+
+  // Handle changing customer selection
+  const handleChangeCustomer = () => {
+    setSelectedCustomer(null)
+    setSelectedVehicle(null)
+    setCustomerSearch("")
+  }
+
+  // Handle changing vehicle selection
+  const handleChangeVehicle = () => {
+    setSelectedVehicle(null)
+  }
+
   return (
-    <div className="w-full bg-gray-100 min-h-screen">
+    <div className="w-full bg-gray-100">
       {/* Header */}
       <div className="bg-[#154c79] text-white px-6 py-4">
         <h1 className="text-xl font-medium">Create new repair order</h1>
@@ -127,11 +405,67 @@ export default function CreateTask({ onClose, onSubmit }: CreateTaskProps) {
                   />
                   <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                 </div>
-                <Button type="button" variant="outline" className="whitespace-nowrap bg-transparent">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  className="whitespace-nowrap bg-transparent"
+                  onClick={() => setIsAddCustomerDialogOpen(true)}
+                >
                   <Plus className="w-4 h-4 mr-2" />
                   ADD NEW CUSTOMER
                 </Button>
               </div>
+              
+              {/* Customer search results */}
+              {customerSearch && (
+                <div className="mt-2 border rounded-md max-h-60 overflow-y-auto hide-scrollbar">
+                  {isLoadingCustomers ? (
+                    <div className="p-3 text-center text-gray-500">
+                      Searching...
+                    </div>
+                  ) : customerResults.length > 0 ? (
+                    customerResults.map((customer) => (
+                      <div 
+                        key={customer.id}
+                        className="p-3 border-b last:border-b-0 hover:bg-gray-50 cursor-pointer"
+                        onClick={() => {
+                          setSelectedCustomer(customer)
+                          // Ensure we don't set undefined value
+                          setCustomerSearch(customer.name || "")
+                          setSelectedVehicle(null) // Reset vehicle selection when customer changes
+                        }}
+                      >
+                        <div className="font-medium">{customer.name}</div>
+                        <div className="text-sm text-gray-600">{customer.phone} | {customer.email}</div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-3 text-center text-gray-500">
+                      No customers found. Add a new customer.
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {/* Selected customer display */}
+              {selectedCustomer && (
+                <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-md flex justify-between items-center">
+                  <div>
+                    <div className="font-medium text-green-800">{selectedCustomer.name}</div>
+                    <div className="text-sm text-green-600">{selectedCustomer.phone} | {selectedCustomer.email}</div>
+                  </div>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm"
+                    onClick={handleChangeCustomer}
+                    className="border-green-300 text-green-700 hover:bg-green-100"
+                  >
+                    <Edit3 className="w-4 h-4 mr-1" />
+                    Change
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -143,19 +477,95 @@ export default function CreateTask({ onClose, onSubmit }: CreateTaskProps) {
                 Vehicle
               </Label>
               <div className="flex gap-2 mt-1">
-                <Select value={selectedVehicle} onValueChange={setSelectedVehicle}>
+                <Select 
+                  value={selectedVehicle?.id || ""} 
+                  onValueChange={(value) => {
+                    const vehicle = vehicleOptions.find(v => v.id === value)
+                    setSelectedVehicle(vehicle || null)
+                  }}
+                  disabled={!selectedCustomer || isLoadingVehicles}
+                >
                   <SelectTrigger className="flex-1">
-                    <SelectValue placeholder="Select vehicle..." />
+                    <SelectValue placeholder={isLoadingVehicles ? "Loading vehicles..." : "Select vehicle..."} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="vehicle1">2023 Honda Civic</SelectItem>
-                    <SelectItem value="vehicle2">2022 Toyota Camry</SelectItem>
-                    <SelectItem value="vehicle3">2021 Ford F-150</SelectItem>
+                    {selectedCustomer && vehicleOptions.length > 0 ? (
+                      vehicleOptions.map((vehicle) => (
+                        <SelectItem key={vehicle.id} value={vehicle.id}>
+                          {vehicle.licensePlate} - {vehicle.brand} {vehicle.model} ({vehicle.year})
+                        </SelectItem>
+                      ))
+                    ) : selectedCustomer ? (
+                      <SelectItem value="__no-vehicles__" disabled>
+                        No vehicles found. Add a new vehicle.
+                      </SelectItem>
+                    ) : (
+                      <SelectItem value="__select-customer-first__" disabled>
+                        Select a customer first
+                      </SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
-                <Button type="button" variant="outline" className="whitespace-nowrap bg-transparent">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  className="whitespace-nowrap bg-transparent"
+                  onClick={() => selectedCustomer && setIsAddVehicleDialogOpen(true)}
+                  disabled={!selectedCustomer || isLoadingVehicles}
+                >
                   <Plus className="w-4 h-4 mr-2" />
                   ADD NEW VEHICLE
+                </Button>
+              </div>
+              
+              {/* Selected vehicle display */}
+              {selectedVehicle && (
+                <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-md flex justify-between items-center">
+                  <div>
+                    <div className="font-medium text-green-800">
+                      {selectedVehicle.licensePlate} - {selectedVehicle.brand} {selectedVehicle.model} ({selectedVehicle.year})
+                    </div>
+                    <div className="text-sm text-green-600">Color: {selectedVehicle.color}</div>
+                  </div>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm"
+                    onClick={handleChangeVehicle}
+                    className="border-green-300 text-green-700 hover:bg-green-100"
+                  >
+                    <Edit3 className="w-4 h-4 mr-1" />
+                    Change
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Service Selection */}
+          <div className="space-y-2">
+            <h3 className="text-base font-medium text-gray-700">Select services:</h3>
+            <div>
+              <div className="mt-1">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  className="w-full justify-between py-6"
+                  onClick={() => setIsServiceDialogOpen(true)}
+                >
+                  <div className="flex flex-col items-start">
+                    <span className="font-medium">
+                      {selectedServiceIds.length > 0 
+                        ? `${selectedServiceIds.length} service(s) selected` 
+                        : "Select services..."}
+                    </span>
+                    {selectedServiceIds.length > 0 && (
+                      <span className="text-sm text-gray-500">
+                        Click to modify selection
+                      </span>
+                    )}
+                  </div>
+                  <Plus className="w-5 h-5" />
                 </Button>
               </div>
             </div>
@@ -164,101 +574,53 @@ export default function CreateTask({ onClose, onSubmit }: CreateTaskProps) {
           {/* Repair Order Information */}
           <div className="space-y-4">
             <h3 className="text-base font-medium text-gray-700">Repair order information:</h3>
+            
+            {/* Estimated Completion Date */}
+            <div>
+              <Label className="text-sm text-gray-600">Estimated Completion Date</Label>
+              <Input
+                type="date"
+                value={formData.estimatedCompletionDate}
+                onChange={(e) => setFormData((prev) => ({ ...prev, estimatedCompletionDate: e.target.value }))}
+              />
+            </div>
+            
+            {/* Label and Repair Order Type */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="title">Service Title *</Label>
-                <Input
-                  id="title"
-                  value={formData.title}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
-                  placeholder="e.g., Oil Change, Brake Repair"
-                  required
-                />
+                <Label className="text-sm text-gray-600">RO Label</Label>
+                <Select value={selectedLabelId} onValueChange={setSelectedLabelId}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select label (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {labels.map((l) => (
+                      <SelectItem key={l.id} value={String(l.id)}>
+                        {l.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
-                <Label className="text-sm text-gray-600">Odometer in</Label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    placeholder="Enter odometer in"
-                    value={formData.odometer}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, odometer: e.target.value }))}
-                    className="flex-1"
-                  />
-                  <input
-                    type="checkbox"
-                    id="odometerNotWorking"
-                    checked={formData.odometerNotWorking}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, odometerNotWorking: e.target.checked }))}
-                    className="rounded"
-                  />
-                  <Label htmlFor="odometerNotWorking" className="text-sm">
-                    Odometer not working
-                  </Label>
-                </div>
-              </div>
-            </div>
-            <div>
-              <Label className="text-sm text-gray-600">RO Label</Label>
-              <Select value={selectedLabelId} onValueChange={setSelectedLabelId}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Select label (optional)" />
-                </SelectTrigger>
-                <SelectContent>
-                  {labels.map((l) => (
-                    <SelectItem key={l.id} value={String(l.id)}>
-                      {l.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label className="text-sm text-gray-600">Labor Rate</Label>
-              <Select value={selectedRateId} onValueChange={setSelectedRateId}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Select labor rate" />
-                </SelectTrigger>
-                <SelectContent>
-                  {rates.map((r) => (
-                    <SelectItem key={r.id} value={r.id}>{r.name} - ${r.rate}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label className="text-sm text-gray-600">Appointment option</Label>
+                <Label className="text-sm text-gray-600">Repair Order Type</Label>
                 <Select
-                  value={formData.appointmentOption}
-                  onValueChange={(value) => setFormData((prev) => ({ ...prev, appointmentOption: value }))}
+                  value={formData.repairOrderType}
+                  onValueChange={(value) => setFormData((prev) => ({ ...prev, repairOrderType: value }))}
                 >
                   <SelectTrigger className="mt-1">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="drop-off">Drop-off Vehicle</SelectItem>
-                    <SelectItem value="wait">Wait for Service</SelectItem>
-                    <SelectItem value="appointment">Scheduled Appointment</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label className="text-sm text-gray-600">Labor Rate</Label>
-                <Select
-                  value={formData.laborRate}
-                  onValueChange={(value) => setFormData((prev) => ({ ...prev, laborRate: value }))}
-                >
-                  <SelectTrigger className="mt-1">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="standard-150">Standard Repair - $150.00</SelectItem>
-                    <SelectItem value="premium-200">Premium Repair - $200.00</SelectItem>
-                    <SelectItem value="diagnostic-120">Diagnostic - $120.00</SelectItem>
+                    <SelectItem value="walkin">Walk-in</SelectItem>
+                    <SelectItem value="scheduled">Scheduled</SelectItem>
+                    <SelectItem value="breakdown">Breakdown</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
+            
+            {/* Vehicle Concern/Note */}
             <div className="space-y-1">
               <Label className="text-sm text-gray-600">Purpose of visit:</Label>
               <Label className="text-sm text-gray-500">Customer states:</Label>
@@ -278,12 +640,52 @@ export default function CreateTask({ onClose, onSubmit }: CreateTaskProps) {
               <X className="w-4 h-4 mr-2" />
               Cancel
             </Button>
-            <Button type="submit" className="bg-[#154c79] hover:bg-[#123c66]">
+            <Button 
+              type="submit" 
+              className="bg-[#154c79] hover:bg-[#123c66]"
+              disabled={!selectedCustomer || !selectedVehicle || selectedServiceIds.length === 0}
+            >
               Create Repair Order
             </Button>
           </div>
         </form>
       </div>
+      
+      {/* Add Customer Dialog */}
+      <AddCustomerDialog
+        open={isAddCustomerDialogOpen}
+        onOpenChange={setIsAddCustomerDialogOpen}
+        onCustomerAdd={handleAddCustomer}
+      />
+      
+      {/* Add Vehicle Dialog */}
+      {selectedCustomer && (
+        <AddVehicleDialog
+          open={isAddVehicleDialogOpen}
+          onOpenChange={setIsAddVehicleDialogOpen}
+          customerName={selectedCustomer.name}
+          onVehicleAdd={handleAddVehicle}
+        />
+      )}
+      
+      {/* Service Selection Dialog */}
+      <ServiceSelectionDialog
+        open={isServiceDialogOpen}
+        onOpenChange={setIsServiceDialogOpen}
+        selectedServiceIds={selectedServiceIds}
+        onSelectionChange={setSelectedServiceIds}
+        title="Select Services for Repair Order"
+      />
+      
+      <style jsx>{`
+        .hide-scrollbar {
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
     </div>
   )
 }

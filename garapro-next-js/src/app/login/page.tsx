@@ -13,13 +13,19 @@ import Link from "next/link";
 
 declare global {
   interface Window {
-    google: any;
+    google: typeof google;
   }
 }
 
 interface LoginFormData {
   phoneNumber: string;
   password: string;
+}
+
+// Google Credential Response Interface
+interface GoogleCredentialResponse {
+  credential: string;
+  select_by: string;
 }
 
 export default function LoginPage() {
@@ -88,7 +94,7 @@ export default function LoginPage() {
     }
   };
 
-  const handleCredentialResponse = async (response: any) => {
+  const handleCredentialResponse = async (response: GoogleCredentialResponse) => {
     try {
       setIsLoading(true);
       const idToken = response.credential;
@@ -97,17 +103,21 @@ export default function LoginPage() {
       const result = await authService.googleLogin({ idToken });
       console.log("✅ Google login success:", result);
 
-      // localStorage.setItem("auth_token", result.token);
-      // // Redirect to dashboard
-      // window.location.href = "/dashboard";
-       // Kiểm tra role để điều hướng
-    const hasTechnicianRole = result.roles.includes("Technician");
-
-    if (hasTechnicianRole) {
-      window.location.href = "/technician";
-    } else {
+      // Store user info in localStorage
+      localStorage.setItem("authToken", result.token);
+      localStorage.setItem("userId", result.userId);
+      localStorage.setItem("userEmail", result.email);
+      localStorage.setItem("userRoles", JSON.stringify(result.roles));
+      
+      // Redirect based on user role
+      if (result.roles.includes("Manager")) {
+        window.location.href = "/manager/repairOrderManagement/ro-board";
+      } else if (result.roles.includes("Technician")) {
+        window.location.href = "/technician";
+      } else {
+        // Redirect to dashboard for other roles
         window.location.href = "/dashboard";
-    }
+      }
     } catch (err) {
       console.error("❌ Google login failed:", err);
       setErrors({ general: "Google login failed" });
@@ -156,14 +166,20 @@ export default function LoginPage() {
       console.log("✅ Phone login success:", result);
 
       localStorage.setItem("authToken", result.token);
-       const hasTechnicianRole = result.roles.includes("Technician");
-    if (hasTechnicianRole) {
-      window.location.href = "/technician";
-    } else {
-      window.location.href = "/dashboard";
-    }
-      // // Redirect to dashboard or home page
-      // window.location.href = "/";
+      // Store user info in localStorage
+      localStorage.setItem("userId", result.userId);
+      localStorage.setItem("userEmail", result.email);
+      localStorage.setItem("userRoles", JSON.stringify(result.roles));
+      
+      // Redirect based on user role
+      if (result.roles.includes("Manager")) {
+        window.location.href = "/manager/repairOrderManagement/ro-board";
+      } else if (result.roles.includes("Technician")) {
+        window.location.href = "/technician";
+      } else {
+        // Redirect to dashboard for other roles
+        window.location.href = "/dashboard";
+      }
     } catch (err) {
       console.error("❌ Phone login failed:", err);
       setErrors({ 
@@ -206,7 +222,7 @@ export default function LoginPage() {
           )}
   
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full g">
+            <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger className="w-full" value="phone">Phone Number</TabsTrigger>
             </TabsList>
             
@@ -313,7 +329,7 @@ export default function LoginPage() {
             
             <div className="text-center">
               <p className="text-sm text-gray-600">
-                Don’t have an account?{" "}
+                Don&apos;t have an account?{" "}
                 <Link href="/register">
                   <Button variant="link" className="p-0 text-blue-600 hover:text-blue-800 font-medium">
                     Register now
@@ -335,5 +351,4 @@ export default function LoginPage() {
       </Card>
     </div>
   );
-  
 }
