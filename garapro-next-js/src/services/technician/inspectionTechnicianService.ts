@@ -2,16 +2,21 @@ import axios from "axios";
 
 const API_URL = "https://localhost:7113/odata/InspectionsTechnician";
 
-export interface ServiceUpdate {
+export interface ServiceUpdateDto {
   ServiceId: string;
   ConditionStatus: number;
-  SuggestedPartIds?: string[];
+  SelectedPartCategoryIds?: string[];
+  SuggestedPartsByCategory?: { [key: string]: string[] }; // PartCategoryId -> List PartIds
 }
 
 export interface UpdateInspectionRequest {
   Finding?: string;
-  ServiceUpdates: ServiceUpdate[];
+  ServiceUpdates: ServiceUpdateDto[];
   IsCompleted: boolean;
+}
+
+export interface AddServiceToInspectionRequest {
+  ServiceId: string;
 }
 // Lấy danh sách inspections
 export const getMyInspections = async () => {  
@@ -122,6 +127,102 @@ export const removePartFromInspection = async (
     return response.data;
   } catch (error) {
     console.error("Error removing part:", error);
+    throw error;
+  }
+};
+// Lấy danh sách tất cả services
+export const getAllServices = async () => {
+  try {
+    const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
+    if (!token) {
+      throw new Error("Missing authentication token");
+    }
+
+    const response = await axios.get(`${API_URL}/services`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching services:", error);
+    throw error;
+  }
+};
+
+// Thêm service vào inspection
+export const addServiceToInspection = async (inspectionId: string, serviceId: string) => {
+  try {
+    const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
+    if (!token) {
+      throw new Error("Missing authentication token");
+    }
+
+    const response = await axios.post(
+      `${API_URL}/${inspectionId}/services`,
+      { ServiceId: serviceId },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error adding service:", error);
+    throw error;
+  }
+};
+
+// Xóa service khỏi inspection
+export const removeServiceFromInspection = async (
+  inspectionId: string,
+  serviceInspectionId: string
+) => {
+  try {
+    const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
+    if (!token) {
+      throw new Error("Missing authentication token");
+    }
+
+    const response = await axios.delete(
+      `${API_URL}/${inspectionId}/services/${serviceInspectionId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error removing service:", error);
+    throw error;
+  }
+};
+
+export const removePartCategoryFromService = async (
+  inspectionId: string,
+  serviceInspectionId: string,
+  partCategoryId: string
+) => {
+  try {
+    const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
+    if (!token) {
+      throw new Error("Missing authentication token");
+    }
+
+    const response = await axios.delete(
+      `${API_URL}/${inspectionId}/services/${serviceInspectionId}/part-categories/${partCategoryId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error removing part category:", error);
     throw error;
   }
 };

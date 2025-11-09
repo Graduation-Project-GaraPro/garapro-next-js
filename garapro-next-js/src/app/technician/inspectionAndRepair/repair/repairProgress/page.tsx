@@ -15,7 +15,9 @@ import {
   Edit,
   X,
   Loader,
-  AlertTriangle
+  AlertTriangle,  ChevronDown,    
+  ChevronUp,       
+  Package  
 } from "lucide-react";
 import {
   getRepairOrderDetails,
@@ -24,11 +26,11 @@ import {
   RepairCreateDto,
   RepairUpdateDto,
   RepairDetailDto,
+   PartCategoryRepairDto,    
   JobDetailDto
 } from "@/services/technician/repairService";
 import { updateJobStatus } from "@/services/technician/jobTechnicianService";
 
-// Define repair step type
 interface RepairStep {
   jobId: string;
   title: string;
@@ -39,12 +41,12 @@ interface RepairStep {
   notes: string;
   estimatedHours: number;
   estimatedMinutes: number;
-  actualTime?: number;
+  actualTimeShort?: string; 
+  estimatedTimeShort?: string; 
   repairId?: string;
   serviceName?: string;
+  parts?: PartCategoryRepairDto[];
 }
-
-// Define vehicle info type
 interface VehicleInfo {
   repairOrderId: string;
   vehicle: string;
@@ -55,7 +57,6 @@ interface VehicleInfo {
   result: string;
 }
 
-// Define job response type for API
 interface JobResponseDto {
   jobId: string;
   repairOrderId: string;
@@ -63,7 +64,6 @@ interface JobResponseDto {
   status: string;
 }
 
-// Success Modal
 interface SuccessModalProps {
   isOpen: boolean;
   message: string;
@@ -127,8 +127,7 @@ export default function RepairProgressPage() {
   const jobId = searchParams.get("id");
   const [vehicleInfo, setVehicleInfo] = useState<VehicleInfo | null>(null);
   const [repairSteps, setRepairSteps] = useState<RepairStep[]>([]);
-  
-  // ===== THAY ĐỔI 1: Thêm state để lưu tất cả job IDs của technician =====
+  const [openPartDropdown, setOpenPartDropdown] = useState<string | null>(null);
   const [myJobIds, setMyJobIds] = useState<string[]>([]);
   
   const [loading, setLoading] = useState(true);
@@ -158,7 +157,6 @@ export default function RepairProgressPage() {
     setTimeout(() => setShowSuccessToast(false), 3000);
   };
 
-  // ===== THAY ĐỔI 2: Cập nhật useEffect để fetch tất cả jobs của technician =====
   useEffect(() => {
     const fetchRepairDetails = async () => {
       if (!jobId) {
@@ -171,7 +169,6 @@ export default function RepairProgressPage() {
         setError("");
         const authToken = typeof window !== "undefined" ? localStorage.getItem("authToken") : "";
         
-        // Lấy chi tiết job để lấy repairOrderId
         const jobResponse = await fetch(`https://localhost:7113/odata/JobTechnician/my-jobs/${jobId}`, {
           headers: {
             Authorization: `Bearer ${authToken}`,
@@ -186,7 +183,6 @@ export default function RepairProgressPage() {
           throw new Error("Repair order ID not found in job details");
         }
         
-        // ===== THÊM MỚI: Lấy tất cả jobs của technician hiện tại =====
         try {
           const myJobsResponse = await fetch(`https://localhost:7113/odata/JobTechnician/my-jobs`, {
             headers: {
@@ -195,7 +191,6 @@ export default function RepairProgressPage() {
           });
           if (myJobsResponse.ok) {
             const myJobsData: JobResponseDto[] = await myJobsResponse.json();
-            // Lọc các job thuộc cùng repair order
             const jobsInSameOrder = myJobsData.filter((job: JobResponseDto) => job.repairOrderId === repairOrderId);
             const jobIdsArray = jobsInSameOrder.map((job: JobResponseDto) => job.jobId);
             console.log("My job IDs in this repair order:", jobIdsArray);
@@ -205,8 +200,6 @@ export default function RepairProgressPage() {
           console.warn("Could not fetch all jobs, using current job only:", err);
           setMyJobIds([jobId]);
         }
-        
-        // Lấy chi tiết repair order
         const data: RepairDetailDto = await getRepairOrderDetails(repairOrderId);
         const vehicleName = data.vehicle?.brand?.brandName && data.vehicle?.model?.modelName
           ? `${data.vehicle.brand.brandName} ${data.vehicle.model.modelName} ${data.vehicle.model.manufacturingYear || ''}`
@@ -223,31 +216,35 @@ export default function RepairProgressPage() {
         });
         
         const steps: RepairStep[] = data.jobs.map((job: JobDetailDto) => {
-          const repair = job.repairs;
-          let estimatedHours = 0;
-          let estimatedMinutes = 0;
-          if (repair?.estimatedTime) {
-            const timeParts = repair.estimatedTime.split(":");
-            estimatedHours = parseInt(timeParts[0]) || 0;
-            estimatedMinutes = parseInt(timeParts[1]) || 0;
-          }
-          return {
-            jobId: job.jobId,
-            title: job.jobName,
-            description: repair?.description || null,
-            status: job.status as RepairStep["status"],
-            startTime: repair?.startTime,
-            endTime: repair?.endTime,
-            notes: repair?.notes || "",
-            estimatedHours,
-            estimatedMinutes,
-            actualTime: repair?.actualTime
-              ? parseInt(repair.actualTime.split(":")[0]) * 60 + parseInt(repair.actualTime.split(":")[1])
-              : undefined,
-            repairId: repair?.repairId,
-            serviceName: job.serviceName
-          };
-        });
+  const repair = job.repairs;
+  let estimatedHours = 0;
+  let estimatedMinutes = 0;
+  
+  if (repair?.estimatedTimeShort) {
+    const match = repair.estimatedTimeShort.match(/(\d+)h\s*(\d+)m/);
+    if (match) {
+      estimatedHours = parseInt(match[1]) || 0;
+      estimatedMinutes = parseInt(match[2]) || 0;
+    }
+  }
+
+  return {
+    jobId: job.jobId,
+    title: job.jobName,
+    description: repair?.description || null,
+    status: job.status as RepairStep["status"],
+    startTime: repair?.startTime,
+    endTime: repair?.endTime,
+    notes: repair?.notes || "",
+    estimatedHours,
+    estimatedMinutes,
+    actualTimeShort: repair?.actualTimeShort, 
+    estimatedTimeShort: repair?.estimatedTimeShort, 
+    repairId: repair?.repairId,
+    serviceName: job.serviceName,
+    parts: job.parts || []
+  };
+});
         setRepairSteps(steps);
       } catch (err: unknown) {
         console.error("Error fetching repair details:", err);
@@ -290,95 +287,81 @@ export default function RepairProgressPage() {
     }
   };
 
-  const calculateActualTime = (startTime: string, endTime: string): number => {
-    const parseTime = (time: string): Date => new Date(`1970-01-01T${time}:00`);
-    const start = parseTime(startTime);
-    const end = parseTime(endTime);
-    const adjustedEnd = end < start ? new Date(end.getTime() + 24 * 60 * 60 * 1000) : end;
-    let totalMinutes = 0;
-    let current = new Date(start);
-    while (current < adjustedEnd) {
-      const currentHour = current.getHours();
-      const currentMinute = current.getMinutes();
-      if ((currentHour >= 7 && currentHour < 11) || (currentHour === 11 && currentMinute <= 30)) {
-        const shiftEnd = new Date(current);
-        shiftEnd.setHours(11, 30, 0);
-        const minutesToAdd = Math.min(
-          (adjustedEnd.getTime() - current.getTime()) / 60000,
-          (shiftEnd.getTime() - current.getTime()) / 60000
-        );
-        totalMinutes += minutesToAdd;
-        current = new Date(current.getTime() + minutesToAdd * 60000);
-      } else if ((currentHour >= 14 && currentHour < 17) || (currentHour === 17 && currentMinute <= 30)) {
-        const shiftEnd = new Date(current);
-        shiftEnd.setHours(17, 30, 0);
-        const minutesToAdd = Math.min(
-          (adjustedEnd.getTime() - current.getTime()) / 60000,
-          (shiftEnd.getTime() - current.getTime()) / 60000
-        );
-        totalMinutes += minutesToAdd;
-        current = new Date(current.getTime() + minutesToAdd * 60000);
-      } else {
-        if (currentHour < 7) {
-          current.setHours(7, 0, 0);
-        } else if (currentHour >= 11 && currentHour < 14) {
-          current.setHours(14, 0, 0);
-        } else {
-          current.setDate(current.getDate() + 1);
-          current.setHours(7, 0, 0);
-        }
-      }
-    }
-    return Math.round(totalMinutes);
-  };
-
   const updateStepStatus = async (jobId: string, newStatus: RepairStep["status"]) => {
-    try {
-      const step = repairSteps.find(s => s.jobId === jobId);
-      if (!step) return;
-      const currentTime = new Date().toISOString();
-   
-      await updateJobStatus({
-        JobId: jobId,
-        JobStatus: statusConfig[newStatus].apiValue
-      });
-      if (step.description && step.repairId) {
-        try {
-          const updateData: RepairUpdateDto = {
-            Description: step.description,
-            Notes: step.notes
-          };
-          await updateRepair(step.repairId, updateData);
-        } catch (repairError) {
-          console.warn("Could not update repair details, but job status updated:", repairError);
-        }
+  try {
+    const step = repairSteps.find(s => s.jobId === jobId);
+    if (!step) return;
+    const currentTime = new Date().toISOString();
+    await updateJobStatus({
+      JobId: jobId,
+      JobStatus: statusConfig[newStatus].apiValue
+    });
+    
+
+    if (step.description && step.repairId) {
+      try {
+        const updateData: RepairUpdateDto = {
+          description: step.description,
+          notes: step.notes
+        };
+        await updateRepair(step.repairId, updateData);
+      } catch (repairError) {
+        console.warn("Could not update repair details, but job status updated:", repairError);
       }
-      
-      setRepairSteps(prev =>
-        prev.map(step =>
-          step.jobId === jobId && step.status !== "Completed"
-            ? {
-                ...step,
-                status: newStatus,
-                startTime: newStatus === "InProgress" && !step.startTime ? currentTime : step.startTime,
-                endTime: newStatus === "Completed" && step.startTime && !step.endTime ? currentTime : step.endTime,
-                actualTime:
-                  newStatus === "Completed" && step.startTime && !step.endTime
-                    ? calculateActualTime(step.startTime, currentTime)
-                    : step.actualTime
-              }
-            : step
-        )
-      );
-      showSuccessToastMessage(`Job status updated to ${statusConfig[newStatus].label} successfully!`);
-     
-    } catch (error) {
-      console.error("Error updating job status:", error);
-      setError("Failed to update job status");
-      setErrorMessage("Failed to update job status. Please try again.");
-      setShowErrorModal(true);
     }
-  };
+    
+    if (newStatus === "Completed" && vehicleInfo?.repairOrderId) {
+      try {
+        const updatedData: RepairDetailDto = await getRepairOrderDetails(vehicleInfo.repairOrderId);
+        const updatedJob = updatedData.jobs.find(j => j.jobId === jobId);
+        
+        if (updatedJob?.repairs) {
+          const repair = updatedJob.repairs;
+          
+          setRepairSteps(prev =>
+            prev.map(s =>
+              s.jobId === jobId
+                ? {
+                    ...s,
+                    status: newStatus,
+                    endTime: currentTime,
+                    actualTimeShort: repair.actualTimeShort, 
+                    estimatedTimeShort: repair.estimatedTimeShort 
+                  }
+                : s
+            )
+          );
+          
+          showSuccessToastMessage(`Job completed successfully!`);
+          return;
+        }
+      } catch (error) {
+        console.error("Error fetching updated repair data:", error);
+      }
+    }
+    
+    setRepairSteps(prev =>
+      prev.map(step =>
+        step.jobId === jobId && step.status !== "Completed"
+          ? {
+              ...step,
+              status: newStatus,
+              startTime: newStatus === "InProgress" && !step.startTime ? currentTime : step.startTime,
+              endTime: newStatus === "Completed" && step.startTime && !step.endTime ? currentTime : step.endTime
+            }
+          : step
+      )
+    );
+    
+    showSuccessToastMessage(`Job status updated to ${statusConfig[newStatus].label} successfully!`);
+   
+  } catch (error) {
+    console.error("Error updating job status:", error);
+    setError("Failed to update job status");
+    setErrorMessage("Failed to update job status. Please try again.");
+    setShowErrorModal(true);
+  }
+};
 
   const updateStepNotes = (jobId: string, notes: string) => {
     setRepairSteps(prev =>
@@ -411,88 +394,97 @@ export default function RepairProgressPage() {
     setIsUpdating(false);
   };
 
-  const saveStepDetails = async () => {
-    if (!editForm.description) {
-      setErrorMessage("Description cannot be empty.");
-      setShowErrorModal(true);
-      return;
+const saveStepDetails = async () => {
+  if (!editForm.description) {
+    setErrorMessage("Description cannot be empty.");
+    setShowErrorModal(true);
+    return;
+  }
+  if (!isUpdating && editForm.estimatedHours === 0 && editForm.estimatedMinutes === 0) {
+    setErrorMessage("Estimated time must be greater than 0.");
+    setShowErrorModal(true);
+    return;
+  }
+  
+  const step = repairSteps.find(s => s.jobId === editingStepId);
+  if (!step) return;
+  
+  try {
+    const currentTime = new Date().toISOString();
+    
+    if (isUpdating && step.repairId) {
+      const updateData: RepairUpdateDto = {
+        description: editForm.description, 
+        notes: editForm.notes 
+      };
+      await updateRepair(step.repairId, updateData);
+      
+      setRepairSteps(prev =>
+        prev.map(s =>
+          s.jobId === editingStepId
+            ? {
+                ...s,
+                description: editForm.description,
+                notes: editForm.notes,
+                status: editForm.status
+              }
+            : s
+        )
+      );
+      showSuccessToastMessage("Repair step updated successfully!");
+      
+    } else {
+      const createData: RepairCreateDto = {
+        jobId: step.jobId, 
+        description: editForm.description, 
+        notes: editForm.notes,
+        estimatedTime: `${editForm.estimatedHours.toString().padStart(2, "0")}:${editForm.estimatedMinutes.toString().padStart(2, "0")}` // Format HH:mm
+      };
+      
+      const response = await createRepair(createData);
+      
+      setRepairSteps(prev =>
+        prev.map(s =>
+          s.jobId === editingStepId
+            ? {
+                ...s,
+                repairId: response.repairId,
+                description: editForm.description,
+                notes: editForm.notes,
+                estimatedHours: editForm.estimatedHours,
+                estimatedMinutes: editForm.estimatedMinutes,
+                estimatedTimeShort: response.estimatedTimeShort,
+                status: "InProgress",
+                startTime: currentTime
+              }
+            : s
+        )
+      );
+      
+      await updateJobStatus({
+        JobId: step.jobId,
+        JobStatus: statusConfig.InProgress.apiValue
+      });
+      
+      showSuccessToastMessage("Repair step created and started successfully!");
     }
-    if (!isUpdating && editForm.estimatedHours === 0 && editForm.estimatedMinutes === 0) {
-      setErrorMessage("Estimated time must be greater than 0.");
-      setShowErrorModal(true);
-      return;
-    }
-    const step = repairSteps.find(s => s.jobId === editingStepId);
-    if (!step) return;
-    try {
-      const currentTime = new Date().toISOString();
-      if (isUpdating && step.repairId) {
-        const updateData: RepairUpdateDto = {
-          Description: editForm.description,
-          Notes: editForm.notes
-        };
-        await updateRepair(step.repairId, updateData);
-        setRepairSteps(prev =>
-          prev.map(s =>
-            s.jobId === editingStepId
-              ? {
-                  ...s,
-                  description: editForm.description,
-                  notes: editForm.notes,
-                  status: editForm.status
-                }
-              : s
-          )
-        );
-        showSuccessToastMessage("Repair step updated successfully!");
-      } else {
-        const createData: RepairCreateDto = {
-          JobId: step.jobId,
-          Description: editForm.description,
-          Notes: editForm.notes,
-          EstimatedTime: `${editForm.estimatedHours.toString().padStart(2, "0")}:${editForm.estimatedMinutes.toString().padStart(2, "0")}:00`
-        };
-        const response = await createRepair(createData);
-        setRepairSteps(prev =>
-          prev.map(s =>
-            s.jobId === editingStepId
-              ? {
-                  ...s,
-                  repairId: response.repairId,
-                  description: editForm.description,
-                  notes: editForm.notes,
-                  estimatedHours: editForm.estimatedHours,
-                  estimatedMinutes: editForm.estimatedMinutes,
-                  status: "InProgress",
-                  startTime: currentTime
-                }
-              : s
-          )
-        );
-        await updateJobStatus({
-          JobId: step.jobId,
-          JobStatus: statusConfig.InProgress.apiValue
-        });
-        showSuccessToastMessage("Repair step created and started successfully!");
-      }
-      closeModal();
-    } catch (error) {
-      console.error("Error saving repair:", error);
-      setError("Failed to save repair details");
-      setErrorMessage("Failed to save repair details. Please try again.");
-      setShowErrorModal(true);
-    }
-  };
+    closeModal();
+  } catch (error) {
+    console.error("Error saving repair:", error);
+    setError("Failed to save repair details");
+    setErrorMessage("Failed to save repair details. Please try again.");
+    setShowErrorModal(true);
+  }
+};
 
   const completedSteps = repairSteps.filter(step => step.status === "Completed").length;
   const totalSteps = repairSteps.length;
   const progressPercentage = totalSteps > 0 ? (completedSteps / totalSteps) * 100 : 0;
 
-  const handleSaveProgress = async () => {
+const handleSaveProgress = async () => {
   try {
     setLoading(true);
 
-    // Lấy danh sách job của technician trong repair order hiện tại
     const myJobsInOrder = repairSteps.filter(step => myJobIds.includes(step.jobId));
     const hasAnyRepairCreated = myJobsInOrder.some(step => step.description && step.repairId);
 
@@ -503,12 +495,11 @@ export default function RepairProgressPage() {
       return;
     }
 
-    // CHỈ LƯU CÁC REPAIR CỦA TECHNICIAN HIỆN TẠI
     for (const step of myJobsInOrder) {
       if (step.description && step.repairId) {
         const updateData: RepairUpdateDto = {
-          Description: step.description,
-          Notes: step.notes
+          description: step.description, 
+          notes: step.notes 
         };
         await updateRepair(step.repairId, updateData);
       }
@@ -528,7 +519,7 @@ export default function RepairProgressPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center h-[641px] bg-[url('/images/image9.png')] bg-cover bg-no-repeat p-4 rounded-lg shadow-md">
+      <div className="flex flex-col items-center justify-center h-full bg-[url('/images/image9.png')] bg-cover bg-no-repeat p-4 rounded-lg shadow-md">
         <Loader className="w-12 h-12 text-blue-600 animate-spin mb-4" />
         <h3 className="text-xl font-bold text-gray-700">Loading repair details...</h3>
       </div>
@@ -536,7 +527,7 @@ export default function RepairProgressPage() {
   }
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center h-[641px] bg-[url('/images/image9.png')] bg-cover bg-no-repeat p-4 rounded-lg shadow-md">
+      <div className="flex flex-col items-center justify-center h-full bg-[url('/images/image9.png')] bg-cover bg-no-repeat p-4 rounded-lg shadow-md">
         <AlertTriangle className="w-12 h-12 text-red-600 mb-4" />
         <h3 className="text-xl font-bold text-red-600 mb-2">Error</h3>
         <p className="text-gray-600">{error}</p>
@@ -545,7 +536,7 @@ export default function RepairProgressPage() {
   }
   if (!vehicleInfo) {
     return (
-      <div className="flex flex-col items-center justify-center h-[641px] bg-[url('/images/image9.png')] bg-cover bg-no-repeat p-4 rounded-lg shadow-md">
+      <div className="flex flex-col items-center justify-center h-full bg-[url('/images/image9.png')] bg-cover bg-no-repeat p-4 rounded-lg shadow-md">
         <Car className="w-16 h-16 text-gray-400 mb-4" />
         <h3 className="text-xl font-bold text-gray-700 mb-2">No Vehicle Data</h3>
         <p className="text-gray-500">Unable to load vehicle information.</p>
@@ -554,7 +545,7 @@ export default function RepairProgressPage() {
   }
 
   return (
-    <div className="bg-[url('/images/image9.png')] bg-cover bg-no-repeat h-[641px] p-4 rounded-lg shadow-md">
+    <div className="bg-[url('/images/image9.png')] bg-cover bg-no-repeat h-full p-4 rounded-lg shadow-md">
       {showSuccessToast && (
         <div className="fixed top-4 right-4 z-50 animate-slide-in-right">
           <div className="bg-green-600 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3">
@@ -675,18 +666,13 @@ export default function RepairProgressPage() {
           </div>
         </div>
 
-        {/* ===== THAY ĐỔI 3: Cập nhật logic hiển thị repair steps ===== */}
         <div className="space-y-2 mb-5">
           {repairSteps.map((step, index) => {
-            const StatusIcon = statusConfig[step.status].icon;
-            
-            // ===== THAY ĐỔI CHÍNH: Kiểm tra job có thuộc technician hiện tại không =====
+            const StatusIcon = statusConfig[step.status].icon;         
             const isMyJob = myJobIds.includes(step.jobId);
-            
             const isEditable = !step.description && isMyJob;
             const isUpdatable = step.description && isMyJob && step.status !== "Completed";
             const isCompleted = step.status === "Completed";
-            
             return (
               <div
                 key={step.jobId}
@@ -694,42 +680,112 @@ export default function RepairProgressPage() {
               >
                 <div className="p-4">
                   <div className="flex flex-col md:flex-row items-start justify-between mb-2 min-h-[100px]">
-                    <div className="flex items-start space-x-4 flex-1">
-                      <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                        <span className="text-sm font-bold text-blue-600">{index + 1}</span>
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="text-xl font-bold text-gray-900 mb-2">{step.title}</h3>
-                        
-                        {/* ===== THÊM MỚI: Badge hiển thị khi job không phải của technician ===== */}
-                        {!isMyJob && (
-                          <div className="inline-block px-3 py-1 bg-amber-100 text-amber-800 text-sm font-semibold rounded-lg mb-2">
-                            Assigned to another technician
+ <div className="flex items-start space-x-4 flex-1">
+  <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+    <span className="text-sm font-bold text-blue-600">{index + 1}</span>
+  </div>
+  <div className="flex-1">
+    <div className="flex items-center justify-between mb-2">
+      <h3 className="text-xl font-bold text-gray-900">{step.title}</h3>
+
+      {/* Parts Dropdown Wrapper */}
+      {step.parts && step.parts.length > 0 && (
+        <div className="relative inline-block text-left">
+          {/* Dropdown Trigger Button */}
+          <button
+            onClick={() =>
+              setOpenPartDropdown(openPartDropdown === step.jobId ? null : step.jobId)
+            }
+            className="flex items-center space-x-2 px-3 py-2 bg-gradient-to-r from-purple-100 to-pink-100 rounded-lg hover:from-purple-200 hover:to-pink-200 transition-colors duration-200 border border-purple-300"
+          >
+            <Package className="w-4 h-4 text-purple-600" />
+            <span className="text-sm font-semibold text-purple-800">
+              Parts Required (
+              {step.parts.reduce((total, cat) => total + cat.parts.length, 0)})
+            </span>
+            {openPartDropdown === step.jobId ? (
+              <ChevronUp className="w-4 h-4 text-purple-600" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-purple-600" />
+            )}
+          </button>
+
+          {/* Dropdown Content */}
+          {openPartDropdown === step.jobId && (
+            <div className="absolute right-0 mt-1 w-[420px] bg-white rounded-lg shadow-lg border border-purple-200 z-20 animate-fadeIn">
+              <div className="p-3 space-y-2 max-h-52 overflow-y-auto scrollbar-thin scrollbar-thumb-purple-300 scrollbar-track-purple-100">
+                {step.parts.map((category) => (
+                  <div
+                    key={category.partCategoryId}
+                    className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-2 border border-purple-200"
+                  >
+                    <h5 className="text-sm font-bold text-purple-900 mb-1 flex items-center">
+                      <div className="w-2 h-2 rounded-full bg-purple-500 mr-2"></div>
+                      {category.categoryName}
+                    </h5>
+                    <div className="space-y-1.5 ml-3">
+                      {category.parts.map((part) => (
+                        <div
+                          key={part.partId}
+                          className="flex items-center justify-between bg-white p-2 rounded-lg border border-purple-200 hover:shadow-md transition-shadow duration-200"
+                        >
+                          <div className="flex items-center space-x-2">
+                            <div className="w-1.5 h-1.5 rounded-full bg-pink-400"></div>
+                            <span className="text-sm font-medium text-gray-800">
+                              {part.partName}
+                            </span>
                           </div>
-                        )}
-                        
-                        {step.description && <p className="text-gray-900 mb-3">Repair Description: {step.description}</p>}
-                        <div className="flex items-center space-x-4 text-sm text-gray-700 mb-3 font-bold">
-                          {(step.estimatedHours > 0 || step.estimatedMinutes > 0) && (
-                            <div className="flex items-center space-x-1">
-                              <Clock className="w-4 h-4" />
-                              <span>Est: {step.estimatedHours}h {step.estimatedMinutes}m</span>
-                            </div>
-                          )}
-                          {step.actualTime !== undefined && (
-                            <div className="flex items-center space-x-1">
-                              <span>Actual: {Math.floor(step.actualTime / 60)}h {step.actualTime % 60}m</span>
-                            </div>
-                          )}
-                          {step.startTime && (
-                            <div>Started: {new Date(step.startTime).toLocaleString()}</div>
-                          )}
-                          {step.endTime && (
-                            <div>Completed: {new Date(step.endTime).toLocaleString()}</div>
-                          )}
+                          <span className="text-sm font-bold text-purple-700 ml-8">
+                            {part.unitPrice.toLocaleString("vi-VN")} VND
+                          </span>
                         </div>
-                      </div>
+                      ))}
                     </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+
+    {/* Assigned to another technician warning */}
+    {!isMyJob && (
+      <div className="inline-block px-3 py-1 bg-amber-100 text-amber-800 text-sm font-semibold rounded-lg mb-2">
+        Assigned to another technician
+      </div>
+    )}
+
+    {/* Repair Description */}
+    {step.description && (
+      <p className="text-gray-900 mb-3">
+        Repair Description: {step.description}
+      </p>
+    )}
+
+    {/* Time and Status Info */}
+    <div className="flex items-center space-x-4 text-sm text-gray-700 mb-3 font-bold">
+  {step.estimatedTimeShort && (
+    <div className="flex items-center space-x-1">
+      <Clock className="w-4 h-4" />
+      <span>Est: {step.estimatedTimeShort}</span>
+    </div>
+  )}
+  {step.actualTimeShort && (
+    <div className="flex items-center space-x-1">
+      <span>Actual: {step.actualTimeShort}</span>
+    </div>
+  )}
+  {step.startTime && (
+    <div>Started: {new Date(step.startTime).toLocaleString()}</div>
+  )}
+  {step.endTime && (
+    <div>Completed: {new Date(step.endTime).toLocaleString()}</div>
+  )}
+</div>
+  </div>
+</div>
                     <div className="flex flex-col items-end space-y-2 mt-2 md:mt-0 md:ml-4">
                       {isEditable && (
                         <div className="flex items-center space-x-2">
@@ -837,7 +893,7 @@ export default function RepairProgressPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-600 mb-2 block">Repair Descriptions:</label>
+                  <label className="text-sm font-medium text-gray-600 mb-2 block">Repair Descriptions: <span className="text-red-500">*</span></label>
                   <textarea
                     value={editForm.description}
                     onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value }))}
@@ -859,7 +915,7 @@ export default function RepairProgressPage() {
                 {!isUpdating && (
                   <div className="flex space-x-4">
                     <div className="flex-1">
-                      <label className="text-sm font-medium text-gray-600 mb-2 block">Estimated Hours:</label>
+                      <label className="text-sm font-medium text-gray-600 mb-2 block">Estimated Hours:<span className="text-red-500">*</span></label>
                       <input
                         type="number"
                         value={editForm.estimatedHours}

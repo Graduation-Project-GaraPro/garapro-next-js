@@ -7,7 +7,7 @@ import {
   FaClipboardList,
   FaTools,
   FaHistory,
-  FaBell,
+  //FaBell,
   FaCar,
   FaWrench,
   FaUserCircle,
@@ -39,7 +39,7 @@ interface TechnicianSidebarProps {
 const sidebarItems = [
   { id: "home", label: "Home", icon: FaHome, href: "/technician" },
   {
-    id: "task-management", label: "Task Management", icon: FaClipboardList, href: "/technician/taskManagement",
+    id: "task-management", label: "My Task", icon: FaClipboardList, href: "/technician/taskManagement",
   },
   {
     id: "condition-inspection",
@@ -63,9 +63,9 @@ const sidebarItems = [
   {
     id: "repair-history", label: "Repair History", icon: FaHistory, href: "/technician/repairHistory",
   },
-  {
-    id: "notifications", label: "Notifications", icon: FaBell, href: "/technician/notifications",
-  },
+  // {
+  //   id: "notifications", label: "Notifications", icon: FaBell, href: "/technician/notifications",
+  // },
   {
     id: "vehicle-lookup", label: "Information Lookup", icon: FaCar, href: "/technician/vehicleLookup",
   },
