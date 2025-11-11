@@ -1,18 +1,46 @@
 import { apiClient } from "./api-client"
-import type { RepairOrder, CreateRepairOrderRequest, UpdateRepairOrderRequest } from "@/types/manager/repair-order"
+import type { RepairOrder, CreateRepairOrderRequest, UpdateRepairOrderRequest, RepairOrderApiResponse } from "@/types/manager/repair-order"
 import type { OrderStatus, OrderStatusResponse } from "@/types/manager/order-status"
+import { authService } from "@/services/authService"
+import { branchService } from "@/services/branch-service"
+import { mapApiToRepairOrder } from "@/types/manager/repair-order"
 
 class RepairOrderService {
   private baseUrl = "/api/RepairOrder"
   private orderStatusBaseUrl = "/api/OrderStatus"
 
   /**
-   * Fetch all repair orders
+   * Fetch all repair orders for the current user's branch
    */
   async getAllRepairOrders(): Promise<RepairOrder[]> {
     try {
-      const response = await apiClient.get<RepairOrder[]>(this.baseUrl)
-      return response.data
+      // Get current user ID
+      const currentUser = authService.getCurrentUser();
+      const userId = currentUser.userId;
+      
+      if (!userId) {
+        console.error("User not authenticated");
+        return [];
+      }
+      
+      // Get the user's branch
+      const userBranch = await branchService.getCurrentUserBranch(userId);
+      console.log("User branch:", userBranch);
+      if (!userBranch) {
+        console.error("Unable to determine user's branch");
+        return [];
+      }
+      
+      // Call the branch-specific endpoint with the actual branch ID
+      const response = await apiClient.get<RepairOrderApiResponse[]>(`${this.baseUrl}/branch/${userBranch.branchId}`)
+      console.log("Repair orders API response:", response);
+      
+      // Map API response to RepairOrder interface
+      if (response.data) {
+        return response.data.map(mapApiToRepairOrder);
+      }
+      
+      return [];
     } catch (error) {
       console.error("Failed to fetch repair orders:", error)
       return []
@@ -25,7 +53,7 @@ class RepairOrderService {
   async getRepairOrderById(id: string): Promise<RepairOrder | null> {
     try {
       const response = await apiClient.get<RepairOrder>(`${this.baseUrl}/${id}`)
-      return response.data
+      return response.data || null
     } catch (error) {
       console.error(`Failed to fetch repair order ${id}:`, error)
       return null
@@ -40,7 +68,7 @@ class RepairOrderService {
       console.log('Sending repair order data:', JSON.stringify(repairOrder, null, 2));
       const response = await apiClient.post<RepairOrder>(this.baseUrl, repairOrder);
       console.log('Repair order API response:', response);
-      return response.data;
+      return response.data || null;
     } catch (error) {
       console.error('Failed to create repair order - Error details:', error);
       
@@ -70,7 +98,7 @@ class RepairOrderService {
   async updateRepairOrder(repairOrder: UpdateRepairOrderRequest): Promise<RepairOrder | null> {
     try {
       const response = await apiClient.put<RepairOrder>(`${this.baseUrl}/${repairOrder.repairOrderId}`, repairOrder)
-      return response.data
+      return response.data || null
     } catch (error) {
       console.error(`Failed to update repair order ${repairOrder.repairOrderId}:`, error)
       return null
@@ -96,7 +124,7 @@ class RepairOrderService {
   async getRepairOrdersByStatus(statusId: string): Promise<RepairOrder[]> {
     try {
       const response = await apiClient.get<RepairOrder[]>(`${this.baseUrl}/status/${statusId}`)
-      return response.data
+      return response.data || []
     } catch (error) {
       console.error(`Failed to fetch repair orders for status ${statusId}:`, error)
       return []
@@ -110,11 +138,16 @@ class RepairOrderService {
     try {
       const response = await apiClient.get<OrderStatusResponse>(`${this.orderStatusBaseUrl}/columns`)
       
+      // Check if response data exists
+      if (!response.data) {
+        return []
+      }
+      
       // Flatten the response structure to get all statuses in one array
       const statuses: OrderStatus[] = [
-        ...response.data.pending,
-        ...response.data.inProgress,
-        ...response.data.completed
+        ...(response.data.pending || []),
+        ...(response.data.inProgress || []),
+        ...(response.data.completed || [])
       ]
       
       return statuses

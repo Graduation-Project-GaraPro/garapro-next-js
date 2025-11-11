@@ -41,44 +41,55 @@ export default function RoDragDropBoard({
   }
 
   const getRepairOrdersByStatus = (statusId: string) => {
-    return repairOrders.filter((repairOrder) => repairOrder.statusId === statusId)
+    const filtered = repairOrders.filter((repairOrder) => {
+      // Convert both values to strings for comparison to handle any type mismatches
+      const orderStatusId = String(repairOrder.statusId);
+      const targetStatusId = String(statusId);
+      const matches = orderStatusId === targetStatusId;
+      return matches;
+    });
+    return filtered;
   }
 
   // Use dynamic columns if provided, otherwise fallback to hardcoded ones
   const columns = statuses && statuses.length > 0
     ? statuses
       .sort((a, b) => a.orderIndex - b.orderIndex)
-      .map(status => ({
-        id: status.orderStatusId,
-        title: status.statusName,
-        repairOrders: getRepairOrdersByStatus(status.orderStatusId),
-        bgColor: getBgColorForStatus(status.statusName),
-        borderColor: getBorderColorForStatus(status.statusName),
-      }))
+      .map(status => {
+        const repairOrdersForStatus = getRepairOrdersByStatus(status.orderStatusId);
+        return {
+          id: status.orderStatusId,
+          title: status.statusName,
+          repairOrders: repairOrdersForStatus,
+          bgColor: getBgColorForStatus(status.statusName),
+          borderColor: getBorderColorForStatus(status.statusName),
+        };
+      })
     : [
       {
-        id: "pending-status",
+        id: "1",
         title: "Pending",
-        repairOrders: getRepairOrdersByStatus("pending-status"),
+        repairOrders: getRepairOrdersByStatus("1"),
         bgColor: "bg-red-50",
         borderColor: "border-red-200",
       },
       {
-        id: "in-progress-status",
+        id: "2",
         title: "In Progress",
-        repairOrders: getRepairOrdersByStatus("in-progress-status"),
+        repairOrders: getRepairOrdersByStatus("2"),
         bgColor: "bg-yellow-50",
         borderColor: "border-yellow-200",
       },
       {
-        id: "completed-status",
+        id: "3",
         title: "Completed",
-        repairOrders: getRepairOrdersByStatus("completed-status"),
+        repairOrders: getRepairOrdersByStatus("3"),
         bgColor: "bg-green-50",
         borderColor: "border-green-200",
       },
     ]
 
+  // Add a check to see if we have any repair orders at all
   if (loading) {
     return (
       <div className="flex h-full min-h-0">

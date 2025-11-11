@@ -10,28 +10,28 @@ import {
   Wrench,
   Package,
   Calendar,
-  Clock
+  Clock,
+  User,
+  Users,
+  AlertCircle
 } from "lucide-react"
 import { jobService } from "@/services/manager/job-service"
+import { TechnicianSelectionDialog } from "@/components/manager/technician-selection-dialog"
 import type { Job } from "@/types/job"
-
-// Mock technician data - in a real app this would come from an API
-const technicians = [
-  { id: "1", name: "John Smith", monogram: "JS" },
-  { id: "2", name: "Sarah Johnson", monogram: "SJ" },
-  { id: "3", name: "Mike Davis", monogram: "MD" },
-  { id: "4", name: "Emily Wilson", monogram: "EW" },
-]
 
 interface JobsTabProps {
   orderId: string
+  branchId?: string // Optional branch ID for branch-specific technician filtering
 }
 
-export default function JobsTab({ orderId }: JobsTabProps) {
+export default function JobsTab({ orderId, branchId }: JobsTabProps) {
   const [jobs, setJobs] = useState<Job[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [assignedTechs, setAssignedTechs] = useState<Record<string, { id: string; name: string; monogram: string } | null>>({})
+  const [isTechSelectionOpen, setIsTechSelectionOpen] = useState(false)
+  const [selectedJobIds, setSelectedJobIds] = useState<string[]>([])
+  const [assignmentError, setAssignmentError] = useState<string | null>(null)
 
   useEffect(() => {
     loadJobs()
@@ -41,17 +41,19 @@ export default function JobsTab({ orderId }: JobsTabProps) {
     try {
       setLoading(true)
       setError(null)
+      setAssignmentError(null)
       const data = await jobService.getJobsByRepairOrderId(orderId)
       setJobs(data)
       
       // Initialize assigned techs from job data
       const initialAssignedTechs: Record<string, { id: string; name: string; monogram: string } | null> = {}
       data.forEach(job => {
-        if (job.assignedTechnicianId && job.assignedTechnicianName && job.assignedTechnicianMonogram) {
+        // Check if at least the assignedTechnicianId is present
+        if (job.assignedTechnicianId) {
           initialAssignedTechs[job.jobId] = {
             id: job.assignedTechnicianId,
-            name: job.assignedTechnicianName,
-            monogram: job.assignedTechnicianMonogram
+            name: job.assignedTechnicianName || 'Unknown Technician',
+            monogram: job.assignedTechnicianMonogram || job.assignedTechnicianName?.substring(0, 2).toUpperCase() || 'NA'
           }
         } else {
           initialAssignedTechs[job.jobId] = null
@@ -67,23 +69,61 @@ export default function JobsTab({ orderId }: JobsTabProps) {
   }
 
   const handleAssignTech = (jobId: string) => {
-    // In a real app, this would open a modal or dropdown to select a technician
-    // For now, we'll just assign the first available technician
-    const techToAssign = technicians.find(tech => 
-      !Object.values(assignedTechs).some(assigned => assigned?.id === tech.id)
-    ) || technicians[0]
-    
-    setAssignedTechs(prev => ({
-      ...prev,
-      [jobId]: techToAssign
-    }))
+    setSelectedJobIds([jobId])
+    setIsTechSelectionOpen(true)
+  }
+
+  const handleBatchAssignTech = () => {
+    // Get all pending jobs for batch assignment
+    const pendingJobs = jobs.filter(job => job.status === 0) // 0 = Pending
+    setSelectedJobIds(pendingJobs.map(job => job.jobId))
+    setIsTechSelectionOpen(true)
+  }
+
+  const handleTechAssignment = async (technicianId: string) => {
+    if (!selectedJobIds.length) return
+
+    try {
+      setAssignmentError(null)
+      
+      if (selectedJobIds.length === 1) {
+        // Single job assignment/reassignment
+        const jobId = selectedJobIds[0];
+        
+        console.log(`Assigning/reassigning job ${jobId} to technician ${technicianId}`);
+        // Use the new assignTechnician method
+        await jobService.assignTechnician(jobId, technicianId);
+      } else {
+        // Batch job assignment
+        console.log(`Assigning ${selectedJobIds.length} jobs to technician ${technicianId}`);
+        await jobService.assignJobsToTechnician(technicianId, selectedJobIds);
+      }
+
+      // Refresh the jobs list to show the change (similar to inspection component)
+      await loadJobs();
+
+      // Close dialog and reset selection
+      setIsTechSelectionOpen(false);
+      setSelectedJobIds([]);
+      
+    } catch (error) {
+      console.error("Failed to assign technician:", error);
+      // Extract error message if it's an Error object
+      const errorMessage = error instanceof Error ? error.message : "Failed to assign technician to job(s)";
+      setAssignmentError(errorMessage);
+      
+      // Keep the dialog open so the user can try again
+      // Or you could close it and show the error in a toast/notification
+    }
   }
 
   const getJobStatusText = (status: number) => {
     switch (status) {
       case 0: return "Pending"
-      case 1: return "In Progress"
-      case 2: return "Completed"
+      case 1: return "New"
+      case 2: return "In Progress"
+      case 3: return "Completed"
+      case 4: return "On Hold"
       default: return "Unknown"
     }
   }
@@ -92,10 +132,15 @@ export default function JobsTab({ orderId }: JobsTabProps) {
     switch (status) {
       case 0: return "bg-yellow-100 text-yellow-800"
       case 1: return "bg-blue-100 text-blue-800"
-      case 2: return "bg-green-100 text-green-800"
+      case 2: return "bg-orange-100 text-orange-800"
+      case 3: return "bg-green-100 text-green-800"
+      case 4: return "bg-red-100 text-red-800"
       default: return "bg-gray-100 text-gray-800"
     }
   }
+
+  // Check if there are pending jobs that can be assigned
+  const hasPendingJobs = jobs.some(job => job.status === 0)
 
   if (loading) {
     return (
@@ -124,11 +169,30 @@ export default function JobsTab({ orderId }: JobsTabProps) {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold">Jobs</h2>
-        <Button onClick={loadJobs} variant="outline" size="sm">
-          <RefreshCw className="w-4 h-4 mr-2" />
-          Refresh
-        </Button>
+        <div className="flex gap-2">
+          {hasPendingJobs && (
+            <Button onClick={handleBatchAssignTech} variant="outline" size="sm">
+              <Users className="w-4 h-4 mr-2" />
+              Assign All Pending
+            </Button>
+          )}
+          <Button onClick={loadJobs} variant="outline" size="sm">
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Refresh
+          </Button>
+        </div>
       </div>
+
+      {/* Assignment Error Message */}
+      {assignmentError && (
+        <div className="bg-red-50 border border-red-200 rounded-md p-4 flex items-center">
+          <AlertCircle className="w-5 h-5 text-red-500 mr-2" />
+          <div>
+            <p className="text-red-700 font-medium">Assignment Failed</p>
+            <p className="text-red-600 text-sm">{assignmentError}</p>
+          </div>
+        </div>
+      )}
 
       {jobs.length === 0 ? (
         <Card>
@@ -155,8 +219,10 @@ export default function JobsTab({ orderId }: JobsTabProps) {
                         size="sm" 
                         className="flex items-center gap-2"
                         onClick={() => handleAssignTech(job.jobId)}
+                        // Allow re-assignment for any job that has an assigned technician
+                        disabled={false}
                       >
-                        <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs">
+                        <div className="flex items-center justify-center w-5 h-5 rounded-full bg-blue-100 text-blue-800 font-medium text-xs">
                           {assignedTechs[job.jobId]?.monogram}
                         </div>
                         <span>{assignedTechs[job.jobId]?.name}</span>
@@ -166,7 +232,9 @@ export default function JobsTab({ orderId }: JobsTabProps) {
                         variant="outline" 
                         size="sm" 
                         onClick={() => handleAssignTech(job.jobId)}
+                        disabled={job.status !== 0} // Only allow assignment if job is pending
                       >
+                        <User className="w-4 h-4 mr-2" />
                         Assign Tech
                       </Button>
                     )}
@@ -224,6 +292,14 @@ export default function JobsTab({ orderId }: JobsTabProps) {
           ))}
         </div>
       )}
+
+      <TechnicianSelectionDialog
+        open={isTechSelectionOpen}
+        onOpenChange={setIsTechSelectionOpen}
+        onAssign={handleTechAssignment}
+        jobIds={selectedJobIds}
+        branchId={branchId}
+      />
     </div>
   )
 }

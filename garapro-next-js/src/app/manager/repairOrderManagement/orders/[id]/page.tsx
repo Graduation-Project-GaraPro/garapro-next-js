@@ -22,6 +22,8 @@ import {
   PaymentTab,
   QuotationTab
 } from "./components"
+import { authService } from "@/services/authService"
+import { branchService } from "@/services/branch-service"
 
 interface OrderDetailsProps {
   params: Promise<{ id: string }>
@@ -32,6 +34,8 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
   const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState("vehicle-info")
   const [orderId, setOrderId] = useState<string>("")
+  const [userBranchId, setUserBranchId] = useState<string | null>(null)
+  const [loadingBranch, setLoadingBranch] = useState(true)
 
   // Handle async params
   useEffect(() => {
@@ -39,6 +43,27 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
       setOrderId(resolvedParams.id)
     })
   }, [params])
+
+  // Get user's branch
+  useEffect(() => {
+    const fetchUserBranch = async () => {
+      try {
+        const currentUser = authService.getCurrentUser()
+        if (currentUser.userId) {
+          const branch = await branchService.getCurrentUserBranch(currentUser.userId)
+          if (branch) {
+            setUserBranchId(branch.branchId)
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch user branch:", error)
+      } finally {
+        setLoadingBranch(false)
+      }
+    }
+
+    fetchUserBranch()
+  }, [])
 
   // Apply tab from query when available
   useEffect(() => {
@@ -49,7 +74,7 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
   }, [searchParams])
 
   // Show loading while params are being resolved
-  if (!orderId) {
+  if (!orderId || loadingBranch) {
     return (
              <div className="min-h-screen bg-gray-100 flex items-center justify-center">
          <div className="text-center">
@@ -86,7 +111,7 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
       "vehicle-info": <VehicleInformation orderId={orderId} />,
       inspections: <InspectionsTab orderId={orderId} />,
       quotation: <QuotationTab orderId={orderId} />,
-      jobs: <JobsTab orderId={orderId} />,
+      jobs: <JobsTab orderId={orderId} branchId={userBranchId || undefined} />,
       "work-in-progress": <WorkProgressTab orderId={orderId} />,
       payment: <PaymentTab orderId={orderId} />
     }

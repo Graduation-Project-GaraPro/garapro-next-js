@@ -50,6 +50,8 @@ export interface UpdateBranchRequest {
 
 export interface Service {
   serviceId: string
+  serviceCategoryId: string
+  serviceTypeId: string
   serviceName: string
   serviceStatus: string
   description: string
@@ -135,9 +137,16 @@ class BranchService {
   private baseURL = 'https://localhost:7113/api'
 
   private async request<T>(url: string, options: RequestInit = {}): Promise<T> {
+    // Get authentication token from localStorage if available
+    let authToken = null;
+    if (typeof window !== 'undefined') {
+      authToken = localStorage.getItem('authToken');
+    }
+
     const response = await fetch(url, {
       headers: {
         'Content-Type': 'application/json',
+        ...(authToken && { 'Authorization': `Bearer ${authToken}` }),
         ...options.headers,
       },
       ...options,
@@ -147,7 +156,9 @@ class BranchService {
       throw new Error(`HTTP error! status: ${response.status}`)
     }
 
-    return response.json()
+    const data = await response.json()
+    console.log(`Branch API response for ${url}:`, data)
+    return data
   }
 
   async getBranches(
@@ -167,7 +178,7 @@ class BranchService {
     const data = await this.request<GarageBranch[]>(url)
     console.log(data);
     return {
-      branches: data.branches,
+      branches: data,
       totalCount: data.length,
       page,
       pageSize
@@ -182,12 +193,65 @@ class BranchService {
     console.log('Branch response:', response) // Debug response
     return response
   }
+  
+  // Get the branch for the current user (manager) - Preferred method
+  async getCurrentUserBranch(userId: string): Promise<GarageBranch | null> {
+    try {
+      // First try the preferred method: GET /api/Branch/my
+      try {
+        const myBranch = await this.request<GarageBranch>(`${this.baseURL}/Branch/my`);
+        console.log("Current user's branch (direct method):", myBranch);
+        if (myBranch && myBranch.branchId) {
+          return myBranch;
+        }
+      } catch (directError) {
+        console.warn("Direct /api/Branch/my endpoint failed, falling back to legacy method:", directError);
+      }
+      
+      // Fallback to legacy method: Get all active branches and find the user's branch
+      const response = await this.getBranches(1, 100, { isActive: true });
+      const branches = response.branches;
+      
+      // Find the branch where the userId matches a manager ID
+      for (const branch of branches) {
+        // Check if the user is a manager in this branch
+        const isManagerInBranch = branch.staffs.some(staff => 
+          staff.id === userId && staff.userName.includes('manager')
+        )
+        
+        if (isManagerInBranch) {
+          return branch;
+        }
+      }
+      
+      // If no branch found for the manager, return the first available branch as fallback
+      if (branches.length > 0) {
+        console.warn(`No branch found for user ${userId}, using first available branch as fallback`);
+        return branches[0];
+      }
+      
+      // No branches available
+      console.warn(`No branches available for user ${userId}`);
+      return null;
+    } catch (error) {
+      console.error(`Failed to get branch for user ${userId}:`, error);
+      return null;
+    }
+  }
+  
   async createBranch(branchData: CreateBranchRequest): Promise<void> {
+    // Get authentication token from localStorage if available
+    let authToken = null;
+    if (typeof window !== 'undefined') {
+      authToken = localStorage.getItem('authToken');
+    }
+
     const url = `${this.baseURL}/Branch`
     const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...(authToken && { 'Authorization': `Bearer ${authToken}` }),
       },
       body: JSON.stringify(branchData),
     })
@@ -197,21 +261,72 @@ class BranchService {
       throw new Error(`Failed to create branch: ${response.status} ${errorText.message ?? "Error"}`)
     }
   }
+  
   async updateBranch(branchId: string, branchData: UpdateBranchRequest): Promise<void> {
+    // Get authentication token from localStorage if available
+    let authToken = null;
+    if (typeof window !== 'undefined') {
+      authToken = localStorage.getItem('authToken');
+    }
+
     const url = `${this.baseURL}/Branch/${branchId}`
     const response = await fetch(url, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
+        ...(authToken && { 'Authorization': `Bearer ${authToken}` }),
       },
       body: JSON.stringify(branchData),
     })
 
     if (!response.ok) {
       const errorText = await response.json();
-      throw new Error(`Failed to create branch: ${response.status} ${errorText.message ?? "Error"}`)
+      throw new Error(`Failed to update branch: ${response.status} ${errorText.message ?? "Error"}`)
     }
   }
+  
+  async deleteBranch(id: string): Promise<void> {
+    // Get authentication token from localStorage if available
+    let authToken = null;
+    if (typeof window !== 'undefined') {
+      authToken = localStorage.getItem('authToken');
+    }
+
+    const url = `${this.baseURL}/Branch/${id}`
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: {
+        ...(authToken && { 'Authorization': `Bearer ${authToken}` }),
+      },
+    })
+
+    if (!response.ok) {
+      throw new Error(`Failed to delete branch: ${response.status}`)
+    }
+  }
+  
+  async toggleBranchStatus(id: string, isActive: boolean): Promise<void> {
+    // Get authentication token from localStorage if available
+    let authToken = null;
+    if (typeof window !== 'undefined') {
+      authToken = localStorage.getItem('authToken');
+    }
+
+    const url = `${this.baseURL}/Branch/${id}/status`
+    const response = await fetch(url, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(authToken && { 'Authorization': `Bearer ${authToken}` }),
+      },
+      body: JSON.stringify({ isActive }),
+    })
+
+    if (!response.ok) {
+      throw new Error(`Failed to toggle branch status: ${response.status}`)
+    }
+  }
+
   async getServices(): Promise<Service[]> {
     const url = `${this.baseURL}/Services`
     return this.request<Service[]>(url)
@@ -226,36 +341,13 @@ class BranchService {
     const url = `${this.baseURL}/Users/technicians`
     return this.request<User[]>(url)
   }
-  async deleteBranch(id: string): Promise<void> {
-    const url = `${this.baseURL}/Branch/${id}`
-    const response = await fetch(url, {
-      method: 'DELETE',
-    })
 
-    if (!response.ok) {
-      throw new Error(`Failed to delete branch: ${response.status}`)
-    }
-  }
   async getServiceCategories(): Promise<ServiceCategory[]> {
     const url = `${this.baseURL}/ServiceCategories`
     return this.request<ServiceCategory[]>(url)
   }
-  async toggleBranchStatus(id: string, isActive: boolean): Promise<void> {
-    const url = `${this.baseURL}/${id}/status`
-    const response = await fetch(url, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ isActive }),
-    })
 
-    if (!response.ok) {
-      throw new Error(`Failed to toggle branch status: ${response.status}`)
-    }
-  }
-
-  async exportBranches(filters: any, format: 'csv' | 'excel'): Promise<Blob> {
+  async exportBranches(filters: GetBranchesParams, format: 'csv' | 'excel'): Promise<Blob> {
     // Simulate export functionality
     return new Blob(['Export data'], { type: format === 'csv' ? 'text/csv' : 'application/vnd.ms-excel' })
   }

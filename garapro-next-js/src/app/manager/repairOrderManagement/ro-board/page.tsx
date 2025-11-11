@@ -69,7 +69,11 @@ export default function BoardPage() {
     try {
       const data = await repairOrderService.getAllRepairOrders()
       setRepairOrders(data)
-      console.log("Loaded repair orders:", data)
+      
+      // Additional debugging
+      if (data.length > 0) {
+        console.log("First repair order statusId:", data[0].statusId);
+      }
     } catch (error) {
       console.error("Failed to load repair orders:", error)
     }
@@ -80,7 +84,11 @@ export default function BoardPage() {
     try {
       const data = await repairOrderService.fetchOrderStatuses()
       setStatuses(data)
-      console.log("Loaded statuses:", data)
+      
+      // Additional debugging
+      if (data.length > 0) {
+        console.log("First status ID:", data[0].orderStatusId);
+      }
     } catch (error) {
       console.error("Failed to load statuses:", error)
     }
@@ -177,18 +185,23 @@ export default function BoardPage() {
   const handleMoveRepairOrder = async (repairOrderId: string, newStatusId: string) => {
     try {
       // Call the API to update the status
-      const success = await repairOrderHubService.updateRepairOrderStatus(repairOrderId, newStatusId);
+      const result = await repairOrderHubService.updateRepairOrderStatus(repairOrderId, newStatusId);
       
-      if (success) {
+      if (result.success) {
         console.log(`Successfully requested move of repair order ${repairOrderId} to status ${newStatusId}`);
+        toast.success("Repair order status updated successfully");
         // The UI will be updated via SignalR notification, not directly here
       } else {
-        console.error(`Failed to move repair order ${repairOrderId} to status ${newStatusId}`);
+        console.error(`Failed to move repair order ${repairOrderId} to status ${newStatusId}: ${result.message}`);
+        // Show specific error message from backend if available
+        const errorMessage = result.message || "Failed to update repair order status";
+        toast.error(errorMessage);
         // Revert the UI change if the API call failed
         // In a real implementation, you might want to show an error message to the user
       }
     } catch (error) {
-      console.error("Failed to move repair order:", error)
+      console.error("Failed to move repair order:", error);
+      toast.error("An unexpected error occurred while updating repair order status");
     }
   }
 
@@ -234,6 +247,7 @@ export default function BoardPage() {
     }
   }, [statuses])
 
+  console.log("Rendering BoardPage - repair orders:", repairOrders, "statuses:", statuses);
 
   return (
     <div className="h-full flex flex-col bg-gray-50">

@@ -17,7 +17,7 @@ export interface Job {
   serviceId: string
   repairOrderId: string
   jobName: string
-  status: number // 0 = pending, 1 = in progress, 2 = completed, etc.
+  status: number // 0 = Pending, 1 = New, 2 = InProgress, 3 = Completed, 4 = OnHold
   deadline: string | null
   note: string
   createdAt: string
