@@ -30,7 +30,11 @@ import {
   JobDetailDto
 } from "@/services/technician/repairService";
 import { updateJobStatus } from "@/services/technician/jobTechnicianService";
-
+import signalRService, { 
+  RepairCreatedEvent, 
+  RepairUpdatedEvent, 
+  JobStatusChangedEvent 
+} from "@/services/technician/signalRService";
 interface RepairStep {
   jobId: string;
   title: string;
@@ -129,6 +133,7 @@ export default function RepairProgressPage() {
   const [repairSteps, setRepairSteps] = useState<RepairStep[]>([]);
   const [openPartDropdown, setOpenPartDropdown] = useState<string | null>(null);
   const [myJobIds, setMyJobIds] = useState<string[]>([]);
+  const [signalRConnected, setSignalRConnected] = useState(false);
   
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -255,6 +260,110 @@ export default function RepairProgressPage() {
     };
     fetchRepairDetails();
   }, [jobId]);
+  
+  useEffect(() => {
+  if (!vehicleInfo?.repairOrderId) return;
+
+  const setupSignalR = async () => {
+    try {
+      await signalRService.startConnection();
+      await signalRService.joinRepairOrderGroup(vehicleInfo.repairOrderId);
+      
+      setSignalRConnected(true);
+      console.log("SignalR Connected for RepairOrder:", vehicleInfo.repairOrderId);
+
+      // Event: RepairCreated
+      signalRService.onRepairCreated((data: RepairCreatedEvent) => {
+        console.log("RepairCreated:", data);
+        
+        setRepairSteps(prev => 
+          prev.map(step => {
+            if (step.jobId === data.jobId) {
+              const [hours, minutes] = data.estimatedTime.split(":").map(Number);
+              return {
+                ...step,
+                repairId: data.repairId,
+                description: data.description,
+                notes: data.notes || "", 
+                status: "InProgress" as const,
+                startTime: data.startTime,
+                estimatedHours: hours || 0,
+                estimatedMinutes: minutes || 0,
+                estimatedTimeShort: `${hours.toString().padStart(2, "0")}h ${minutes.toString().padStart(2, "0")}m`
+              };
+            }
+            return step;
+          })
+        );
+        showSuccessToastMessage("New repair created!");
+      });
+
+      // Event: RepairUpdated
+      signalRService.onRepairUpdated((data: RepairUpdatedEvent) => {
+        console.log("RepairUpdated:", data);
+        
+        setRepairSteps(prev => 
+          prev.map(step => {
+            if (step.repairId === data.repairId) {
+              return {
+                ...step,
+                description: data.description,
+                notes: data.notes
+              };
+            }
+            return step;
+          })
+        );
+        showSuccessToastMessage("Repair updated!");
+      });
+
+      // Event: JobStatusChanged
+      signalRService.onJobStatusChanged((data: JobStatusChangedEvent) => {
+        console.log("JobStatusChanged:", data);
+        
+        const statusMap: Record<string, RepairStep["status"]> = {
+          "New": "New",
+          "InProgress": "InProgress",
+          "Completed": "Completed",
+          "OnHold": "OnHold"
+        };
+
+        const newStatus = statusMap[data.status];
+        if (!newStatus) return;
+
+        setRepairSteps(prev => 
+          prev.map(step => {
+            if (step.jobId === data.jobId) {
+              return {
+                ...step,
+                status: newStatus,
+                endTime: newStatus === "Completed" ? new Date().toISOString() : step.endTime
+              };
+            }
+            return step;
+          })
+        );
+        showSuccessToastMessage(`Status: ${data.status}`);
+      });
+
+    } catch (error) {
+      console.error("SignalR Setup failed:", error);
+      setSignalRConnected(false);
+    }
+  };
+
+  setupSignalR();
+
+  // Cleanup
+  return () => {
+    if (vehicleInfo?.repairOrderId) {
+      signalRService.leaveRepairOrderGroup(vehicleInfo.repairOrderId);
+    }
+    signalRService.offAllEvents();
+    setSignalRConnected(false);
+  };
+}, [vehicleInfo?.repairOrderId]);
+
 
   const statusConfig = {
     New: {
@@ -546,6 +655,7 @@ const handleSaveProgress = async () => {
 
   return (
     <div className="bg-[url('/images/image9.png')] bg-cover bg-no-repeat h-full p-4 rounded-lg shadow-md">
+      
       {showSuccessToast && (
         <div className="fixed top-4 right-4 z-50 animate-slide-in-right">
           <div className="bg-green-600 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3">
@@ -557,22 +667,33 @@ const handleSaveProgress = async () => {
         </div>
       )}
 
-      <div className="relative inline-block mb-6">
-        <div className="absolute inset-0 w-full max-w-md bg-white/70 shadow-md rounded-lg"></div>
-        <div className="relative flex items-center gap-2 px-6 py-2">
-          <button onClick={() => router.back()} className="p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors duration-200 mr-2">
-              <ArrowLeft className="w-5 h-5 text-gray-600" />
-            </button>
-          <div className="p-2 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-lg">
-            <Settings className="w-7 h-7 text-white" />
-          </div>
-          <div className="flex flex-col items-start">
-            <h2 className="text-[24px] font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent italic">
-              {vehicleInfo.vehicle}
-            </h2>
-          </div>
-        </div>
+     <div className="relative inline-block mb-6">
+  <div className="absolute inset-0 w-full max-w-md bg-white/70 shadow-md rounded-lg"></div>
+  <div className="relative flex items-center gap-2 px-6 py-2">
+    <button onClick={() => router.back()} className="p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors duration-200 mr-2">
+      <ArrowLeft className="w-5 h-5 text-gray-600" />
+    </button>
+    <div className="p-2 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-lg">
+      <Settings className="w-7 h-7 text-white" />
+    </div>
+    <div className="flex flex-col items-start">
+      <div className="flex items-center gap-2">
+        <h2 className="text-[24px] font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent italic">
+          {vehicleInfo.vehicle}
+        </h2>
+        {/* SignalR Status Indicator - Chấm tròn */}
+        <div 
+          className={`w-3 h-3 rounded-full transition-all duration-300 ${
+            signalRConnected 
+              ? "bg-green-500 animate-pulse shadow-lg shadow-green-400" 
+              : "bg-red-500 shadow-lg shadow-red-400"
+          }`}
+          title={signalRConnected ? "Real-time Connected" : "Disconnected"}
+        />
       </div>
+    </div>
+  </div>
+</div>
 
       <div className="max-w-6xl mx-auto max-h-[70vh] overflow-y-auto rounded-xl rounded-scroll">
         <div className="mb-6">
