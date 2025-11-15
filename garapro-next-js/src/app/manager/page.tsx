@@ -3,7 +3,7 @@
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { Calendar, Settings, Users, BarChart3 } from "lucide-react"
+import { Calendar, Settings, Users, BarChart3, Wrench } from "lucide-react"
 
 export default function ManagerDashboard() {
   return (
@@ -87,6 +87,25 @@ export default function ManagerDashboard() {
             <Link href="/manager/repairOrderManagement/ro-board">
               <Button className="w-full">
                 Open Job Board
+              </Button>
+            </Link>
+          </div>
+        </Card>
+
+        <Card className="p-6">
+          <div className="flex items-center space-x-4">
+            <Wrench className="h-8 w-8 text-primary" />
+            <div>
+              <h3 className="text-lg font-semibold">Technician Assignments</h3>
+              <p className="text-sm text-muted-foreground">
+                View real-time technician assignment notifications
+              </p>
+            </div>
+          </div>
+          <div className="mt-4">
+            <Link href="/manager/technician-assignment-demo">
+              <Button className="w-full">
+                View Demo
               </Button>
             </Link>
           </div>

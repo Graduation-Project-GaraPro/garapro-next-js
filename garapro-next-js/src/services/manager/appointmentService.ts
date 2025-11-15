@@ -1,244 +1,402 @@
-import { 
-  ManagerAppointment, 
-  CreateManagerAppointmentData, 
-  UpdateManagerAppointmentData, 
-  AppointmentFilter 
-} from "@/types/manager/appointment";
+import { apiClient } from "./api-client";
+import { authService } from "@/services/authService";
+import { branchService } from "@/services/branch-service";
+import type { ManagerRepairRequestDto, ManagerRepairRequest } from "@/types/manager/repair-request";
 
-// Mock data for manager appointments view
-const mockManagerAppointments: ManagerAppointment[] = [
-  {
-    id: "1",
-    time: "09:00",
-    customer: "John Smith",
-    service: "Oil Change",
-    status: "confirmed",
-    phone: "(555) 123-4567",
-    email: "john.smith@email.com",
-    vehicle: "2020 Honda Civic",
-    notes: "Customer requested synthetic oil. Last service 6 months ago.",
-    date: "2025-01-20",
-    duration: 45,
-    technician: "Mike Johnson",
-    estimatedCost: 89.99,
-  },
-  {
-    id: "2",
-    time: "10:30",
-    customer: "Sarah Johnson",
-    service: "Brake Inspection",
-    status: "pending",
-    phone: "(555) 234-5678",
-    email: "sarah.j@email.com",
-    vehicle: "2018 Toyota Camry",
-    notes: "Customer reports squeaking noise when braking.",
-    date: "2025-01-20",
-    duration: 60,
-    estimatedCost: 125.00,
-  },
-  {
-    id: "3",
-    time: "14:00",
-    customer: "Mike Wilson",
-    service: "Engine Diagnostic",
-    status: "confirmed",
-    phone: "(555) 345-6789",
-    email: "mike.wilson@email.com",
-    vehicle: "2019 Ford F-150",
-    notes: "Check engine light on. Possible transmission issue.",
-    date: "2025-01-20",
-    duration: 90,
-    technician: "David Brown",
-    estimatedCost: 175.00,
-  },
-  {
-    id: "4",
-    time: "08:00",
-    customer: "Lisa Brown",
-    service: "Tire Rotation",
-    status: "confirmed",
-    phone: "(555) 456-7890",
-    email: "lisa.brown@email.com",
-    vehicle: "2021 Subaru Outback",
-    notes: "Regular maintenance. Customer is a VIP.",
-    date: "2025-01-21",
-    duration: 30,
-    technician: "Mike Johnson",
-    estimatedCost: 45.00,
-  },
-  {
-    id: "5",
-    time: "11:00",
-    customer: "David Lee",
-    service: "Transmission Service",
-    status: "in-progress",
-    phone: "(555) 567-8901",
-    email: "david.lee@email.com",
-    vehicle: "2017 BMW 3 Series",
-    notes: "Transmission fluid change and filter replacement.",
-    date: "2025-01-21",
-    duration: 120,
-    technician: "Tom Wilson",
-    estimatedCost: 250.00,
-  },
-  {
-    id: "6",
-    time: "09:30",
-    customer: "Emma Davis",
-    service: "AC Repair",
-    status: "confirmed",
-    phone: "(555) 678-9012",
-    email: "emma.davis@email.com",
-    vehicle: "2019 Mercedes C-Class",
-    notes: "AC not cooling properly. May need refrigerant.",
-    date: "2025-01-22",
-    duration: 75,
-    technician: "David Brown",
-    estimatedCost: 195.00,
-  },
-  {
-    id: "7",
-    time: "13:00",
-    customer: "Tom Anderson",
-    service: "Battery Replacement",
-    status: "pending",
-    phone: "(555) 789-0123",
-    email: "tom.anderson@email.com",
-    vehicle: "2016 Jeep Wrangler",
-    notes: "Battery died twice this week. Needs replacement.",
-    date: "2025-01-22",
-    duration: 45,
-    estimatedCost: 145.00,
-  },
-  {
-    id: "8",
-    time: "15:30",
-    customer: "Amy White",
-    service: "Wheel Alignment",
-    status: "confirmed",
-    phone: "(555) 890-1234",
-    email: "amy.white@email.com",
-    vehicle: "2020 Nissan Altima",
-    notes: "Car pulling to the right. Recent tire replacement.",
-    date: "2025-01-22",
-    duration: 60,
-    technician: "Mike Johnson",
-    estimatedCost: 110.00,
-  },
-];
+export interface RepairRequestFilter {
+  status?: "pending" | "completed" | "cancelled" | "in-progress" | "confirmed";
+  service?: string;
+  dateRange?: {
+    start: Date;
+    end: Date;
+  };
+}
 
-// Helper function to simulate API delay
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+// Helper function to add display properties to repair request
+const enrichRepairRequest = (request: ManagerRepairRequestDto): ManagerRepairRequest => {
+  // Always use arrivalWindowStart if it exists and is not the default value
+  // Default value indicates no arrival window is set, so we fall back to requestDate
+  const isDefaultArrivalWindow = request.arrivalWindowStart && (
+    request.arrivalWindowStart.startsWith("0001-01-01") ||
+    request.arrivalWindowStart === "0001-01-01T00:00:00+00:00" ||
+    request.arrivalWindowStart.includes("0001-01-01")
+  )
+  
+  const hasValidArrivalWindow = !!request.arrivalWindowStart && !isDefaultArrivalWindow
+  
+  // Always prioritize arrivalWindowStart if it exists and is valid
+  const timeSource = hasValidArrivalWindow ? request.arrivalWindowStart! : request.requestDate
+  const dateSource = hasValidArrivalWindow ? request.arrivalWindowStart! : request.requestDate
+  
+  console.log(`[enrichRepairRequest] Request ID: ${request.requestID}`)
+  console.log(`[enrichRepairRequest] arrivalWindowStart: ${request.arrivalWindowStart}`)
+  console.log(`[enrichRepairRequest] requestDate: ${request.requestDate}`)
+  console.log(`[enrichRepairRequest] isDefaultArrivalWindow: ${isDefaultArrivalWindow}`)
+  console.log(`[enrichRepairRequest] hasValidArrivalWindow: ${hasValidArrivalWindow}`)
+  console.log(`[enrichRepairRequest] Using timeSource: ${timeSource}`)
+  
+  // Extract date FIRST from the string before timezone conversion (to avoid timezone offset issues)
+  // This ensures we get the date as it appears in the ISO string, not converted to local timezone
+  const dateString = dateSource.split('T')[0]
+  console.log(`[enrichRepairRequest] Extracted date string (before conversion): ${dateString}`)
+  
+  // Extract time from timeSource (ISO format: "2025-11-14T10:30:00" or "2025-11-14T10:30:00+00:00")
+  // Parse the date string to get UTC time components directly
+  // For strings like "2025-11-15T09:30:00+00:00", extract time directly from the string
+  let timeString: string
+  let timeDate: Date
+  
+  // Extract time directly from the ISO string to avoid timezone conversion
+  const timeMatch = timeSource.match(/T(\d{2}):(\d{2}):(\d{2})/)
+  if (timeMatch) {
+    // Extract hours and minutes directly from the string (UTC time)
+    const hours = parseInt(timeMatch[1], 10)
+    const minutes = parseInt(timeMatch[2], 10)
+    timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`
+    console.log(`[enrichRepairRequest] Extracted time directly from string: ${timeString}`)
+    
+    // Create date object for validation (but we already have the time from string)
+    timeDate = new Date(timeSource)
+  } else {
+    // Fallback: parse as date if pattern doesn't match
+    timeDate = new Date(timeSource)
+    if (isNaN(timeDate.getTime())) {
+      // If parsing fails, try adding Z for UTC
+      timeDate = new Date(timeSource + 'Z')
+    }
+    const hours = timeDate.getUTCHours()
+    const minutes = timeDate.getUTCMinutes()
+    timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`
+  }
+  
+  // Validate the date (timeString should already be set from above)
+  if (isNaN(timeDate.getTime())) {
+    console.warn(`[enrichRepairRequest] Invalid date for timeSource: ${timeSource}, falling back to requestDate`)
+    const fallbackTimeMatch = request.requestDate.match(/T(\d{2}):(\d{2}):(\d{2})/)
+    let fallbackTimeString: string
+    const fallbackDateString = request.requestDate.split('T')[0]
+    
+    if (fallbackTimeMatch) {
+      const hours = parseInt(fallbackTimeMatch[1], 10)
+      const minutes = parseInt(fallbackTimeMatch[2], 10)
+      fallbackTimeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`
+    } else {
+      const fallbackDate = new Date(request.requestDate)
+      const hours = fallbackDate.getUTCHours()
+      const minutes = fallbackDate.getUTCMinutes()
+      fallbackTimeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`
+    }
+    
+    console.log(`[enrichRepairRequest] Using fallback - time: ${fallbackTimeString}, date: ${fallbackDateString}`)
+    
+    // Calculate status and other properties for fallback
+    // Use the status from the API if it exists, otherwise use the old logic
+    let status: "pending" | "completed" | "cancelled" | "in-progress" | "confirmed" | "accept" | undefined = "pending"
+    if ('status' in request && request.status) {
+      // Normalize the status to lowercase and map to our expected values
+      const apiStatus = (request.status as string).toLowerCase()
+      switch (apiStatus) {
+        case "completed":
+          status = "completed"
+          break
+        case "cancelled":
+        case "cancel":
+          status = "cancelled"
+          break
+        case "in-progress":
+        case "inprogress":
+          status = "in-progress"
+          break
+        case "confirmed":
+          status = "confirmed"
+          break
+        case "accept":
+        case "accepted":
+          status = "accept"
+          break
+        case "pending":
+        default:
+          status = "pending"
+          break
+      }
+    } else {
+      // Old logic for determining status
+      if (request.isCompleted || request.completedDate) {
+        status = "completed"
+      } else if (request.description?.toLowerCase().includes("cancelled") || 
+                 request.description?.toLowerCase().includes("cancel")) {
+        status = "cancelled"
+      }
+    }
+    
+    const serviceName = request.services && request.services.length > 0
+      ? request.services.map(s => s.serviceName).join(", ")
+      : request.description || "Repair Service"
+    
+    const estimatedCost = request.services?.reduce((total, service) => {
+      const partsCost = service.requestParts?.reduce((sum, part) => sum + part.unitPrice, 0) || 0
+      return total + service.serviceFee + partsCost
+    }, 0) || 0
+    
+    return {
+      ...request,
+      time: fallbackTimeString,
+      date: fallbackDateString,
+      status: status,
+      displayService: serviceName,
+      estimatedCost: estimatedCost,
+    }
+  }
+  
+  console.log(`[enrichRepairRequest] Final - time: ${timeString}, date: ${dateString}`)
+  
+  // Determine status based on API status field if it exists, otherwise use old logic
+  let status: "pending" | "completed" | "cancelled" | "in-progress" | "confirmed" | "accept" | undefined = undefined
+  if ('status' in request && request.status) {
+    // Normalize the status to lowercase and map to our expected values
+    const apiStatus = (request.status as string).toLowerCase()
+    switch (apiStatus) {
+      case "completed":
+        status = "completed"
+        break
+      case "cancelled":
+      case "cancel":
+        status = "cancelled"
+        break
+      case "in-progress":
+      case "inprogress":
+        status = "in-progress"
+        break
+      case "confirmed":
+        status = "confirmed"
+        break
+      case "accept":
+      case "accepted":
+        status = "accept"
+        break
+      case "pending":
+      default:
+        status = "pending"
+        break
+    }
+  } else {
+    // Old logic for determining status
+    if (request.isCompleted || request.completedDate) {
+      status = "completed"
+    } else if (request.description?.toLowerCase().includes("cancelled") || 
+               request.description?.toLowerCase().includes("cancel")) {
+      status = "cancelled"
+    } else {
+      // Default to pending if no other conditions are met
+      status = "pending"
+    }
+  }
+  
+  // Get service name from services array or use description
+  const serviceName = request.services && request.services.length > 0
+    ? request.services.map(s => s.serviceName).join(", ")
+    : request.description || "Repair Service"
+  
+  // Calculate estimated cost from services
+  const estimatedCost = request.services?.reduce((total, service) => {
+    const partsCost = service.requestParts?.reduce((sum, part) => sum + part.unitPrice, 0) || 0
+    return total + service.serviceFee + partsCost
+  }, 0) || 0
 
-export const managerAppointmentService = {
-  // Get all appointments with optional filtering
-  getAppointments: async (filter?: AppointmentFilter): Promise<ManagerAppointment[]> => {
-    await delay(500);
-    let filteredAppointments = [...mockManagerAppointments];
+  return {
+    ...request,
+    time: timeString,
+    date: dateString,
+    status: status,
+    displayService: serviceName,
+    estimatedCost: estimatedCost,
+  }
+}
 
+class RepairRequestService {
+  private baseUrl = "/api/ManagerRepairRequest"
+
+  /**
+   * Fetch all repair requests for the current user's branch
+   */
+  private async getRepairRequestsByBranch(): Promise<ManagerRepairRequestDto[]> {
+    try {
+      // Get current user ID
+      const currentUser = authService.getCurrentUser()
+      const userId = currentUser.userId
+      
+      if (!userId) {
+        console.error("User not authenticated")
+        return []
+      }
+      
+      // Get the user's branch
+      const userBranch = await branchService.getCurrentUserBranch(userId)
+      console.log("User branch:", userBranch)
+      if (!userBranch) {
+        console.error("Unable to determine user's branch")
+        return []
+      }
+      
+      // Call the branch-specific endpoint
+      const endpoint = `${this.baseUrl}/branch/${userBranch.branchId}`
+      console.log("[RepairRequestService] Calling API endpoint:", endpoint)
+      const response = await apiClient.get<ManagerRepairRequestDto[]>(endpoint)
+      console.log("[RepairRequestService] API response:", response)
+      console.log("[RepairRequestService] Response type:", typeof response)
+      console.log("[RepairRequestService] Response.data:", response.data)
+      console.log("[RepairRequestService] Is response.data an array?", Array.isArray(response.data))
+      
+      // The API returns an array directly, but apiClient wraps it in response.data
+      if (Array.isArray(response.data)) {
+        console.log("[RepairRequestService] Returning response.data array with", response.data.length, "items")
+        return response.data
+      }
+      
+      // Handle edge cases - sometimes API might return array directly
+      if (Array.isArray(response)) {
+        console.log("[RepairRequestService] Response itself is an array with", response.length, "items")
+        return response as ManagerRepairRequestDto[]
+      }
+      
+      // Check if response has a different structure
+      if (response && typeof response === 'object' && !Array.isArray(response)) {
+        console.log("[RepairRequestService] Response keys:", Object.keys(response))
+        // Some APIs might wrap in a different property
+        if ('data' in response && response.data && typeof response.data === 'object') {
+          const dataObj = response.data as Record<string, unknown>
+          if ('items' in dataObj && Array.isArray(dataObj.items)) {
+            console.log("[RepairRequestService] Found items array")
+            return dataObj.items as ManagerRepairRequestDto[]
+          }
+          if ('results' in dataObj && Array.isArray(dataObj.results)) {
+            console.log("[RepairRequestService] Found results array")
+            return dataObj.results as ManagerRepairRequestDto[]
+          }
+        }
+      }
+
+      console.warn("[RepairRequestService] No valid array found in response, returning empty array")
+      return []
+    } catch (error) {
+      console.error("[RepairRequestService] Failed to fetch repair requests:", error)
+      if (error instanceof Error) {
+        console.error("[RepairRequestService] Error message:", error.message)
+        console.error("[RepairRequestService] Error stack:", error.stack)
+      } else {
+        console.error("[RepairRequestService] Error object:", JSON.stringify(error, null, 2))
+      }
+      return []
+    }
+  }
+
+  // Get all repair requests from API with optional filtering
+  async getRepairRequests(filter?: RepairRequestFilter): Promise<ManagerRepairRequest[]> {
+    try {
+      console.log("[RepairRequestService] Fetching repair requests...")
+      // Fetch repair requests from API
+      const repairRequests = await this.getRepairRequestsByBranch()
+      console.log("[RepairRequestService] Raw repair requests:", repairRequests)
+      console.log("[RepairRequestService] Number of repair requests:", repairRequests.length)
+      
+      // Enrich with display properties
+      let enrichedRequests = repairRequests.map(enrichRepairRequest)
+      console.log("[RepairRequestService] Enriched repair requests:", enrichedRequests)
+      console.log("[RepairRequestService] Number of enriched requests:", enrichedRequests.length)
+      
+      // Apply filters if provided
     if (filter) {
       if (filter.status) {
-        filteredAppointments = filteredAppointments.filter(
-          apt => apt.status === filter.status
-        );
+          enrichedRequests = enrichedRequests.filter(
+            req => req.status === filter.status
+          )
       }
       if (filter.service) {
-        filteredAppointments = filteredAppointments.filter(
-          apt => apt.service.toLowerCase().includes(filter.service!.toLowerCase())
-        );
-      }
-      if (filter.technician) {
-        filteredAppointments = filteredAppointments.filter(
-          apt => apt.technician?.toLowerCase().includes(filter.technician!.toLowerCase())
-        );
+          enrichedRequests = enrichedRequests.filter(
+            req => req.displayService?.toLowerCase().includes(filter.service!.toLowerCase())
+          )
       }
       if (filter.dateRange) {
-        filteredAppointments = filteredAppointments.filter(apt => {
-          const aptDate = new Date(apt.date);
-          return aptDate >= filter.dateRange!.start && aptDate <= filter.dateRange!.end;
-        });
+          enrichedRequests = enrichedRequests.filter(req => {
+            if (!req.date) return false
+            const reqDate = new Date(req.date)
+            return reqDate >= filter.dateRange!.start && reqDate <= filter.dateRange!.end
+          })
+        }
       }
+      
+      console.log("[RepairRequestService] Returning", enrichedRequests.length, "repair requests")
+      return enrichedRequests
+    } catch (error) {
+      console.error("[RepairRequestService] Failed to fetch repair requests:", error)
+      if (error instanceof Error) {
+        console.error("[RepairRequestService] Error message:", error.message)
+        console.error("[RepairRequestService] Error stack:", error.stack)
+      }
+      return []
     }
+  }
 
-    return filteredAppointments;
-  },
+  // Get repair requests for a specific date
+  async getRepairRequestsByDate(date: string): Promise<ManagerRepairRequest[]> {
+    const allRequests = await this.getRepairRequests()
+    return allRequests.filter(req => req.date === date)
+  }
 
-  // Get appointments for a specific date
-  getAppointmentsByDate: async (date: string): Promise<ManagerAppointment[]> => {
-    await delay(300);
-    return mockManagerAppointments.filter(apt => apt.date === date);
-  },
-
-  // Get a specific appointment by ID
-  getAppointmentById: async (id: string): Promise<ManagerAppointment | null> => {
-    await delay(300);
-    const appointment = mockManagerAppointments.find(apt => apt.id === id);
-    return appointment ? { ...appointment } : null;
-  },
-
-  // Create a new appointment
-  createAppointment: async (data: CreateManagerAppointmentData): Promise<ManagerAppointment> => {
-    await delay(800);
-    const newId = (Math.max(...mockManagerAppointments.map(apt => parseInt(apt.id))) + 1).toString();
-    const newAppointment: ManagerAppointment = {
-      id: newId,
-      ...data,
-      status: "pending",
-    };
-    mockManagerAppointments.push(newAppointment);
-    return { ...newAppointment };
-  },
-
-  // Update an existing appointment
-  updateAppointment: async (id: string, data: UpdateManagerAppointmentData): Promise<ManagerAppointment> => {
-    await delay(600);
-    const index = mockManagerAppointments.findIndex(apt => apt.id === id);
-    if (index === -1) {
-      throw new Error(`Appointment with ID ${id} not found`);
+  // Get a specific repair request by ID (enriched with display properties)
+  async getRepairRequestById(id: string): Promise<ManagerRepairRequest | null> {
+    try {
+      const response = await apiClient.get<ManagerRepairRequestDto>(`${this.baseUrl}/${id}`)
+      if (response.data) {
+        return enrichRepairRequest(response.data)
+      }
+      return null
+    } catch (error) {
+      console.error(`Failed to fetch repair request ${id}:`, error)
+      return null
     }
-    mockManagerAppointments[index] = { ...mockManagerAppointments[index], ...data };
-    return { ...mockManagerAppointments[index] };
-  },
+  }
 
-  // Delete/Cancel an appointment
-  deleteAppointment: async (id: string): Promise<void> => {
-    await delay(500);
-    const index = mockManagerAppointments.findIndex(apt => apt.id === id);
-    if (index === -1) {
-      throw new Error(`Appointment with ID ${id} not found`);
+  // Approve a repair request
+  async approveRepairRequest(requestId: string): Promise<boolean> {
+    try {
+      const endpoint = `${this.baseUrl}/${requestId}/approve`;
+      const response = await apiClient.put(endpoint);
+      return response.success;
+    } catch (error) {
+      console.error(`Failed to approve repair request ${requestId}:`, error);
+      return false;
     }
-    mockManagerAppointments.splice(index, 1);
-  },
+  }
 
-  // Update appointment status
-  updateAppointmentStatus: async (id: string, status: ManagerAppointment["status"]): Promise<ManagerAppointment> => {
-    await delay(400);
-    const index = mockManagerAppointments.findIndex(apt => apt.id === id);
-    if (index === -1) {
-      throw new Error(`Appointment with ID ${id} not found`);
+  // Reject a repair request
+  async rejectRepairRequest(requestId: string): Promise<boolean> {
+    try {
+      const endpoint = `${this.baseUrl}/${requestId}/reject`;
+      const response = await apiClient.put(endpoint);
+      return response.success;
+    } catch (error) {
+      console.error(`Failed to reject repair request ${requestId}:`, error);
+      return false;
     }
-    mockManagerAppointments[index].status = status;
-    return { ...mockManagerAppointments[index] };
-  },
+  }
 
-  // Get appointment statistics
-  getAppointmentStats: async (): Promise<{
-    total: number;
-    confirmed: number;
-    pending: number;
-    inProgress: number;
-    completed: number;
-    cancelled: number;
-  }> => {
-    await delay(400);
-    const stats = mockManagerAppointments.reduce(
-      (acc, apt) => {
-        acc.total++;
-        acc[apt.status === "in-progress" ? "inProgress" : apt.status]++;
-        return acc;
-      },
-      { total: 0, confirmed: 0, pending: 0, inProgress: 0, completed: 0, cancelled: 0 }
-    );
-    return stats;
-  },
-};
+  // Convert repair request to repair order
+  async convertToRepairOrder(requestId: string, data: {
+    note: string;
+    selectedServiceIds: string[];
+  }): Promise<boolean> {
+    try {
+      const endpoint = `${this.baseUrl}/${requestId}/convert-to-ro`;
+      const response = await apiClient.post(endpoint, data);
+      return response.success;
+    } catch (error) {
+      console.error(`Failed to convert repair request ${requestId} to repair order:`, error);
+      return false;
+    }
+  }
+}
+
+export const repairRequestService = new RepairRequestService()
+// Keep old export name for backward compatibility
+export const managerAppointmentService = repairRequestService
