@@ -18,6 +18,30 @@ export interface UpdateInspectionRequest {
 export interface AddServiceToInspectionRequest {
   ServiceId: string;
 }
+export const getTechnicianId = async (): Promise<string | null> => {
+  try {
+    const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
+    if (!token) {
+      throw new Error("Missing authentication token");
+    }
+
+    const response = await axios.get(`${API_URL}/my-inspections`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    const data = response.data.value || response.data;
+    if (data && data.length > 0 && data[0].technicianId) {
+      return data[0].technicianId;
+    }
+
+    return null;
+  } catch (error) {
+    console.error("Error fetching technician ID:", error);
+    return null;
+  }
+};
+
 // Lấy danh sách inspections
 export const getMyInspections = async () => {  
   try {

@@ -3,6 +3,8 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { getMyJobs } from "@/services/technician/jobTechnicianService";
 import { useRouter } from "next/navigation";
+import jobSignalRService, { JobAssignedEvent, JobReassignedEvent } from "@/services/technician/jobSignalRService";
+import { getTechnicianId } from "@/services/technician/jobTechnicianService";
 import {
   CheckCircle,
   Clock,
@@ -34,7 +36,7 @@ type TaskPriority = "high" | "medium" | "low";
 
 // Define the structure of a task
 interface Task {
-  id: number;
+  id: string | number;
   vehicle: string;
   issue: string;
   jobName: string;
@@ -122,7 +124,8 @@ export default function TaskManagement() {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
-  
+  const [technicianId, setTechnicianId] = useState<string | null>(null);
+  const [signalRConnected, setSignalRConnected] = useState(false);
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(6);
@@ -250,6 +253,129 @@ export default function TaskManagement() {
 
     fetchJobs();
   }, [currentPage, pageSize]);
+
+  useEffect(() => {
+  const setupSignalR = async () => {
+    try {
+      // Lấy technicianId
+      const id = await getTechnicianId();
+      if (!id) {
+        console.warn("Could not get technician ID");
+        return;
+      }
+      setTechnicianId(id);
+      console.log("TechnicianId:", id);
+
+      // Start SignalR connection
+      await jobSignalRService.startConnection();
+      setSignalRConnected(true);
+      
+      // Join group
+      await jobSignalRService.joinTechnicianGroup(id);
+
+      // Event 1: JobAssigned - Khi Manager assign job mới
+      jobSignalRService.onJobAssigned(async (data: JobAssignedEvent) => {
+        console.log("JobAssigned event:", data);
+
+        // Fetch full job list để lấy data đầy đủ
+        try {
+          const fullData: JobResponse[] = await getMyJobs();
+          const newJob = fullData.find((x) => x.jobId === data.jobId);
+
+          if (newJob) {
+            const vehicleName = newJob.vehicle
+              ? `${newJob.vehicle.brand?.brandName || ""} ${newJob.vehicle.model?.modelName || ""}`.trim() || "Unknown"
+              : "Unknown";
+
+            let normalizedStatus: TaskStatus = "new";
+            if (newJob.status) {
+              const statusLower = newJob.status.toLowerCase();
+              if (statusLower === "inprogress" || statusLower === "in-progress") {
+                normalizedStatus = "in-progress";
+              } else if (statusLower === "onhold" || statusLower === "on-hold") {
+                normalizedStatus = "on-hold";
+              } else if (statusLower === "completed") {
+                normalizedStatus = "completed";
+              } else if (statusLower === "new") {
+                normalizedStatus = "new";
+              }
+            }
+
+            let progress = 0;
+            switch (normalizedStatus) {
+              case "in-progress":
+                progress = 50;
+                break;
+              case "completed":
+                progress = 100;
+                break;
+              case "on-hold":
+                progress = 30;
+                break;
+              default:
+                progress = 0;
+            }
+
+            const deadlineStr = newJob.deadline ? new Date(newJob.deadline).toLocaleDateString("en-GB") : "N/A";
+
+            const mappedTask: Task = {
+              id: newJob.jobId || (newJob.repairOrderId ?? Math.random()),
+              vehicle: vehicleName,
+              issue: newJob.note || "N/A",
+              jobName: newJob.jobName || "N/A",
+              time: deadlineStr,
+              status: normalizedStatus,
+              progress,
+              priority: "medium",
+              technician:
+                newJob.technicians && newJob.technicians.length > 0
+                  ? newJob.technicians[0].fullName || "Technician"
+                  : "Technician",
+              licensePlate: newJob.vehicle?.licensePlate || "N/A",
+              owner: newJob.customer?.fullName || "Unknown",
+              phone: newJob.customer?.phoneNumber || "N/A",
+              description: newJob.repair?.description || newJob.note || "No description",
+            };
+
+            // Thêm vào đầu danh sách
+            setTasks((prev) => [mappedTask, ...prev]);
+            setTotalCount((prev) => prev + 1);
+            setTotalPages(Math.ceil((totalCount + 1) / pageSize));
+
+          }
+        } catch (error) {
+          console.error("Error fetching new job details:", error);
+        }
+      });
+
+      jobSignalRService.onJobReassigned(async (data: JobReassignedEvent) => {
+        console.log("JobReassigned event:", data);
+        try {
+          const fullData: JobResponse[] = await getMyJobs();
+          const newJob = fullData.find((x) => x.jobId === data.jobId);
+
+          if (newJob) {
+            alert(`A job has been reassigned to you!\nJob: ${data.jobName}`);
+          }
+        } catch (error) {
+          console.error("Error fetching reassigned job details:", error);
+        }
+      });
+
+    } catch (error) {
+      console.error("SignalR setup failed:", error);
+      setSignalRConnected(false);
+    }
+  };
+
+  setupSignalR();
+  return () => {
+    if (technicianId) {
+      jobSignalRService.leaveTechnicianGroup(technicianId);
+    }
+    jobSignalRService.offAllEvents();
+  };
+}, []);
 
   // Memoized status configuration
   const statusConfig: StatusConfigMap = useMemo(() => ({
@@ -480,11 +606,24 @@ export default function TaskManagement() {
               <ClipboardList className="w-7 h-7 text-white" />
             </div>
             <div className="flex flex-col items-start">
+              <div className="flex items-center gap-2">
               <h2 className="text-[29px] font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent italic">
                 Task Management
               </h2>
+              <div 
+                  className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                    signalRConnected 
+                      ? "bg-green-500 animate-pulse shadow-lg shadow-green-400" 
+                      : "bg-red-500 shadow-lg shadow-red-400"
+                  }`}
+                  title={signalRConnected ? "Real-time Connected" : "Disconnected"}
+                />
+              </div>
+              
               <p className="text-gray-700 italic">Manage your vehicle service tasks efficiently</p>
-            </div>
+            
+          </div>
+            
           </div>
         </div>
 
@@ -786,8 +925,8 @@ const TaskDetailModal = ({
             </h3>
             <div className="space-y-3">
               <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-gray-600">Issues:</span>
-                <p className="text-lg font-semibold text-gray-900">{task.issue}</p>
+                <span className="text-sm font-medium text-gray-600">Job Name:</span>
+                <p className="text-lg font-semibold text-gray-900">{task.jobName}</p>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium text-gray-600">Technician:</span>

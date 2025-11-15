@@ -26,7 +26,8 @@ import {
 } from "lucide-react";
 
 import { getMyInspections, startInspection } from "@/services/technician/inspectionTechnicianService"; 
-
+import inspectionSignalRService, { InspectionAssignedEvent } from "@/services/technician/inspectionSignalRService";
+import { getTechnicianId } from "@/services/technician/inspectionTechnicianService";
 type TaskStatus = "New" | "Pending" | "InProgress" | "Completed";
 
 interface InspectionJob {
@@ -63,7 +64,8 @@ export default function VehicleInspection() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [startingId, setStartingId] = useState<string | null>(null);
-  
+  const [technicianId, setTechnicianId] = useState<string | null>(null);
+  const [signalRConnected, setSignalRConnected] = useState(false);
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(6);
@@ -108,6 +110,73 @@ export default function VehicleInspection() {
     fetchInspections();
   }, [currentPage, pageSize]);
 
+  useEffect(() => {
+  const setupSignalR = async () => {
+    try {
+      // Lấy technicianId
+      const id = await getTechnicianId();
+      if (!id) {
+        console.warn("Could not get technician ID");
+        return;
+      }
+      setTechnicianId(id);
+      console.log("TechnicianId:", id);
+
+      // Start SignalR connection
+      await inspectionSignalRService.startConnection();
+      setSignalRConnected(true);
+      
+      // Join group
+      await inspectionSignalRService.joinTechnicianGroup(id);
+
+      // Listen to InspectionAssigned event
+      inspectionSignalRService.onInspectionAssigned(async (data: InspectionAssignedEvent) => {
+        console.log("InspectionAssigned event:", data);
+
+        // Fetch full inspection data từ API
+        try {
+          const fullData: ApiInspection[] = await getMyInspections();
+          const newInspection = fullData.find((x) => x.inspectionId === data.inspectionId);
+
+          if (newInspection) {
+            const mapped: InspectionJob = {
+              id: newInspection.inspectionId,
+              vehicle: `${newInspection.repairOrder?.vehicle?.brand?.brandName || ""} ${newInspection.repairOrder?.vehicle?.model?.modelName || ""}`.trim() || "Unknown",
+              licensePlate: newInspection.repairOrder?.vehicle?.licensePlate || "N/A",
+              customer: newInspection.repairOrder?.customer?.fullName || "Unknown",
+              assignedDate: newInspection.createdAt 
+                ? new Date(newInspection.createdAt).toLocaleDateString("vi-VN") 
+                : "N/A",
+              status: (newInspection.statusText as TaskStatus) || "New",
+            };
+
+            setInspections((prev) => [mapped, ...prev]);
+            setTotalCount((prev) => prev + 1);
+            setTotalPages(Math.ceil((totalCount + 1) / pageSize));
+
+           //alert(`You have been assigned a new inspection!\nVehicle: ${mapped.vehicle}`);
+          }
+        } catch (error) {
+          console.error("Error fetching new inspection details:", error);
+        }
+      });
+
+    } catch (error) {
+      console.error("SignalR setup failed:", error);
+      setSignalRConnected(false);
+    }
+  };
+
+  setupSignalR();
+
+  // Cleanup
+  return () => {
+    if (technicianId) {
+      inspectionSignalRService.leaveTechnicianGroup(technicianId);
+    }
+    inspectionSignalRService.offInspectionAssigned();
+  };
+}, []);
   const fetchInspections = async () => {
     try {
       setLoading(true);
@@ -169,7 +238,7 @@ export default function VehicleInspection() {
       router.push(`/technician/inspectionAndRepair/inspection/checkVehicle?id=${id}`);
     } catch (err) {
       console.error("Failed to start inspection:", err);
-      alert("Không thể bắt đầu kiểm tra. Vui lòng thử lại.");
+      alert("The test could not be started. Please try again.");
     } finally {
       setStartingId(null);
     }
@@ -273,9 +342,19 @@ export default function VehicleInspection() {
                 <ClipboardCheck className="w-7 h-7 text-white" />
               </div>
               <div className="flex flex-col items-start">
+                <div className="flex items-center gap-2">
                 <h2 className="text-[27px] font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent italic">
                   Vehicle Condition Inspection
                 </h2>
+                <div 
+                  className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                    signalRConnected 
+                      ? "bg-green-500 animate-pulse shadow-lg shadow-green-400" 
+                      : "bg-red-500 shadow-lg shadow-red-400"
+                  }`}
+                  title={signalRConnected ? "Real-time Connected" : "Disconnected"}
+                />
+                 </div>
                 <p className="text-gray-700 italic">Advanced automotive diagnostics & quality assurance</p>
               </div>
             </div>
@@ -363,7 +442,7 @@ export default function VehicleInspection() {
                 </div>
               </div>
             )}
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-2">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-2 mt">
               {searchedVehicles.map((vehicle) => (
                 <div
                   key={vehicle.id}

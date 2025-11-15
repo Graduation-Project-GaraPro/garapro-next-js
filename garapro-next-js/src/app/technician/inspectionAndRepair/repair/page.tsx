@@ -27,7 +27,11 @@ import {
   ChevronsRight
 } from "lucide-react";
 import { getMyJobs } from "@/services/technician/jobTechnicianService";
-
+import jobSignalRService, { 
+  JobAssignedEvent, 
+  JobReassignedEvent
+} from "@/services/technician/jobSignalRService";
+import { getTechnicianId } from "@/services/technician/jobTechnicianService";
 interface Vehicle {
   id: string;
   vehicle: string;
@@ -84,7 +88,8 @@ export default function ConditionInspection() {
   const [filter, setFilter] = useState<TaskStatus | "all">("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
-  
+  const [technicianId, setTechnicianId] = useState<string | null>(null);
+  const [signalRConnected, setSignalRConnected] = useState(false);
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(6);
@@ -112,10 +117,57 @@ export default function ConditionInspection() {
     return () => clearInterval(interval);
   }, []);
 
-  // Fetch jobs from API
   useEffect(() => {
     fetchJobs();
   }, [currentPage, pageSize]);
+
+// SignalR Connection and Real-time Updates
+useEffect(() => {
+  const setupSignalR = async () => {
+    try {
+      // Lấy technicianId
+      const id = await getTechnicianId();
+      if (!id) {
+        console.warn("Could not get technician ID");
+        return;
+      }
+      setTechnicianId(id);
+      console.log("TechnicianId for ConditionInspection:", id);
+
+      await jobSignalRService.startConnection();
+      setSignalRConnected(true);
+      
+      await jobSignalRService.joinTechnicianGroup(id);
+
+      jobSignalRService.onJobAssigned(async (data: JobAssignedEvent) => {
+        console.log("JobAssigned event in ConditionInspection:", data);
+        
+        await fetchJobs();
+      });
+
+      jobSignalRService.onJobReassigned(async (data: JobReassignedEvent) => {
+        console.log("JobReassigned event in ConditionInspection:", data);
+      
+        await fetchJobs();
+      });
+
+    } catch (error) {
+      console.error("SignalR setup failed in ConditionInspection:", error);
+      setSignalRConnected(false);
+    }
+  };
+
+  setupSignalR();
+
+  // Cleanup function
+  return () => {
+    if (technicianId) {
+      jobSignalRService.leaveTechnicianGroup(technicianId);
+    }
+    jobSignalRService.offAllEvents();
+  };
+}, []);
+
 
   const fetchJobs = async () => {
     try {
@@ -173,7 +225,6 @@ export default function ConditionInspection() {
 
       setAssignedVehicles(mappedVehicles);
       
-      // Set pagination info
       setTotalCount(data.length);
       setTotalPages(Math.ceil(data.length / pageSize));
       setHasPreviousPage(currentPage > 1);
@@ -415,9 +466,20 @@ export default function ConditionInspection() {
                 <Wrench className="w-7 h-7 text-white"/>
               </div>
               <div className="flex flex-col items-start">
-                <h2 className="text-[27px] font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent italic">
-                  Vehicle Repair Progress
-                </h2>
+                <div className="flex items-center gap-2">
+        <h2 className="text-[27px] font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent italic">
+          Vehicle Repair Progress
+        </h2>
+        {/* SignalR Connection Indicator */}
+        <div 
+          className={`w-3 h-3 rounded-full transition-all duration-300 ${
+            signalRConnected 
+              ? "bg-green-500 animate-pulse shadow-lg shadow-green-400" 
+              : "bg-red-500 shadow-lg shadow-red-400"
+          }`}
+          title={signalRConnected ? "Real-time Connected" : "Disconnected"}
+        />
+      </div>
                 <p className="text-gray-600 italic">Your Repair Journey, Made Visible.</p>
               </div>
             </div>

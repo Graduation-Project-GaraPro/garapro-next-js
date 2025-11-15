@@ -1075,35 +1075,38 @@ export default function CheckConditionPage() {
 
   return (
     <div className="bg-[url('/images/image9.png')] bg-cover bg-no-repeat h-full p-4 rounded-lg shadow-md max-h-[86vh] overflow-y-auto rounded-xl">
-      <div className="flex items-center justify-between mb-2 gap-4">
-        <div className="relative inline-block mb-3">
-          <div className="absolute inset-0 w-full max-w-md bg-white/70 shadow-md rounded-lg"></div>
-          <div className="relative flex items-center gap-2 px-4 py-2">
-            <button onClick={() => router.back()} className="p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors duration-200 mr-2">
-              <ArrowLeft className="w-5 h-5 text-gray-600" />
-            </button>
-            <div className="p-2 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-lg">
-              <ClipboardCheck className="w-5 h-5 text-white" />
-            </div>
-            <div className="flex flex-col items-start">
-              <h2 className="text-[24px] font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent italic">
-                {vehicleInfo?.vehicle || "Vehicle Inspection"}
-              </h2>
-              <p className="text-sm text-gray-600">Status: {inspectionStatus}</p>
-            </div>
-          </div>
-        </div>
+<div className="flex items-center justify-between mb-2 gap-4 flex-nowrap">
+  <div className="relative inline-block mb-3 flex-shrink-0">
+    <div className="absolute inset-0 w-full max-w-md bg-white/70 shadow-md rounded-lg"></div>
+    <div className="relative flex items-center gap-2 px-4 py-2">
+      <button
+        onClick={() => router.back()}
+        className="p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors duration-200 mr-2"
+      >
+        <ArrowLeft className="w-5 h-5 text-gray-600" />
+      </button>
+      <div className="p-2 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-lg flex-shrink-0">
+        <ClipboardCheck className="w-5 h-5 text-white" />
+      </div>
+      <div className="flex flex-col items-start min-w-0">
+        <h2 className="text-[24px] font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent italic truncate max-w-[300px]">
+          {vehicleInfo?.vehicle || "Vehicle Inspection"}
+        </h2>
+        <p className="text-sm text-gray-600 truncate">Status: {inspectionStatus}</p>
+      </div>
+    </div>
+  </div>
 
-        <div className="flex items-center gap-4">
-          {canAddService && !isCompleted && (
-            <button
-              onClick={handleOpenAddServiceModal}
-              className="px-4 py-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold rounded-xl transition-all duration-200 flex items-center gap-2 shadow-lg"
-            >
-              <Plus className="w-5 h-5" />
-              <span>Add Services</span>
-            </button>
-          )}
+  <div className="flex items-center gap-4 flex-shrink-0">
+    {canAddService && !isCompleted && (
+      <button
+        onClick={handleOpenAddServiceModal}
+        className="px-4 py-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold rounded-xl transition-all duration-200 flex items-center gap-2 shadow-lg whitespace-nowrap"
+      >
+        <Plus className="w-5 h-5" />
+        <span>Add Services</span>
+      </button>
+    )}
 
           <div className="relative w-190 px-10">
             <button
