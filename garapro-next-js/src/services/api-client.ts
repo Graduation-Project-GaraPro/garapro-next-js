@@ -86,17 +86,39 @@ class ApiClient {
         processedResponse = interceptor(processedResponse)
       })
 
-      if (!processedResponse.ok) {
+      if (processedResponse.status === 204) {
+        return {
+          data: undefined as unknown as T,
+          status: 204,
+          success: true
+        }
+      }
+
+      // Special handling for customer endpoints - they may return data with 400 status
+      const isCustomerEndpoint = endpoint.includes('/Customer');
+      if (!processedResponse.ok && !isCustomerEndpoint) {
         const errorData = await this.parseErrorResponse(processedResponse)
         throw new Error(errorData.message || `HTTP error! status: ${processedResponse.status}`)
       }
 
-      const data = await processedResponse.json()
+      // For customer endpoints, try to parse the response even if status is not ok
+      let data;
+      try {
+        data = await processedResponse.json();
+      } catch (parseError) {
+        // If JSON parsing fails, throw the original error for non-customer endpoints
+        if (!isCustomerEndpoint) {
+          const errorData = await this.parseErrorResponse(processedResponse);
+          throw new Error(errorData.message || `HTTP error! status: ${processedResponse.status}`);
+        }
+        // For customer endpoints, return empty data if parsing fails
+        data = {} as T;
+      }
       
       return {
         data,
         status: processedResponse.status,
-        success: true
+        success: processedResponse.ok
       }
     } catch (error) {
       // Retry logic for network errors or 5xx responses
@@ -245,13 +267,32 @@ export const apiClient = new ApiClient()
 // Add default interceptors for common use cases
 apiClient.addRequestInterceptor((config) => {
   // Add timestamp for cache busting
-  if (config.method === 'GET') {
-    const url = new URL(config.url as string, window.location.origin)
-    url.searchParams.set('_t', Date.now().toString())
-    config.url = url.toString()
+  if (config.method === 'GET' && config.url) {
+    try {
+      const url = new URL(config.url as string, window.location.origin)
+      url.searchParams.set('_t', Date.now().toString())
+      config.url = url.toString()
+    } catch (e) {
+      // If URL parsing fails, continue without cache busting
+      console.warn('Failed to parse URL for cache busting:', e)
+    }
   }
   return config
 })
+
+apiClient.addRequestInterceptor((config) => {
+  // Set authentication token from localStorage if available
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      config.headers = {
+        ...config.headers,
+        'Authorization': `Bearer ${token}`
+      };
+    }
+  }
+  return config;
+});
 
 apiClient.addResponseInterceptor((response) => {
   // Handle common response headers

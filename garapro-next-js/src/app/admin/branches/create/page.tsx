@@ -7,17 +7,13 @@ import Link from 'next/link'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
-import Banner from "@/components/admin/Banner"
+import { toast } from 'sonner'
 
 import { 
   branchService, 
   CreateBranchRequest, 
-  BranchStaff, 
-  OperatingHours, 
-  DaySchedule 
+  OperatingHour
 } from '@/services/branch-service'
-import { User } from '@/services/user-service'
-import { GarageServiceCatalogItem } from '@/services/service-catalog'
 
 // Import components
 import { BasicInfoSection } from '@/components/admin/branches/BasicInfoSection'
@@ -31,23 +27,17 @@ import { DEFAULT_OPERATING_HOURS } from '@/constants/branch'
 
 // Move initial state outside component to prevent recreating on each render
 const INITIAL_FORM_DATA: CreateBranchRequest = {
-  name: '',
-  address: '',
-  city: '',
-  state: '',
-  zipCode: '',
-  country: 'United States',
-  phone: '',
+  branchName: '',
+  phoneNumber: '',
   email: '',
-  managerId: '',
-  services: [],
-  staff: [],
+  street: '',
+  ward: '',
+  district: '',
+  city: '',
+  description: '',
+  serviceIds: [],
+  staffIds: [],
   operatingHours: DEFAULT_OPERATING_HOURS,
-}
-
-interface BannerState {
-  type: 'success' | 'error'
-  message: string
 }
 
 export default function CreateBranchPage() {
@@ -56,9 +46,8 @@ export default function CreateBranchPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [shouldValidate, setShouldValidate] = useState(false)
   const [formData, setFormData] = useState<CreateBranchRequest>(INITIAL_FORM_DATA)
-  const [banner, setBanner] = useState<BannerState | null>(null)
   
-  const { managers, drivers, catalog, loading: dataLoading, error: dataError } = useBranchData()
+  const { managers, technicians, services,categories, loading: dataLoading, error: dataError } = useBranchData()
   const errors = useFormValidation(formData, shouldValidate)
 
   // Memoize loading state to prevent unnecessary renders
@@ -75,93 +64,75 @@ export default function CreateBranchPage() {
 
   // Optimized operating hours handler
   const handleOperatingHoursChange = useCallback((
-    day: keyof OperatingHours, 
-    field: keyof DaySchedule, 
+    day: keyof any, 
+    field: keyof OperatingHour, 
     value: string | boolean
   ) => {
     setFormData(prev => ({
       ...prev,
-      operatingHours: {
-        ...prev.operatingHours,
-        [day]: {
-          ...prev.operatingHours[day],
-          [field]: value,
-        },
-      },
+      operatingHours: prev.operatingHours.map(hour => 
+        hour.dayOfWeek === parseInt(day as string) 
+          ? { ...hour, [field]: value }
+          : hour
+      ),
     }))
   }, [])
 
-  // Optimized service toggle with reduced object creation
-  const handleServiceToggle = useCallback((item: GarageServiceCatalogItem, selected: boolean) => {
+  // Optimized service toggle
+  const handleServiceToggle = useCallback((serviceId: string, selected: boolean) => {
     if (!shouldValidate) setShouldValidate(true)
     
     setFormData(prev => {
       if (selected) {
         // Check if service already exists to prevent duplicates
-        const exists = prev.services.some(s => s.id === item.id)
+        const exists = prev.serviceIds.includes(serviceId)
         if (exists) return prev
         
-        const newService = {
-          id: item.id,
-          name: item.name,
-          description: item.description,
-          price: item.basePrice,
-          duration: item.duration,
-          isAvailable: true,
-        }
-        return { ...prev, services: [...prev.services, newService] }
+        return { ...prev, serviceIds: [...prev.serviceIds, serviceId] }
       } else {
         return { 
           ...prev, 
-          services: prev.services.filter(s => s.id !== item.id) 
+          serviceIds: prev.serviceIds.filter(id => id !== serviceId) 
         }
       }
     })
   }, [shouldValidate])
 
-  const handleServiceRemove = useCallback((index: number) => {
+  const handleServiceRemove = useCallback((serviceId: string) => {
     if (!shouldValidate) setShouldValidate(true)
     
     setFormData(prev => ({
       ...prev,
-      services: prev.services.filter((_, i) => i !== index),
+      serviceIds: prev.serviceIds.filter(id => id !== serviceId),
     }))
   }, [shouldValidate])
 
-  // Optimized staff toggle with better duplicate checking
-  const handleStaffToggle = useCallback((driver: User, selected: boolean) => {
+  // Optimized staff toggle
+  const handleStaffToggle = useCallback((staffId: string, selected: boolean) => {
     if (!shouldValidate) setShouldValidate(true)
     
     setFormData(prev => {
       if (selected) {
         // Check if staff member already exists
-        const exists = prev.staff.some(s => s.id === String(driver.id))
+        const exists = prev.staffIds.includes(staffId)
         if (exists) return prev
         
-        const member: BranchStaff = {
-          id: String(driver.id),
-          name: driver.name,
-          role: 'technician',
-          email: driver.email,
-          phone: driver.phone,
-          isActive: true,
-        }
-        return { ...prev, staff: [...prev.staff, member] }
+        return { ...prev, staffIds: [...prev.staffIds, staffId] }
       } else {
         return { 
           ...prev, 
-          staff: prev.staff.filter(s => s.id !== String(driver.id)) 
+          staffIds: prev.staffIds.filter(id => id !== staffId) 
         }
       }
     })
   }, [shouldValidate])
 
-  const handleStaffRemove = useCallback((index: number) => {
+  const handleStaffRemove = useCallback((staffId: string) => {
     if (!shouldValidate) setShouldValidate(true)
     
     setFormData(prev => ({
       ...prev,
-      staff: prev.staff.filter((_, i) => i !== index),
+      staffIds: prev.staffIds.filter(id => id !== staffId),
     }))
   }, [shouldValidate])
 
@@ -179,10 +150,7 @@ export default function CreateBranchPage() {
     const validationErrors = Object.keys(formErrors)
     
     if (validationErrors.length > 0) {
-      setBanner({ 
-        type: 'error', 
-        message: `Please fix the following errors: ${validationErrors.join(', ')}` 
-      })
+      toast.error(`Please fix the following errors: ${validationErrors.join(', ')}`)
       return
     }
 
@@ -190,7 +158,7 @@ export default function CreateBranchPage() {
     
     try {
       await branchService.createBranch(formData)
-      setBanner({ type: 'success', message: 'Branch created successfully.' })
+      toast.success('Branch created successfully.')
       
       // Use startTransition for navigation to prevent blocking UI
       startTransition(() => {
@@ -200,10 +168,7 @@ export default function CreateBranchPage() {
       })
     } catch (error) {
       console.error('Failed to create branch:', error)
-      setBanner({ 
-        type: 'error', 
-        message: error instanceof Error ? error.message : 'Failed to create branch. Please try again.' 
-      })
+      toast.error(error instanceof Error ? error.message : 'Failed to create branch. Please try again.')
     } finally {
       setIsSubmitting(false)
     }
@@ -225,8 +190,6 @@ export default function CreateBranchPage() {
         </div>
       </div>
       
-      <Banner banner={banner} onClose={() => setBanner(null)} />
-      
       <div className="space-y-4">
         {Array.from({ length: 4 }, (_, i) => (
           <Card key={i}>
@@ -241,7 +204,7 @@ export default function CreateBranchPage() {
         ))}
       </div>
     </div>
-  ), [banner])
+  ), [])
 
   // Memoized error state
   const ErrorState = useMemo(() => (
@@ -290,20 +253,18 @@ export default function CreateBranchPage() {
         </div>
       </div>
 
-      <Banner banner={banner} onClose={() => setBanner(null)} />
-
       <form onSubmit={handleSubmit} className="space-y-6">
         <BasicInfoSection
           formData={formData}
           errors={errors}
-          managers={managers}
           onChange={handleInputChange}
         />
 
+        
         <ServicesSection
           formData={formData}
           errors={errors}
-          catalog={catalog}
+          categories={categories}  // Thay services bằng categories
           onServiceToggle={handleServiceToggle}
           onServiceRemove={handleServiceRemove}
         />
@@ -311,13 +272,14 @@ export default function CreateBranchPage() {
         <StaffSection
           formData={formData}
           errors={errors}
-          drivers={drivers}
+          managers={managers}
+          technicians={technicians}
           onStaffToggle={handleStaffToggle}
           onStaffRemove={handleStaffRemove}
         />
 
         <OperatingHoursSection
-          formData={formData}
+          operatingHours={formData.operatingHours}
           onOperatingHoursChange={handleOperatingHoursChange}
         />
 

@@ -1,3 +1,4 @@
+// src/components/customer/CustomerSidebar.tsx
 "use client";
 
 import type * as React from "react";
@@ -5,7 +6,6 @@ import {
   Car,
   Calendar,
   Clock,
-  MessageCircle,
   History,
   Star,
   Bell,
@@ -58,7 +58,6 @@ const data = {
 // Component NavMain để hiển thị các mục điều hướng
 function NavMain({
   items,
-  groupLabel,
   notificationsCount,
 }: {
   items: {
@@ -67,7 +66,6 @@ function NavMain({
     url: string;
     icon: React.ElementType;
   }[];
-  groupLabel?: string;
   notificationsCount?: number;
 }) {
   const pathname = usePathname();
@@ -175,7 +173,7 @@ export function CustomerSidebar({ ...props }: React.ComponentProps<typeof Sideba
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold">Garage Pro</span>
-                  {/* <span className="truncate text-xs">Customer</span> */}
+                  {/* <span className="truncate text-xs">Customer</span> */ }
                 </div>
               </a>
             </SidebarMenuButton>
@@ -185,15 +183,14 @@ export function CustomerSidebar({ ...props }: React.ComponentProps<typeof Sideba
 
       <SidebarContent className="gap-0">
         {/* Main Navigation */}
-        <NavMain items={data.mainNav} groupLabel="MAIN" />
+        <NavMain items={data.mainNav} />
         
         {/* Tracking Navigation */}
-        <NavMain items={data.trackingNav} groupLabel="TRACKING" />
+        <NavMain items={data.trackingNav} />
         
         {/* Account Navigation */}
         <NavMain 
           items={data.accountNav} 
-          groupLabel="ACCOUNT" 
           notificationsCount={notificationsCount} 
         />
       </SidebarContent>
@@ -201,5 +198,3 @@ export function CustomerSidebar({ ...props }: React.ComponentProps<typeof Sideba
     </Sidebar>
   );
 }
-
-export default CustomerSidebar;

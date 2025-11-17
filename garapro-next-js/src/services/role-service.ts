@@ -53,7 +53,7 @@ export interface AuthResponseDto {
 }
 
 // services/roleService.ts
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:7113/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:7113';
 
 class RoleService {
   private getAuthToken(): string | null {
@@ -135,17 +135,17 @@ class RoleService {
 
   // Get all roles
   async getRoles(): Promise<Role[]> {
-    return this.fetchAPI<Role[]>('/Roles')
+    return this.fetchAPI<Role[]>('/api/Roles')
   }
 
   // Get grouped permissions
   async getGroupedPermissions(): Promise<PermissionCategory[]> {
-    return this.fetchAPI<PermissionCategory[]>('/Permissions/grouped')
+    return this.fetchAPI<PermissionCategory[]>('/api/Permissions/grouped')
   }
 
   // Get role by ID
   async getRoleById(id: string): Promise<Role> {
-    return this.fetchAPI<Role>(`/Roles/${id}`)
+    return this.fetchAPI<Role>(`/api/Roles/${id}`)
   }
 
   // Create new role
@@ -163,7 +163,7 @@ class RoleService {
       GrantedUserId
     }
 
-    return this.fetchAPI<Role>('/Roles', {
+    return this.fetchAPI<Role>('/api/Roles', {
       method: 'POST',
       body: JSON.stringify(requestData),
     })
@@ -187,7 +187,7 @@ class RoleService {
       GrantedUserId
     }
 
-    return this.fetchAPI<Role>(`/Roles/${roleData.id}`, {
+    return this.fetchAPI<Role>(`/api/Roles/${roleData.id}`, {
       method: 'PUT',
       body: JSON.stringify(requestData),
     })
@@ -195,7 +195,7 @@ class RoleService {
 
   // Delete role - trả về void vì API trả về 204 No Content
   async deleteRole(id: string): Promise<void> {
-    await this.fetchAPI<void>(`/Roles/${id}`, {
+    await this.fetchAPI<void>(`/api/Roles/${id}`, {
       method: 'DELETE',
     })
     // Không cần return gì cả vì API trả về 204
@@ -208,7 +208,7 @@ class RoleService {
       throw new Error('User not authenticated')
     }
 
-    return this.fetchAPI<Role>(`/Roles/${id}/duplicate`, {
+    return this.fetchAPI<Role>(`/api/Roles/${id}/duplicate`, {
       method: 'POST',
       body: JSON.stringify({ 
         newName,
@@ -219,7 +219,7 @@ class RoleService {
 
   async getUsersCountByRole(roleId: string): Promise<number> {
     try {
-      const users = await this.fetchAPI<any[]>(`/Roles/${roleId}/users`)
+      const users = await this.fetchAPI<any[]>(`/api/Roles/${roleId}/users`)
       return users.length
     } catch (error) {
       console.error(`Failed to get users count for role ${roleId}:`, error)
@@ -228,7 +228,7 @@ class RoleService {
   }
   // Get users with specific role
   async getUsersWithRole(roleId: string): Promise<any[]> {
-    return this.fetchAPI<any[]>(`/Roles/${roleId}/users`)
+    return this.fetchAPI<any[]>(`/api/Roles/${roleId}/users`)
   }
 }
 

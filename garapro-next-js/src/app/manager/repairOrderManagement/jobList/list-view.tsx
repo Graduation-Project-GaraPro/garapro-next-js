@@ -1,13 +1,13 @@
 "use client"
 
 import { useState } from "react"
-import { MoreHorizontal, Edit, Trash2, Clock, DollarSign, User, Car, ExternalLink, ArrowUpDown } from "lucide-react"
+import { MoreHorizontal, Edit, Trash2, ArrowUpDown, Wrench, Package } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useRouter } from "next/navigation"
-import type { Job, JobStatus } from "@/types/job"
+import type { Job } from "@/types/job"
 
 interface ListViewProps {
   jobs: Job[]
@@ -16,7 +16,7 @@ interface ListViewProps {
   onDeleteJob: (jobId: string) => void
 }
 
-type SortField = "title" | "company" | "status" | "progress" | "dueDate" | "createdAt"
+type SortField = "jobName" | "status" | "createdAt" | "updatedAt"
 type SortOrder = "asc" | "desc"
 
 export default function ListView({ jobs, loading, onEditJob, onDeleteJob }: ListViewProps) {
@@ -39,14 +39,10 @@ export default function ListView({ jobs, loading, onEditJob, onDeleteJob }: List
 
     // Handle different data types
     switch (sortField) {
-      case "progress":
-        aValue = a.progress || 0
-        bValue = b.progress || 0
-        break
-      case "dueDate":
       case "createdAt":
-        aValue = new Date(a[sortField] || 0)
-        bValue = new Date(b[sortField] || 0)
+      case "updatedAt":
+        aValue = new Date(a[sortField])
+        bValue = new Date(b[sortField])
         break
       default:
         aValue = String(a[sortField] || "").toLowerCase()
@@ -63,47 +59,24 @@ export default function ListView({ jobs, loading, onEditJob, onDeleteJob }: List
     if ((e.target as HTMLElement).closest('[role="menuitem"], button')) {
       return
     }
-    router.push(`/manager/repairOrderManagement/orders/${job.id}`)
+    router.push(`/manager/repairOrderManagement/orders/${job.repairOrderId}`)
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "work not started":
-        return "bg-gray-100 text-gray-700 border-gray-200"
-      case "in progress":
-        return "bg-blue-100 text-blue-700 border-blue-200"
-      case "completed":
-        return "bg-green-100 text-green-700 border-green-200"
-      case "on hold":
-        return "bg-yellow-100 text-yellow-700 border-yellow-200"
-      default:
-        return "bg-gray-100 text-gray-700 border-gray-200"
+  const getJobStatusText = (status: number) => {
+    switch (status) {
+      case 0: return "Pending"
+      case 1: return "In Progress"
+      case 2: return "Completed"
+      default: return "Unknown"
     }
   }
 
-  const getJobStatusColor = (status: JobStatus) => {
+  const getJobStatusColor = (status: number) => {
     switch (status) {
-      case "requires-auth":
-        return "bg-red-100 text-red-700 border-red-200"
-      case "in-progress":
-        return "bg-yellow-100 text-yellow-700 border-yellow-200"
-      case "ready-to-start":
-        return "bg-green-100 text-green-700 border-green-200"
-      default:
-        return "bg-gray-100 text-gray-700 border-gray-200"
-    }
-  }
-
-  const getJobStatusText = (status: JobStatus) => {
-    switch (status) {
-      case "requires-auth":
-        return "Requires Authorization"
-      case "in-progress":
-        return "In Progress"
-      case "ready-to-start":
-        return "Ready to Start"
-      default:
-        return status
+      case 0: return "bg-yellow-100 text-yellow-800 border-yellow-200"
+      case 1: return "bg-blue-100 text-blue-800 border-blue-200"
+      case 2: return "bg-green-100 text-green-800 border-green-200"
+      default: return "bg-gray-100 text-gray-800 border-gray-200"
     }
   }
 
@@ -113,18 +86,16 @@ export default function ListView({ jobs, loading, onEditJob, onDeleteJob }: List
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead>Job</TableHead>
               <TableHead>Repair Order</TableHead>
-              <TableHead>Customer</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Progress</TableHead>
-              <TableHead>Due Date</TableHead>
+              <TableHead>Created</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {[1, 2, 3, 4, 5].map((i) => (
               <TableRow key={i}>
-                <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse"></div></TableCell>
                 <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse"></div></TableCell>
                 <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse"></div></TableCell>
                 <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse"></div></TableCell>
@@ -147,10 +118,10 @@ export default function ListView({ jobs, loading, onEditJob, onDeleteJob }: List
               <Button 
                 variant="ghost" 
                 size="sm" 
-                onClick={() => handleSort("title")}
+                onClick={() => handleSort("jobName")}
                 className="h-auto p-0 font-semibold hover:bg-transparent"
               >
-                Repair Order
+                Job
                 <ArrowUpDown className="ml-2 h-3 w-3" />
               </Button>
             </TableHead>
@@ -158,10 +129,10 @@ export default function ListView({ jobs, loading, onEditJob, onDeleteJob }: List
               <Button 
                 variant="ghost" 
                 size="sm" 
-                onClick={() => handleSort("company")}
+                onClick={() => handleSort("createdAt")}
                 className="h-auto p-0 font-semibold hover:bg-transparent"
               >
-                Customer
+                Repair Order
                 <ArrowUpDown className="ml-2 h-3 w-3" />
               </Button>
             </TableHead>
@@ -180,21 +151,10 @@ export default function ListView({ jobs, loading, onEditJob, onDeleteJob }: List
               <Button 
                 variant="ghost" 
                 size="sm" 
-                onClick={() => handleSort("progress")}
+                onClick={() => handleSort("createdAt")}
                 className="h-auto p-0 font-semibold hover:bg-transparent"
               >
-                Progress
-                <ArrowUpDown className="ml-2 h-3 w-3" />
-              </Button>
-            </TableHead>
-            <TableHead className="w-[120px]">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => handleSort("dueDate")}
-                className="h-auto p-0 font-semibold hover:bg-transparent"
-              >
-                Due Date
+                Created
                 <ArrowUpDown className="ml-2 h-3 w-3" />
               </Button>
             </TableHead>
@@ -204,89 +164,44 @@ export default function ListView({ jobs, loading, onEditJob, onDeleteJob }: List
         <TableBody>
           {sortedJobs.map((job) => (
             <TableRow 
-              key={job.id} 
+              key={job.jobId} 
               className="cursor-pointer hover:bg-gray-50"
               onClick={(e) => handleRowClick(job, e)}
             >
               <TableCell className="font-medium">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-blue-600">RO #{job.id}</span>
-                    <ExternalLink className="w-3 h-3 text-gray-400" />
+                    <Wrench className="w-4 h-4 text-blue-600" />
+                    <span className="text-sm font-semibold text-blue-600">{job.jobName}</span>
                   </div>
-                  <div className="text-sm text-gray-900">{job.title}</div>
-                  <div className="flex items-center gap-1 text-xs text-gray-600">
-                    <Car className="w-3 h-3" />
-                    <span>2003 Volkswagen Jetta • GJK2247-TX</span>
-                  </div>
+                  <div className="text-xs text-gray-500">ID: {job.jobId}</div>
+                  {job.parts.length > 0 && (
+                    <div className="flex items-center gap-1 text-xs text-gray-600">
+                      <Package className="w-3 h-3" />
+                      <span>{job.parts.length} parts</span>
+                    </div>
+                  )}
                 </div>
               </TableCell>
               <TableCell>
                 <div className="space-y-1">
-                  <div className="text-sm font-medium">{job.company}</div>
-                  {job.contact && <div className="text-xs text-gray-600">{job.contact}</div>}
-                  {job.location && <div className="text-xs text-gray-500">{job.location}</div>}
+                  <div className="text-sm font-medium">RO #{job.repairOrderId}</div>
+                  <div className="text-xs text-gray-500">
+                    {new Date(job.createdAt).toLocaleDateString()}
+                  </div>
                 </div>
               </TableCell>
               <TableCell>
-                <div className="space-y-1">
-                  <Badge
-                    variant="outline"
-                    className={`text-xs font-medium ${getJobStatusColor(job.status)}`}
-                  >
-                    {getJobStatusText(job.status)}
-                  </Badge>
-                  <Badge
-                    variant="outline"
-                    className={`text-xs font-medium ${getStatusColor(job.statusText || "Work Not Started")}`}
-                  >
-                    {job.statusText || "Work Not Started"}
-                  </Badge>
-                </div>
-              </TableCell>
-              <TableCell>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-1">
-                    <div className="flex-1 bg-gray-200 rounded-full h-1.5 max-w-[60px]">
-                      <div
-                        className="bg-blue-500 h-1.5 rounded-full transition-all duration-300"
-                        style={{ width: `${job.progress || 0}%` }}
-                      />
-                    </div>
-                    <span className="text-xs font-medium text-gray-900">{job.progress || 0}%</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-xs text-gray-600">
-                    <div className="flex items-center gap-1">
-                      <User className="w-3 h-3" />
-                      <span>Tech: SB</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      <span>0/2 hrs</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <DollarSign className="w-3 h-3 text-green-600" />
-                      <span className="font-semibold text-green-600">$452.95</span>
-                    </div>
-                  </div>
-                </div>
+                <Badge
+                  variant="outline"
+                  className={`text-xs font-medium ${getJobStatusColor(job.status)}`}
+                >
+                  {getJobStatusText(job.status)}
+                </Badge>
               </TableCell>
               <TableCell>
                 <div className="text-sm">
-                  {job.dueDate ? (
-                    <div>
-                      <div className="font-medium">{new Date(job.dueDate).toLocaleDateString()}</div>
-                      <div className="text-xs text-gray-500">
-                        {new Date(job.dueDate).toLocaleDateString() === new Date().toLocaleDateString() 
-                          ? "Today" 
-                          : new Date(job.dueDate) < new Date() 
-                            ? "Overdue" 
-                            : "Upcoming"}
-                      </div>
-                    </div>
-                  ) : (
-                    <span className="text-gray-500">No due date</span>
-                  )}
+                  {new Date(job.createdAt).toLocaleDateString()}
                 </div>
               </TableCell>
               <TableCell>
@@ -301,7 +216,7 @@ export default function ListView({ jobs, loading, onEditJob, onDeleteJob }: List
                       <Edit className="w-4 h-4 mr-2" />
                       Edit
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onDeleteJob(job.id)} className="text-red-600">
+                    <DropdownMenuItem onClick={() => onDeleteJob(job.jobId)} className="text-red-600">
                       <Trash2 className="w-4 h-4 mr-2" />
                       Delete
                     </DropdownMenuItem>
@@ -312,9 +227,10 @@ export default function ListView({ jobs, loading, onEditJob, onDeleteJob }: List
           ))}
           {sortedJobs.length === 0 && (
             <TableRow>
-              <TableCell colSpan={6} className="text-center py-8">
+              <TableCell colSpan={5} className="text-center py-8">
                 <div className="text-gray-500">
-                  <p className="text-sm">No repair orders found</p>
+                  <Wrench className="w-12 h-12 mx-auto text-gray-300 mb-2" />
+                  <p className="text-sm">No jobs found</p>
                 </div>
               </TableCell>
             </TableRow>

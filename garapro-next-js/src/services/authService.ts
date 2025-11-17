@@ -32,7 +32,7 @@ export interface CompleteRegistrationDto {
 
 class AuthService {
   async sendOtp(data: SendOtpDto): Promise<{ message: string }> {
-    const response = await fetch(`${API_BASE_URL}/auth/send-otp`, {
+    const response = await fetch(`${API_BASE_URL}/api/Auth/send-otp`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
@@ -47,7 +47,7 @@ class AuthService {
   }
 
   async verifyOtp(data: VerifyOtpDto): Promise<{ message: string }> {
-    const response = await fetch(`${API_BASE_URL}/auth/verify-otp`, {
+    const response = await fetch(`${API_BASE_URL}/api/Auth/verify-otp`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
@@ -66,7 +66,7 @@ class AuthService {
     userId: string;
   }> {
     const response = await fetch(
-      `${API_BASE_URL}/auth/complete-registration`,
+      `${API_BASE_URL}/api/Auth/complete-registration`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -83,7 +83,7 @@ class AuthService {
   }
 
   async googleLogin(dto: GoogleLoginDto): Promise<AuthResponseDto> {
-    const response = await fetch(`${API_BASE_URL}/auth/google-login`, {
+    const response = await fetch(`${API_BASE_URL}/api/Auth/google-login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(dto),
@@ -108,7 +108,7 @@ class AuthService {
   }
 
   async phoneLogin(data: { phoneNumber: string; password: string }): Promise<AuthResponseDto> {
-    const response = await fetch(`${API_BASE_URL}/auth/login`, {
+    const response = await fetch(`${API_BASE_URL}/api/Auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
@@ -119,7 +119,17 @@ class AuthService {
       throw new Error(error.error || "Đăng nhập thất bại");
     }
   
-    return response.json();
+    const authData = await response.json()
+    
+    // Lưu token và user info vào localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('authToken', authData.token)
+      localStorage.setItem('userId', authData.userId)
+      localStorage.setItem('userEmail', authData.email)
+      localStorage.setItem('userRoles', JSON.stringify(authData.roles))
+    }
+
+    return authData
   }
 
   logout(): void {

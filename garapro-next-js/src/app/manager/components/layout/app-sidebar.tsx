@@ -35,8 +35,8 @@ const data = {
   // Top level navigation items
   topNav: [
     {
-      title: "Job Board",
-      url: "/manager/repairOrderManagement/jobBoard",
+      title: "Repair Order Board",
+      url: "/manager/repairOrderManagement/ro-board",
       icon: Calendar,
     },
     {
@@ -48,8 +48,8 @@ const data = {
   // Main section
   mainNav: [
     {
-      title: "Appointments",
-      url: "/manager/appointments",
+      title: "Repair Requests",
+      url: "/manager/CustomerAppointments",
       icon: CalendarDays,
     },
     {

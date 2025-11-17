@@ -19,28 +19,28 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import type { Job, JobStatus } from "@/types/job"
+import type { RepairOrder } from "@/types/manager/repair-order"
 import { labelService } from "@/services/manager/label-service"
-import type { Label } from "@/types/manager/label"
+import type { Label as LabelType } from "@/types/manager/label"
 import { LABOR_RATES_STORAGE_KEY, type LaborRate } from "@/app/manager/garageSetting/ro-settings/tabs/labor-rates-tab"
 
 interface EditTaskModalProps {
-  job: Job | null
+  repairOrder: RepairOrder | null
   isOpen: boolean
   onClose: () => void
-  onSubmit: (job: Job) => void
-  onDelete: (jobId: string) => void
+  onSubmit: (repairOrder: RepairOrder) => void
+  onDelete: (repairOrderId: string) => void
 }
 
-export default function EditTaskModal({ job, isOpen, onClose, onSubmit, onDelete }: EditTaskModalProps) {
-  const [formData, setFormData] = useState<Job | null>(null)
+export default function EditTaskModal({ repairOrder, isOpen, onClose, onSubmit, onDelete }: EditTaskModalProps) {
+  const [formData, setFormData] = useState<RepairOrder | null>(null)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
-  const [labels, setLabels] = useState<Label[]>([])
+  const [labels, setLabels] = useState<LabelType[]>([])
   const [rates, setRates] = useState<LaborRate[]>([])
 
   useEffect(() => {
-    if (job) {
-      setFormData({ ...job })
+    if (repairOrder) {
+      setFormData({ ...repairOrder })
     }
     labelService.getAllLabels().then(setLabels).catch((e) => console.error("Failed to load labels", e))
     try {
@@ -49,7 +49,7 @@ export default function EditTaskModal({ job, isOpen, onClose, onSubmit, onDelete
     } catch (e) {
       console.error("Failed to load rates", e)
     }
-  }, [job])
+  }, [repairOrder])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -62,8 +62,8 @@ export default function EditTaskModal({ job, isOpen, onClose, onSubmit, onDelete
   }
 
   const handleDelete = () => {
-    if (job) {
-      onDelete(job.id)
+    if (repairOrder) {
+      onDelete(repairOrder.repairOrderId)
       setShowDeleteDialog(false)
     }
   }
@@ -81,21 +81,21 @@ export default function EditTaskModal({ job, isOpen, onClose, onSubmit, onDelete
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="edit-title">Job Title *</Label>
+                <Label htmlFor="edit-roTypeName">RO Type *</Label>
                 <Input
-                  id="edit-title"
-                  value={formData.title}
-                  onChange={(e) => setFormData((prev) => (prev ? { ...prev, title: e.target.value } : null))}
+                  id="edit-roTypeName"
+                  value={formData.roTypeName}
+                  onChange={(e) => setFormData((prev) => (prev ? { ...prev, roTypeName: e.target.value } : null))}
                   required
                 />
               </div>
 
               <div>
-                <Label htmlFor="edit-company">Company *</Label>
+                <Label htmlFor="edit-customerName">Customer Name *</Label>
                 <Input
-                  id="edit-company"
-                  value={formData.company}
-                  onChange={(e) => setFormData((prev) => (prev ? { ...prev, company: e.target.value } : null))}
+                  id="edit-customerName"
+                  value={formData.customerName}
+                  onChange={(e) => setFormData((prev) => (prev ? { ...prev, customerName: e.target.value } : null))}
                   required
                 />
               </div>
@@ -103,40 +103,30 @@ export default function EditTaskModal({ job, isOpen, onClose, onSubmit, onDelete
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="edit-contact">Contact</Label>
+                <Label htmlFor="edit-customerPhone">Customer Phone</Label>
                 <Input
-                  id="edit-contact"
-                  value={formData.contact || ""}
-                  onChange={(e) => setFormData((prev) => (prev ? { ...prev, contact: e.target.value } : null))}
+                  id="edit-customerPhone"
+                  value={formData.customerPhone || ""}
+                  onChange={(e) => setFormData((prev) => (prev ? { ...prev, customerPhone: e.target.value } : null))}
                 />
               </div>
 
               <div>
-                <Label htmlFor="edit-status">Status</Label>
-                <Select
-                  value={formData.status}
-                  onValueChange={(value: JobStatus) =>
-                    setFormData((prev) => (prev ? { ...prev, status: value } : null))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="requires-auth">Requires Authorization</SelectItem>
-                    <SelectItem value="in-progress">In Progress</SelectItem>
-                    <SelectItem value="ready-to-start">Ready to Start</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="edit-statusId">Status</Label>
+                <Input
+                  id="edit-statusId"
+                  value={formData.statusId}
+                  onChange={(e) => setFormData((prev) => (prev ? { ...prev, statusId: e.target.value } : null))}
+                />
               </div>
             </div>
 
             <div>
               <Label htmlFor="edit-label">RO Label</Label>
               <Select
-                value={formData.labelId ? String(formData.labelId) : ""}
+                value={formData.branchId || ""}
                 onValueChange={(value: string) =>
-                  setFormData((prev) => (prev ? { ...prev, labelId: value ? Number(value) : undefined } : null))
+                  setFormData((prev) => (prev ? { ...prev, branchId: value } : null))
                 }
               >
                 <SelectTrigger>
@@ -155,9 +145,9 @@ export default function EditTaskModal({ job, isOpen, onClose, onSubmit, onDelete
             <div>
               <Label htmlFor="edit-rate">Labor Rate</Label>
               <Select
-                value={formData.laborRateId || ""}
+                value={formData.userId || ""}
                 onValueChange={(value: string) =>
-                  setFormData((prev) => (prev ? { ...prev, laborRateId: value, laborRate: rates.find((r) => r.id === value)?.rate } : null))
+                  setFormData((prev) => (prev ? { ...prev, userId: value } : null))
                 }
               >
                 <SelectTrigger>
@@ -174,69 +164,70 @@ export default function EditTaskModal({ job, isOpen, onClose, onSubmit, onDelete
             </div>
 
             <div>
-              <Label htmlFor="edit-location">Location</Label>
-              <Input
-                id="edit-location"
-                value={formData.location || ""}
-                onChange={(e) => setFormData((prev) => (prev ? { ...prev, location: e.target.value } : null))}
-              />
+              <Label htmlFor="edit-vehicleId">Vehicle ID</Label>
+                <Input
+                  id="edit-vehicleId"
+                  value={formData.vehicleId || ""}
+                  onChange={(e) => setFormData((prev) => (prev ? { ...prev, vehicleId: e.target.value } : null))}
+                />
             </div>
 
             <div>
-              <Label htmlFor="edit-description">Description</Label>
+              <Label htmlFor="edit-note">Note</Label>
               <Textarea
-                id="edit-description"
-                value={formData.description || ""}
-                onChange={(e) => setFormData((prev) => (prev ? { ...prev, description: e.target.value } : null))}
+                id="edit-note"
+                value={formData.note || ""}
+                onChange={(e) => setFormData((prev) => (prev ? { ...prev, note: e.target.value } : null))}
                 rows={3}
               />
             </div>
 
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <Label htmlFor="edit-progress">Progress (%)</Label>
+                <Label htmlFor="edit-estimatedAmount">Estimated Amount ($)</Label>
                 <Input
-                  id="edit-progress"
+                  id="edit-estimatedAmount"
                   type="number"
                   min="0"
-                  max="100"
-                  value={formData.progress}
+                  step="0.01"
+                  value={formData.estimatedAmount}
                   onChange={(e) =>
-                    setFormData((prev) => (prev ? { ...prev, progress: Number.parseInt(e.target.value) || 0 } : null))
+                    setFormData((prev) => (prev ? { ...prev, estimatedAmount: parseFloat(e.target.value) || 0 } : null))
                   }
                 />
               </div>
 
               <div>
-                <Label htmlFor="edit-statusText">Status Text</Label>
+                <Label htmlFor="edit-estimatedCompletionDate">Due Date</Label>
                 <Input
-                  id="edit-statusText"
-                  value={formData.statusText || ""}
-                  onChange={(e) => setFormData((prev) => (prev ? { ...prev, statusText: e.target.value } : null))}
+                  id="edit-estimatedCompletionDate"
+                  type="date"
+                  value={formData.estimatedCompletionDate?.split("T")[0] || ""}
+                  onChange={(e) => setFormData((prev) => (prev ? { ...prev, estimatedCompletionDate: e.target.value } : null))}
                 />
               </div>
 
               <div>
-                <Label htmlFor="edit-dueDate">Due Date</Label>
+                <Label htmlFor="edit-receiveDate">Receive Date</Label>
                 <Input
-                  id="edit-dueDate"
+                  id="edit-receiveDate"
                   type="date"
-                  value={formData.dueDate || ""}
-                  onChange={(e) => setFormData((prev) => (prev ? { ...prev, dueDate: e.target.value } : null))}
+                  value={formData.receiveDate?.split("T")[0] || ""}
+                  onChange={(e) => setFormData((prev) => (prev ? { ...prev, receiveDate: e.target.value } : null))}
                 />
               </div>
             </div>
 
             <div className="flex justify-between pt-4">
               <Button type="button" variant="destructive" onClick={() => setShowDeleteDialog(true)}>
-                Delete Job
+                Delete Repair Order
               </Button>
 
               <div className="flex gap-2">
                 <Button type="button" variant="outline" onClick={onClose}>
                   Cancel
                 </Button>
-                <Button type="submit">Update Job</Button>
+                <Button type="submit">Update Repair Order</Button>
               </div>
             </div>
           </form>
@@ -248,7 +239,7 @@ export default function EditTaskModal({ job, isOpen, onClose, onSubmit, onDelete
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the job &quot;{job?.title}&quot; and remove it from the
+              This action cannot be undone. This will permanently delete the repair order &quot;{repairOrder?.roTypeName}&quot; and remove it from the
               board.
             </AlertDialogDescription>
           </AlertDialogHeader>

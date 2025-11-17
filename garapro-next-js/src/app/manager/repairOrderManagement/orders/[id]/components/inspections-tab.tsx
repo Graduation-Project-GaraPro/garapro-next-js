@@ -1,778 +1,278 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Plus, AlertCircle, CheckCircle, Clock, Eye, Edit2, MoreHorizontal, Trash2 } from "lucide-react"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-
-interface CustomerConcern {
-  id: string
-  description: string
-  finding: string
-  status: "pending" | "in-progress" | "completed"
-  addedBy: string
-  addedAt: string
-}
-
-interface TechnicianConcern {
-  id: string
-  description: string
-  finding: string
-  rating: "critical" | "moderate" | "minor"
-  technician: {
-    id: string
-    name: string
-    avatar?: string
-  }
-  addedAt: string
-  images?: string[]
-}
-
-interface InspectionTask {
-  id: string
-  title: string
-  type: "specific-part" | "full-vehicle"
-  assignedTo?: {
-    id: string
-    name: string
-    avatar?: string
-  }
-  status: "pending" | "in-progress" | "completed"
-  createdAt: string
-  completedAt?: string
-  rating?: "critical" | "good" | "fair" | "poor"
-  findings?: string
-  images?: string[]
-  partsNeeded?: {
-    id: string
-    name: string
-    quantity: number
-    estimatedCost: number
-  }[]
-}
+import { Edit2, Trash2, Loader2, Plus, User, Eye } from "lucide-react"
+import { inspectionService, InspectionDto } from "@/services/manager/inspection-service"
+import { repairOrderService } from "@/services/manager/repair-order-service"
+import { CreateInspectionDialog } from "./create-inspection-dialog"
+import { TechnicianSelectionDialog } from "@/components/manager/technician-selection-dialog"
+import { InspectionDetailDialog } from "./inspection-detail-dialog"
 
 interface InspectionsTabProps {
   orderId: string
 }
 
-const mockCustomerConcerns: CustomerConcern[] = [
-  {
-    id: "1",
-    description: "LOF - Lube Oil and Filter",
-    finding: "Add finding",
-    status: "pending",
-    addedBy: "Customer",
-    addedAt: "2024-01-15T09:00:00Z"
-  },
-  {
-    id: "2",
-    description: "State Inspection",
-    finding: "Add finding",
-    status: "pending",
-    addedBy: "Customer",
-    addedAt: "2024-01-15T09:00:00Z"
-  },
-  {
-    id: "3",
-    description: "Check Tires",
-    finding: "Nail in RF tire",
-    status: "completed",
-    addedBy: "Customer",
-    addedAt: "2024-01-15T09:00:00Z"
-  }
-]
-
-const mockTechnicianConcerns: TechnicianConcern[] = [
-  {
-    id: "1",
-    description: "Tech found a yoga mat stuck to the exhaust piping causing a burning smell.",
-    finding: "Whatever it would to fix this issue",
-    rating: "critical",
-    technician: {
-      id: "tech-1",
-      name: "Mike Rodriguez",
-      avatar: "/avatars/mike.jpg"
-    },
-    addedAt: "2024-01-15T10:30:00Z",
-    images: ["/images/exhaust-issue.jpg"]
-  }
-]
-
-const mockInspectionTasks: InspectionTask[] = [
-  {
-    id: "1",
-    title: "Brake System Inspection",
-    type: "specific-part",
-    assignedTo: {
-      id: "tech-1",
-      name: "Sarah Bennett",
-      avatar: "/avatars/sarah.jpg"
-    },
-    status: "completed",
-    createdAt: "2024-01-15T08:00:00Z",
-    completedAt: "2024-01-15T10:15:00Z",
-    rating: "fair",
-    findings: "Brake pads at 30% remaining, rotors in good condition. Recommend replacement within 2-3 weeks.",
-    images: ["C:\\Users\\This PC\\OneDrive\\Pictures\\images.jpg", "/images/brake-rotors.jpg"],
-    partsNeeded: [
-      {
-        id: "part-1",
-        name: "Front Brake Pads Set",
-        quantity: 1,
-        estimatedCost: 89.99
-      },
-      {
-        id: "part-2",
-        name: "Brake Fluid",
-        quantity: 1,
-        estimatedCost: 15.99
-      }
-    ]
-  },
-  {
-    id: "2",
-    title: "Full Vehicle Safety Inspection",
-    type: "full-vehicle",
-    assignedTo: {
-      id: "tech-2",
-      name: "David Thompson",
-      avatar: "/avatars/david.jpg"
-    },
-    status: "completed",
-    createdAt: "2024-01-15T09:30:00Z",
-    completedAt: "2024-01-15T14:45:00Z",
-    rating: "good",
-    findings: "Overall vehicle condition is good. Minor issues with air filter and cabin filter need replacement.",
-    images: ["C:\\Users\\This PC\\OneDrive\\Pictures\\images.jpg"],
-    partsNeeded: [
-      {
-        id: "part-3",
-        name: "Engine Air Filter",
-        quantity: 1,
-        estimatedCost: 24.99
-      },
-      {
-        id: "part-4",
-        name: "Cabin Air Filter",
-        quantity: 1,
-        estimatedCost: 19.99
-      }
-    ]
-  },
-  {
-    id: "3",
-    title: "Engine Diagnostic",
-    type: "specific-part",
-    assignedTo: {
-      id: "tech-3",
-      name: "Mike Rodriguez",
-      avatar: "/avatars/mike.jpg"
-    },
-    status: "in-progress",
-    createdAt: "2024-01-15T11:00:00Z"
-  }
-]
-
 export default function InspectionsTab({ orderId }: InspectionsTabProps) {
-  const [customerConcerns, setCustomerConcerns] = useState<CustomerConcern[]>(mockCustomerConcerns)
-  const [technicianConcerns] = useState<TechnicianConcern[]>(mockTechnicianConcerns)
-  const [inspectionTasks, setInspectionTasks] = useState<InspectionTask[]>(mockInspectionTasks)
-  const [isAddInspectionOpen, setIsAddInspectionOpen] = useState(false)
-  const [isEditConcernOpen, setIsEditConcernOpen] = useState(false)
-  const [isAddConcernOpen, setIsAddConcernOpen] = useState(false)
-  const [isAssignTechOpen, setIsAssignTechOpen] = useState(false)
-  const [selectedConcern, setSelectedConcern] = useState<CustomerConcern | null>(null)
-  const [selectedTaskForAssignment, setSelectedTaskForAssignment] = useState<string | null>(null)
-  const [newInspectionType, setNewInspectionType] = useState<"specific-part" | "full-vehicle" | "">("")
-  const [newInspectionTitle, setNewInspectionTitle] = useState("")
-  const [assignedTech, setAssignedTech] = useState("")
-  const [newConcernDescription, setNewConcernDescription] = useState("")
-  const [newConcernFinding, setNewConcernFinding] = useState("")
+  const [inspectionTasks, setInspectionTasks] = useState<InspectionDto[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false)
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false)
+  const [selectedInspectionId, setSelectedInspectionId] = useState<string | null>(null)
+  const [detailInspectionId, setDetailInspectionId] = useState<string | null>(null)
+  const [branchId, setBranchId] = useState<string | null>(null)
 
-  // Mock technicians data
-  const availableTechnicians = [
-    { id: "tech-1", name: "Sarah Bennett", avatar: "/avatars/sarah.jpg" },
-    { id: "tech-2", name: "Mike Rodriguez", avatar: "/avatars/mike.jpg" },
-    { id: "tech-3", name: "David Thompson", avatar: "/avatars/david.jpg" },
-    { id: "tech-4", name: "Lisa Chen", avatar: "/avatars/lisa.jpg" }
-  ]
-
-  const handleAddInspection = () => {
-    if (!newInspectionType || !newInspectionTitle) return
-
-    const newTask: InspectionTask = {
-      id: `task-${Date.now()}`,
-      title: newInspectionTitle,
-      type: newInspectionType,
-      status: "pending",
-      createdAt: new Date().toISOString()
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        
+        // Fetch repair order to get branch ID
+        const repairOrder = await repairOrderService.getRepairOrderById(orderId)
+        if (repairOrder) {
+          setBranchId(repairOrder.branchId)
+        }
+        
+        // Fetch inspections
+        const inspections = await inspectionService.getInspectionsByRepairOrderId(orderId)
+        setInspectionTasks(inspections)
+      } catch (err) {
+        console.error("Failed to fetch data:", err)
+        setError("Failed to load data. Please try again.")
+      } finally {
+        setLoading(false)
+      }
     }
 
-    setInspectionTasks([...inspectionTasks, newTask])
-    setIsAddInspectionOpen(false)
-    setNewInspectionType("")
-    setNewInspectionTitle("")
-  }
-
-  const handleAssignTechnician = () => {
-    if (!selectedTaskForAssignment || !assignedTech) return
-
-    setInspectionTasks(tasks => 
-      tasks.map(task => 
-        task.id === selectedTaskForAssignment 
-          ? { 
-              ...task, 
-              assignedTo: availableTechnicians.find(tech => tech.id === assignedTech),
-              status: "in-progress" as const
-            }
-          : task
-      )
-    )
-    
-    setIsAssignTechOpen(false)
-    setSelectedTaskForAssignment(null)
-    setAssignedTech("")
-  }
-
-  const openAssignDialog = (taskId: string) => {
-    setSelectedTaskForAssignment(taskId)
-    setIsAssignTechOpen(true)
-  }
-
-  const handleEditConcern = (concern: CustomerConcern) => {
-    setSelectedConcern(concern)
-    setIsEditConcernOpen(true)
-  }
-
-  const handleSaveConcern = () => {
-    if (!selectedConcern) return
-    
-    setCustomerConcerns(concerns => 
-      concerns.map(concern => 
-        concern.id === selectedConcern.id ? selectedConcern : concern
-      )
-    )
-    setIsEditConcernOpen(false)
-    setSelectedConcern(null)
-  }
-
-  const handleAddConcern = () => {
-    if (!newConcernDescription.trim()) return
-
-    const newConcern: CustomerConcern = {
-      id: `concern-${Date.now()}`,
-      description: newConcernDescription,
-      finding: newConcernFinding || "Add finding",
-      status: "pending",
-      addedBy: "Manager",
-      addedAt: new Date().toISOString()
+    if (orderId) {
+      fetchData()
     }
+  }, [orderId])
 
-    setCustomerConcerns([...customerConcerns, newConcern])
-    setIsAddConcernOpen(false)
-    setNewConcernDescription("")
-    setNewConcernFinding("")
-  }
-
-  const handleDeleteConcern = (concernId: string) => {
-    setCustomerConcerns(concerns => concerns.filter(concern => concern.id !== concernId))
-  }
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
+  const getStatusDisplayName = (status: string): string => {
+    switch (status.toLowerCase()) {
+      case "new":
+        return "New"
+      case "pending":
+        return "Pending"
+      case "inprogress":
+        return "In Progress"
       case "completed":
-        return <CheckCircle className="h-4 w-4 text-green-600" />
-      case "in-progress":
-        return <Clock className="h-4 w-4 text-orange-600" />
+        return "Completed"
       default:
-        return <AlertCircle className="h-4 w-4 text-gray-400" />
+        return status
     }
   }
 
-  const getRatingColor = (rating: string) => {
-    switch (rating) {
-      case "critical":
-        return "bg-red-100 text-red-800 border-red-200"
-      case "moderate":
-        return "bg-orange-100 text-orange-800 border-orange-200"
-      case "minor":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200"
-      case "good":
-        return "bg-green-100 text-green-800 border-green-200"
-      case "fair":
-        return "bg-orange-100 text-orange-800 border-orange-200"
-      case "poor":
-        return "bg-red-100 text-red-800 border-red-200"
+  const getStatusBadgeClass = (status: string): string => {
+    switch (status.toLowerCase()) {
+      case "new":
+        return "bg-blue-100 text-blue-800"
+      case "pending":
+        return "bg-yellow-100 text-yellow-800"
+      case "inprogress":
+        return "bg-purple-100 text-purple-800"
+      case "completed":
+        return "bg-green-100 text-green-800"
       default:
-        return "bg-gray-100 text-gray-800 border-gray-200"
+        return "bg-gray-100 text-gray-800"
     }
+  }
+
+  const handleInspectionCreated = () => {
+    // Refresh the inspections list
+    const fetchInspections = async () => {
+      try {
+        const inspections = await inspectionService.getInspectionsByRepairOrderId(orderId)
+        setInspectionTasks(inspections)
+      } catch (err) {
+        console.error("Failed to refresh inspections:", err)
+      }
+    }
+
+    fetchInspections()
+  }
+
+  const handleAssignTech = (inspectionId: string) => {
+    setSelectedInspectionId(inspectionId)
+    setIsAssignDialogOpen(true)
+  }
+
+  const handleViewDetails = (inspectionId: string) => {
+    setDetailInspectionId(inspectionId)
+    setIsDetailDialogOpen(true)
+  }
+
+  const handleAssignTechnician = async (technicianId: string) => {
+    if (!selectedInspectionId) return
+
+    try {
+      // Assign technician to inspection
+      await inspectionService.assignTechnician(selectedInspectionId, technicianId)
+      
+      // Refresh the inspections list to show the change
+      const inspections = await inspectionService.getInspectionsByRepairOrderId(orderId)
+      setInspectionTasks(inspections)
+      
+      setIsAssignDialogOpen(false)
+      setSelectedInspectionId(null)
+    } catch (err) {
+      console.error("Failed to assign technician:", err)
+      // Handle error appropriately
+    }
+  }
+
+  // Get technician monogram from name
+  const getTechnicianMonogram = (name: string | null): string => {
+    if (!name) return ""
+    const names = name.split(" ")
+    if (names.length === 1) return names[0].substring(0, 2).toUpperCase()
+    return (names[0][0] + names[names.length - 1][0]).toUpperCase()
+  }
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-32">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <p className="text-red-700">{error}</p>
+      </div>
+    )
   }
 
   return (
     <div className="space-y-6">
-      {/* Vehicle Issues Section */}
-      <Card>
-        <CardHeader className="pb-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <CardTitle className="text-lg">Vehicle Issues - RO #{orderId}</CardTitle>
-              <Badge variant="destructive" className="bg-red-500">
-                {customerConcerns.length + technicianConcerns.length}
-              </Badge>
-            </div>
-            <Button 
-              onClick={() => setIsAddInspectionOpen(true)}
-              className="bg-[#154c79] hover:bg-[#123a5c] text-white"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add New Inspection
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {/* Customer Concerns */}
-          <div className="space-y-3 mb-6">
-            <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
-              <span>Customer Concerns</span>
-              <div className="w-4 h-4 rounded-full bg-blue-100 flex items-center justify-center text-xs font-medium text-blue-600">
-                ?
-              </div>
-            </div>
-            
-            {customerConcerns.map((concern) => (
-              <div key={concern.id} className="grid grid-cols-12 items-center gap-4 py-2 hover:bg-gray-50 rounded">
-                <div className="col-span-4">
-                  <p className="text-sm text-gray-900">{concern.description}</p>
-                </div>
-                <div className="col-span-4">
-                  <p className="text-sm text-gray-600">{concern.finding}</p>
-                </div>
-                <div className="col-span-4 flex items-center justify-end gap-2">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                      <DropdownMenuItem onClick={() => handleEditConcern(concern)}>
-                        <Edit2 className="h-4 w-4 mr-2" />
-                        Edit Finding
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <Eye className="h-4 w-4 mr-2" />
-                        Copy to Estimate ({customerConcerns.length})
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={() => handleDeleteConcern(concern.id)}
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete Concern
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </div>
-            ))}
-            
-            <Button 
-              variant="ghost" 
-              className="w-fit text-sm text-gray-600 hover:text-gray-900 p-0 h-auto font-normal"
-              onClick={() => setIsAddConcernOpen(true)}
-            >
-              <Plus className="h-4 w-4 mr-1" />
-              Add Concern
-            </Button>
-          </div>
-
-          {/* Technician Concerns */}
-          <div className="space-y-3 pt-4 border-t">
-            <div className="text-sm font-medium text-gray-700">Technician Concerns</div>
-            
-            {technicianConcerns.map((concern) => (
-              <div key={concern.id} className="grid grid-cols-12 items-center gap-4 py-2 hover:bg-gray-50 rounded">
-                <div className="col-span-1 flex justify-center">
-                  <AlertCircle className="h-4 w-4 text-red-500" />
-                </div>
-                <div className="col-span-7">
-                  <p className="text-sm text-gray-900">{concern.description}</p>
-                </div>
-                <div className="col-span-4 flex items-center justify-end gap-2">
-                  <span className="text-sm text-gray-600">{concern.finding}</span>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                      <DropdownMenuItem>
-                        <Eye className="h-4 w-4 mr-2" />
-                        Copy to Estimate (1)
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </div>
-            ))}
-            
-            <Button 
-              variant="ghost" 
-              className="w-fit text-sm text-gray-600 hover:text-gray-900 p-0 h-auto font-normal"
-              disabled
-            >
-              <Plus className="h-4 w-4 mr-1" />
-              Add Concern
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Created Inspection Forms Section */}
       <Card>
-        <CardHeader className="pb-4">
-          <div className="flex items-center gap-2">
-            <CardTitle className="text-lg">Created Inspection Forms</CardTitle>
-            <Badge variant="secondary" className="ml-auto">{inspectionTasks.length}</Badge>
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <CardTitle className="text-lg">Inspection Forms</CardTitle>
+            <Button onClick={() => setIsCreateDialogOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Create Inspection
+            </Button>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {inspectionTasks.map((task) => (
-              <div key={task.id} className="p-4 border rounded-lg hover:bg-gray-50">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    {getStatusIcon(task.status)}
+          {inspectionTasks.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-gray-500">No inspections found for this repair order.</p>
+              <Button 
+                className="mt-4" 
+                onClick={() => setIsCreateDialogOpen(true)}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Create First Inspection
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {inspectionTasks.map((task) => (
+                <div key={task.inspectionId} className="border rounded-lg p-4">
+                  <div className="flex justify-between items-start">
                     <div>
-                      <h4 className="font-medium text-gray-900">{task.title}</h4>
+                      <h3 className="font-medium text-gray-900">Inspection #{task.inspectionId.slice(0, 8)}</h3>
                       <div className="flex items-center gap-2 mt-1">
-                        <Badge variant="outline" className="text-xs">
-                          {task.type === "specific-part" ? "Specific Part" : "Full Vehicle"}
-                        </Badge>
-                        <span className="text-xs text-gray-500">
-                          Created {new Date(task.createdAt).toLocaleDateString()}
+                        <span className={`text-xs px-2 py-1 rounded-full ${getStatusBadgeClass(task.status)}`}>
+                          {getStatusDisplayName(task.status)}
                         </span>
                       </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge className={getRatingColor(task.status)}>
-                      {task.status}
-                    </Badge>
-                    {task.status === "pending" && (
-                      <Button 
-                        size="sm" 
-                        onClick={() => openAssignDialog(task.id)}
-                        className="bg-[#154c79] hover:bg-[#123a5c] text-white"
-                      >
-                        Assign Tech
-                      </Button>
-                    )}
-                  </div>
-                </div>
-                
-                {task.assignedTo && (
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-sm text-gray-600">Assigned to:</span>
-                    <Avatar className="h-6 w-6">
-                      <AvatarImage src={task.assignedTo.avatar} />
-                      <AvatarFallback>{task.assignedTo.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                    </Avatar>
-                    <span className="text-sm font-medium">{task.assignedTo.name}</span>
-                  </div>
-                )}
-                
-                {task.status === "completed" && (
-                  <div className="mt-4 space-y-4">
-                    {/* Rating */}
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-gray-700">Rating:</span>
-                      <Badge className={getRatingColor(task.rating || "good")}>
-                        {task.rating || "Not rated"}
-                      </Badge>
+                      {/* Assign Tech Button - Show for all non-completed inspections */}
+                      {task.status.toLowerCase() !== "completed" && (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => handleAssignTech(task.inspectionId)}
+                          className="flex items-center gap-2"
+                        >
+                          {task.technicianName ? (
+                            <>
+                              <div className="flex items-center justify-center w-5 h-5 rounded-full bg-blue-100 text-blue-800 font-medium text-xs">
+                                {getTechnicianMonogram(task.technicianName)}
+                              </div>
+                              <span>{task.technicianName}</span>
+                            </>
+                          ) : (
+                            <>
+                              <User className="h-4 w-4" />
+                              <span>Assign Tech</span>
+                            </>
+                          )}
+                        </Button>
+                      )}
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => handleViewDetails(task.inspectionId)}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm">
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
-
-                    {/* Findings */}
-                    {task.findings && (
-                      <div className="p-3 bg-gray-50 rounded border">
-                        <p className="text-sm font-medium text-gray-700 mb-2">Findings:</p>
-                        <p className="text-sm text-gray-600">{task.findings}</p>
-                      </div>
-                    )}
-
-                    {/* Images */}
-                    {task.images && task.images.length > 0 && (
-                      <div>
-                        <p className="text-sm font-medium text-gray-700 mb-2">Images:</p>
-                        <div className="flex gap-2 flex-wrap">
-                          {task.images.map((image, index) => (
-                            <div key={index} className="relative group">
-                              <div className="w-24 h-24 bg-gray-200 rounded border overflow-hidden cursor-pointer hover:shadow-lg transition-shadow">
-                                <img 
-                                  src={image.startsWith('C:') ? '/placeholder-image.jpg' : image}
-                                  alt={`Inspection image ${index + 1}`}
-                                  className="w-full h-full object-cover"
-                                  onError={(e) => {
-                                    e.currentTarget.style.display = 'none';
-                                    e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                                  }}
-                                />
-                                <div className="hidden w-full h-full flex items-center justify-center bg-gray-200">
-                                  <span className="text-xs text-gray-500">IMG {index + 1}</span>
-                                </div>
-                              </div>
-                              <div className="absolute bottom-1 left-1 bg-black bg-opacity-75 text-white text-xs px-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">
-                                {image.split('/').pop()?.split('\\').pop()}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1">Click images to view full size</p>
-                      </div>
-                    )}
-
-                    {/* Parts Needed */}
-                    {task.partsNeeded && task.partsNeeded.length > 0 && (
-                      <div>
-                        <p className="text-sm font-medium text-gray-700 mb-2">Parts Needed to Fix:</p>
-                        <div className="space-y-2">
-                          {task.partsNeeded.map((part) => (
-                            <div key={part.id} className="flex items-center justify-between p-2 bg-blue-50 rounded border">
-                              <div>
-                                <p className="text-sm font-medium text-gray-900">{part.name}</p>
-                                <p className="text-xs text-gray-600">Qty: {part.quantity}</p>
-                              </div>
-                              <div className="text-right">
-                                <p className="text-sm font-medium text-green-600">${part.estimatedCost}</p>
-                              </div>
-                            </div>
-                          ))}
-                          <div className="pt-2 border-t">
-                            <p className="text-sm font-medium text-gray-900">
-                              Total Estimated Cost: $
-                              {task.partsNeeded.reduce((total, part) => total + (part.estimatedCost * part.quantity), 0).toFixed(2)}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
                   </div>
-                )}
-              </div>
-            ))}
-            {inspectionTasks.length === 0 && (
-              <p className="text-gray-500 text-center py-8">No inspection forms created yet.</p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Add New Inspection Dialog */}
-      <Dialog open={isAddInspectionOpen} onOpenChange={setIsAddInspectionOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Add New Inspection</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium mb-2 block">Inspection Type</label>
-              <Select value={newInspectionType} onValueChange={(value: "specific-part" | "full-vehicle") => setNewInspectionType(value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose inspection type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="specific-part">Specific Part Inspection</SelectItem>
-                  <SelectItem value="full-vehicle">Full Vehicle Check-up</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div>
-              <label className="text-sm font-medium mb-2 block">Inspection Title</label>
-              <Input 
-                value={newInspectionTitle}
-                onChange={(e) => setNewInspectionTitle(e.target.value)}
-                placeholder="Enter inspection description"
-              />
-            </div>
-            
-            <div className="flex gap-2 pt-4">
-              <Button 
-                variant="outline" 
-                onClick={() => setIsAddInspectionOpen(false)}
-                className="flex-1"
-              >
-                Cancel
-              </Button>
-              <Button 
-                onClick={handleAddInspection}
-                className="flex-1 bg-[#154c79] hover:bg-[#123a5c]"
-                disabled={!newInspectionType || !newInspectionTitle}
-              >
-                Create Inspection
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Assign Technician Dialog */}
-      <Dialog open={isAssignTechOpen} onOpenChange={setIsAssignTechOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Assign Technician</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium mb-2 block">Select Technician</label>
-              <Select value={assignedTech} onValueChange={setAssignedTech}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose technician" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableTechnicians.map((tech) => (
-                    <SelectItem key={tech.id} value={tech.id}>
-                      <div className="flex items-center gap-2">
-                        <Avatar className="h-5 w-5">
-                          <AvatarImage src={tech.avatar} />
-                          <AvatarFallback>{tech.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                        </Avatar>
-                        {tech.name}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="flex gap-2 pt-4">
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                  setIsAssignTechOpen(false)
-                  setSelectedTaskForAssignment(null)
-                  setAssignedTech("")
-                }}
-                className="flex-1"
-              >
-                Cancel
-              </Button>
-              <Button 
-                onClick={handleAssignTechnician}
-                className="flex-1 bg-[#154c79] hover:bg-[#123a5c]"
-                disabled={!assignedTech}
-              >
-                Assign Technician
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Add Customer Concern Dialog */}
-      <Dialog open={isAddConcernOpen} onOpenChange={setIsAddConcernOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Add Customer Concern</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium mb-2 block">Customer states</label>
-              <Textarea 
-                value={newConcernDescription}
-                onChange={(e) => setNewConcernDescription(e.target.value)}
-                placeholder="Enter what the customer is reporting..."
-                className="min-h-[80px]"
-              />
-            </div>
-            
-            <div>
-              <label className="text-sm font-medium mb-2 block">Finding (Optional)</label>
-              <Textarea 
-                value={newConcernFinding}
-                onChange={(e) => setNewConcernFinding(e.target.value)}
-                placeholder="Enter initial findings or leave blank..."
-                className="min-h-[80px]"
-              />
-            </div>
-            
-            <div className="flex gap-2 pt-4">
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                  setIsAddConcernOpen(false)
-                  setNewConcernDescription("")
-                  setNewConcernFinding("")
-                }}
-                className="flex-1"
-              >
-                Cancel
-              </Button>
-              <Button 
-                onClick={handleAddConcern}
-                className="flex-1 bg-[#154c79] hover:bg-[#123a5c]"
-                disabled={!newConcernDescription.trim()}
-              >
-                Add Concern
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Customer Concern Dialog */}
-      <Dialog open={isEditConcernOpen} onOpenChange={setIsEditConcernOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Edit Customer Concern</DialogTitle>
-          </DialogHeader>
-          {selectedConcern && (
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium mb-2 block">Customer states</label>
-                <Textarea 
-                  value={selectedConcern.description}
-                  onChange={(e) => setSelectedConcern({...selectedConcern, description: e.target.value})}
-                  className="min-h-[80px]"
-                />
-              </div>
-              
-              <div>
-                <label className="text-sm font-medium mb-2 block">Finding</label>
-                <Textarea 
-                  value={selectedConcern.finding}
-                  onChange={(e) => setSelectedConcern({...selectedConcern, finding: e.target.value})}
-                  className="min-h-[80px]"
-                />
-              </div>
-              
-              <div className="flex gap-2 pt-4">
-                <Button 
-                  variant="outline" 
-                  onClick={() => setIsEditConcernOpen(false)}
-                  className="flex-1"
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  onClick={handleSaveConcern}
-                  className="flex-1 bg-[#154c79] hover:bg-[#123a5c]"
-                >
-                  Save
-                </Button>
-              </div>
+                  
+                  <div className="mt-3 text-sm text-gray-600">
+                    Created: {new Date(task.createdAt).toLocaleDateString()}
+                    {task.updatedAt && ` • Updated: ${new Date(task.updatedAt).toLocaleDateString()}`}
+                  </div>
+                  
+                  {task.finding && (
+                    <div className="mt-3 pt-3 border-t">
+                      <div className="text-sm font-medium text-gray-700 mb-2">Findings</div>
+                      <p className="text-sm text-gray-600">{task.finding}</p>
+                    </div>
+                  )}
+                  
+                  {task.customerConcern && (
+                    <div className="mt-3">
+                      <div className="text-sm font-medium text-gray-700 mb-2">Customer Concern</div>
+                      <p className="text-sm text-gray-600">{task.customerConcern}</p>
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           )}
-        </DialogContent>
-      </Dialog>
+        </CardContent>
+      </Card>
+      
+      <CreateInspectionDialog
+        open={isCreateDialogOpen}
+        onOpenChange={setIsCreateDialogOpen}
+        repairOrderId={orderId}
+        onInspectionCreated={handleInspectionCreated}
+      />
+      
+      <TechnicianSelectionDialog
+        open={isAssignDialogOpen}
+        onOpenChange={setIsAssignDialogOpen}
+        onAssign={handleAssignTechnician}
+        jobIds={selectedInspectionId ? [selectedInspectionId] : []}
+        branchId={branchId || undefined}
+      />
+      
+      <InspectionDetailDialog
+        inspectionId={detailInspectionId}
+        open={isDetailDialogOpen}
+        onOpenChange={setIsDetailDialogOpen}
+      />
     </div>
   )
 }
