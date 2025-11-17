@@ -4,7 +4,6 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { 
   Dialog,
   DialogContent,
@@ -17,18 +16,15 @@ import {
   Package,
   Calendar,
   Clock,
-  RefreshCw
+  RefreshCw,
+  User
 } from "lucide-react"
 import { jobService } from "@/services/manager/job-service"
+// import { techScheduleService } from "@/services/manager/tech-schedule-service"
+import { TechnicianSelectionDialog } from "@/components/manager/technician-selection-dialog"
+import { JobStatusBadge } from "@/components/manager/job-status-badge"
 import type { Job } from "@/types/job"
-
-// Mock technician data - in a real app this would come from an API
-const technicians = [
-  { id: "1", name: "John Smith", monogram: "JS" },
-  { id: "2", name: "Sarah Johnson", monogram: "SJ" },
-  { id: "3", name: "Mike Davis", monogram: "MD" },
-  { id: "4", name: "Emily Wilson", monogram: "EW" },
-]
+// import type { Technician } from "@/types/manager/tech-schedule"
 
 interface JobDetailsViewProps {
   jobId: string
@@ -37,15 +33,18 @@ interface JobDetailsViewProps {
   onJobUpdated?: (job: Job) => void
 }
 
-export default function JobDetailsView({ jobId, open, onOpenChange }: JobDetailsViewProps) {
+export default function JobDetailsView({ jobId, open, onOpenChange, onJobUpdated }: JobDetailsViewProps) {
   const [job, setJob] = useState<Job | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [assignedTech, setAssignedTech] = useState<{ id: string; name: string; monogram: string } | null>(null)
+  // const [technicians, setTechnicians] = useState<Technician[]>([])
+  const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false)
 
   useEffect(() => {
     if (open && jobId) {
       loadJob()
+      // loadTechnicians()
     }
   }, [open, jobId])
 
@@ -57,11 +56,11 @@ export default function JobDetailsView({ jobId, open, onOpenChange }: JobDetails
       setJob(data)
       
       // Initialize assigned tech from job data
-      if (data.assignedTechnicianId && data.assignedTechnicianName && data.assignedTechnicianMonogram) {
+      if (data.assignedTechnicianId) {
         setAssignedTech({
           id: data.assignedTechnicianId,
-          name: data.assignedTechnicianName,
-          monogram: data.assignedTechnicianMonogram
+          name: data.assignedTechnicianName || 'Unknown Technician',
+          monogram: data.assignedTechnicianMonogram || data.assignedTechnicianName?.substring(0, 2).toUpperCase() || 'NA'
         })
       } else {
         setAssignedTech(null)
@@ -74,31 +73,37 @@ export default function JobDetailsView({ jobId, open, onOpenChange }: JobDetails
     }
   }
 
+  // const loadTechnicians = async () => {
+  //   try {
+  //     const data = await techScheduleService.getAllTechnicians()
+  //     // setTechnicians(data)
+  //   } catch (err) {
+  //     console.error("Failed to load technicians", err)
+  //   }
+  // }
+
   const handleAssignTech = () => {
-    // In a real app, this would open a modal or dropdown to select a technician
-    // For now, we'll just assign the first available technician
-    const techToAssign = technicians.find(tech => 
-      assignedTech?.id !== tech.id
-    ) || technicians[0]
-    
-    setAssignedTech(techToAssign)
+    setIsAssignDialogOpen(true)
   }
 
-  const getJobStatusText = (status: number) => {
-    switch (status) {
-      case 0: return "Pending"
-      case 1: return "In Progress"
-      case 2: return "Completed"
-      default: return "Unknown"
-    }
-  }
-
-  const getJobStatusColor = (status: number) => {
-    switch (status) {
-      case 0: return "bg-yellow-100 text-yellow-800"
-      case 1: return "bg-blue-100 text-blue-800"
-      case 2: return "bg-green-100 text-green-800"
-      default: return "bg-gray-100 text-gray-800"
+  const assignJobToTechnician = async (technicianId: string) => {
+    try {
+      // Call the API to assign the job using the job service
+      await jobService.assignTechnician(jobId, technicianId);
+      
+      // Refresh the job data to show the change
+      await loadJob();
+      
+      // Close the dialog after successful assignment
+      setIsAssignDialogOpen(false)
+      
+      // Call the onJobUpdated callback if provided to refresh the parent component
+      if (onJobUpdated) {
+        onJobUpdated(await jobService.getJobById(jobId));
+      }
+    } catch (err) {
+      console.error("Failed to assign job", err)
+      // You might want to show an error message to the user here
     }
   }
 
@@ -162,7 +167,7 @@ export default function JobDetailsView({ jobId, open, onOpenChange }: JobDetails
                       className="flex items-center gap-2"
                       onClick={handleAssignTech}
                     >
-                      <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs">
+                      <div className="flex items-center justify-center w-5 h-5 rounded-full bg-blue-100 text-blue-800 font-medium text-xs">
                         {assignedTech.monogram}
                       </div>
                       <span>{assignedTech.name}</span>
@@ -173,12 +178,11 @@ export default function JobDetailsView({ jobId, open, onOpenChange }: JobDetails
                       size="sm" 
                       onClick={handleAssignTech}
                     >
+                      <User className="w-4 h-4 mr-2" />
                       Assign Tech
                     </Button>
                   )}
-                  <Badge className={getJobStatusColor(job.status)}>
-                    {getJobStatusText(job.status)}
-                  </Badge>
+                  <JobStatusBadge status={job.status} />
                 </div>
               </div>
             </CardHeader>
@@ -245,6 +249,13 @@ export default function JobDetailsView({ jobId, open, onOpenChange }: JobDetails
           <Button onClick={() => onOpenChange(false)}>Close</Button>
         </DialogFooter>
       </DialogContent>
+      
+      <TechnicianSelectionDialog
+        open={isAssignDialogOpen}
+        onOpenChange={setIsAssignDialogOpen}
+        onAssign={assignJobToTechnician}
+        jobIds={[jobId]}
+      />
     </Dialog>
   )
 }

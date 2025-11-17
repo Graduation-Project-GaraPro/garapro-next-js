@@ -86,6 +86,14 @@ class ApiClient {
         processedResponse = interceptor(processedResponse)
       })
 
+      if (processedResponse.status === 204) {
+        return {
+          data: undefined as unknown as T,
+          status: 204,
+          success: true
+        }
+      }
+
       // Special handling for customer endpoints - they may return data with 400 status
       const isCustomerEndpoint = endpoint.includes('/Customer');
       if (!processedResponse.ok && !isCustomerEndpoint) {

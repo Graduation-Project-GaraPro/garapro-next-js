@@ -1,13 +1,20 @@
 // Update the ApiResponse interface to match your backend
-interface ApiResponse<T> {
-  data: T;
+export interface ApiResponse<T> {
+  data?: T;
   message?: string;
   status: number;
   success: boolean;
+  repairOrderId?: string;
+  oldStatusId?: string | null;
+  newStatusId?: string | null;
+  updatedAt?: string;
+  updatedCard?: unknown | null;
+  warnings?: unknown[];
+  errors?: unknown[];
 }
 
 // Keep ApiError as is
-interface ApiError {
+export interface ApiError {
   message: string;
   status: number;
   code?: string;
@@ -95,9 +102,24 @@ class ApiClient {
         throw new Error(errorData.message || `HTTP error! status: ${processedResponse.status}`);
       }
 
-      const data = await processedResponse.json();
+      // Handle 204 No Content responses
+      let data: unknown = null;
+      if (processedResponse.status !== 204) {
+        data = await processedResponse.json();
+      }
       
-      // Wrap response to match expected format
+      // Handle the specific response structure from the repair order status update endpoint
+      if (endpoint.includes('/api/RepairOrder/status/update') && data && typeof data === 'object' && 'success' in data) {
+        const typedData = data as { data?: T; message?: string; success: boolean };
+        return {
+          data: typedData.data ?? (data as T),
+          message: typedData.message,
+          status: processedResponse.status,
+          success: typedData.success
+        };
+      }
+      
+      // Wrap response to match expected format for other endpoints
       return {
         data: data as T,
         status: processedResponse.status,
@@ -129,6 +151,14 @@ class ApiClient {
 
   private async parseErrorResponse(response: Response): Promise<ApiError> {
     try {
+      // Handle cases where there's no JSON body (e.g., 204, 404, etc.)
+      if (response.status === 204) {
+        return {
+          message: 'No content',
+          status: response.status
+        };
+      }
+      
       const errorData = await response.json();
       return {
         message: errorData.message || 'An error occurred',
