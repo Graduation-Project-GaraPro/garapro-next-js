@@ -1,194 +1,327 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { ChevronLeft, ChevronRight, Plus, Search, Filter } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { ManagerAppointment } from "@/types/manager/appointment"
+import type { ManagerRepairRequest } from "@/types/manager/repair-request"
+import { repairRequestService } from "@/services/manager/appointmentService"
 
 interface CalendarProps {
-  selectedDate: Date
   onDateSelect: (date: Date) => void
   onAppointmentSelect: (appointmentId: string) => void
+  currentWeekStart: Date
+  onWeekNavigate: (direction: "prev" | "next") => void
+  onGoToToday?: () => void
 }
 
-export function Calendar({ selectedDate, onDateSelect, onAppointmentSelect }: CalendarProps) {
-  const [currentMonth, setCurrentMonth] = useState(new Date())
+export function Calendar({ 
+  onDateSelect, 
+  onAppointmentSelect,
+  currentWeekStart,
+  onWeekNavigate,
+  onGoToToday
+}: CalendarProps) {
+  const [view, setView] = useState<"week" | "day">("week")
+  const [repairRequests, setRepairRequests] = useState<ManagerRepairRequest[]>([])
+  const [isLoading, setIsLoading] = useState(true)
 
-  // Mock data for testing
-  const mockAppointments: ManagerAppointment[] = [
-    {
-      id: "1",
-      time: "09:00",
-      customer: "John Smith",
-      service: "Oil Change",
-      status: "confirmed",
-      phone: "(555) 123-4567",
-      email: "john.smith@email.com",
-      vehicle: "2020 Honda Civic",
-      notes: "Customer requested synthetic oil.",
-      date: "2025-01-20",
-    },
-    {
-      id: "2",
-      time: "10:30",
-      customer: "Sarah Johnson",
-      service: "Brake Inspection",
-      status: "pending",
-      phone: "(555) 234-5678",
-      email: "sarah.j@email.com",
-      vehicle: "2018 Toyota Camry",
-      notes: "Customer reports squeaking noise.",
-      date: "2025-01-20",
-    },
-  ]
-
-  const [appointments] = useState<ManagerAppointment[]>(mockAppointments)
-
-  // Temporarily commented out to test loading issue
-  // useEffect(() => {
-  //   const fetchAppointments = async () => {
-  //     try {
-  //       const data = await managerAppointmentService.getAppointments()
-  //       setAppointments(data)
-  //     } catch (error) {
-  //       console.error('Failed to fetch appointments:', error)
-  //     }
-  //   }
-  //   fetchAppointments()
-  // }, [currentMonth])
-
-  const monthNames = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
-  ]
-
-  const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate()
-  const firstDayOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1).getDay()
-
-  const days = Array.from({ length: daysInMonth }, (_, i) => i + 1)
-  const emptyDays = Array.from({ length: firstDayOfMonth }, (_, i) => i)
-
-  const navigateMonth = (direction: "prev" | "next") => {
-    setCurrentMonth((prev) => {
-      const newMonth = new Date(prev)
-      if (direction === "prev") {
-        newMonth.setMonth(prev.getMonth() - 1)
-      } else {
-        newMonth.setMonth(prev.getMonth() + 1)
+  // Fetch repair requests from API
+  useEffect(() => {
+    const fetchRepairRequests = async () => {
+      try {
+        setIsLoading(true)
+        const data = await repairRequestService.getRepairRequests()
+        setRepairRequests(data)
+      } catch (error) {
+        console.error("Failed to load repair requests:", error)
+      } finally {
+        setIsLoading(false)
       }
-      return newMonth
-    })
+    }
+
+    fetchRepairRequests()
+  }, [])
+
+  const timeSlots = [
+    "7:00 AM", "8:00 AM", "9:00 AM", "10:00 AM", "11:00 AM",
+    "12:00 PM", "1:00 PM", "2:00 PM", "3:00 PM", "4:00 PM", "5:00 PM"
+  ]
+
+  const getWeekDays = () => {
+    const days = []
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(currentWeekStart)
+      date.setDate(currentWeekStart.getDate() + i)
+      days.push(date)
+    }
+    return days
   }
 
-  const getDateKey = (day: number) => {
-    const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day)
+  const weekDays = getWeekDays()
+
+  const getDateKey = (date: Date) => {
     return date.toISOString().split("T")[0]
   }
 
-  const getDayAppointments = (day: number): ManagerAppointment[] => {
-    const dateKey = getDateKey(day)
-    return appointments.filter(apt => apt.date === dateKey)
+  const getRepairRequestsForDate = (date: Date) => {
+    const dateKey = getDateKey(date)
+    return repairRequests.filter(req => req.date === dateKey)
+  }
+
+  const getRepairRequestPosition = (time: string) => {
+    const [hours] = time.split(":").map(Number)
+    // Round down to nearest hour (e.g., 10:30 -> 10:00, 10:45 -> 10:00)
+    const roundedHour = hours
+    const startMinutes = 7 * 60 // 7 AM
+    const totalMinutes = roundedHour * 60
+    return ((totalMinutes - startMinutes) / 60) * 80 // 80px per hour
+  }
+
+  // Group repair requests by date and time for handling overlaps
+  const groupRequestsByDateTime = (requests: ManagerRepairRequest[]) => {
+    const grouped: Record<string, ManagerRepairRequest[]> = {}
+    
+    requests.forEach(req => {
+      if (req.date && req.time) {
+        const key = `${req.date}_${req.time}`
+        if (!grouped[key]) {
+          grouped[key] = []
+        }
+        grouped[key].push(req)
+      }
+    })
+    
+    return grouped
+  }
+
+  // Get vertical offset for overlapping appointments
+  const getVerticalOffset = (groupedRequests: Record<string, ManagerRepairRequest[]>, req: ManagerRepairRequest, indexInGroup: number) => {
+    if (!req.date || !req.time) return { topOffset: 0, height: 80 }
+    
+    const key = `${req.date}_${req.time}`
+    const group = groupedRequests[key] || []
+    
+    if (group.length <= 1) {
+      return { topOffset: 0, height: 80 }
+    }
+    
+    // Calculate height and offset for each appointment in the group
+    const totalHeight = 80
+    const individualHeight = totalHeight / group.length
+    const topOffset = indexInGroup * individualHeight
+    
+    return { topOffset, height: individualHeight }
   }
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case "confirmed":
-        return "bg-success/20 text-success border-success/30"
+        return "bg-blue-500 border-blue-600"
       case "pending":
-        return "bg-warning/20 text-warning border-warning/30"
+        return "bg-yellow-500 border-yellow-600"
       case "in-progress":
-        return "bg-primary/20 text-primary border-primary/30"
+        return "bg-green-500 border-green-600"
+      case "completed":
+        return "bg-blue-500 border-blue-600"
+      case "cancelled":
+        return "bg-red-500 border-red-600"
+      case "accept":
+        return "bg-purple-500 border-purple-600"
       default:
-        return "bg-muted text-muted-foreground"
+        return "bg-gray-400 border-gray-500"
+    }
+  }
+
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString("en-US", { 
+      weekday: "short", 
+      month: "2-digit", 
+      day: "2-digit" 
+    })
+  }
+
+  const isToday = (date: Date) => {
+    const today = new Date()
+    return date.toDateString() === today.toDateString()
+  }
+
+  const goToToday = () => {
+    if (onGoToToday) {
+      onGoToToday()
+    } else {
+      onDateSelect(new Date())
     }
   }
 
   return (
-    <Card className="p-6 h-full">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-semibold text-foreground">
-          {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
-        </h2>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => navigateMonth("prev")}>
-            <ChevronLeft className="h-4 w-4" />
+    <div className="h-full flex flex-col overflow-hidden">
+      {/* Header */}
+      <div className="flex-shrink-0 border-b bg-white px-6 py-4">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <h1 className="text-2xl font-bold">Appointments</h1>
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+              <input
+                type="text"
+                placeholder="Search upcoming"
+                className="pl-10 pr-4 py-2 rounded-md border border-gray-300 text-gray-900 placeholder-gray-500 w-64 focus:outline-none focus:ring-2 focus:ring-[#154c79] focus:border-[#154c79]"
+              />
+            </div>
+            <Button variant="outline" size="sm" className="border-gray-300 text-gray-700 hover:bg-gray-50">
+              <Filter className="h-4 w-4 mr-2" />
+              Filters
+            </Button>
+            <Button size="sm" className="bg-[#154c79] text-white hover:bg-[#154c79]/90">
+              <Plus className="h-4 w-4 mr-2" />
+              NEW APPOINTMENT
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Controls */}
+      <div className="flex-shrink-0 border-b px-6 py-3 flex items-center justify-between bg-card flex-wrap gap-3">
+        <div className="flex items-center gap-4 flex-wrap">
+          <Button variant="outline" size="sm" onClick={goToToday}>
+            TODAY
           </Button>
-          <Button variant="outline" size="sm" onClick={() => navigateMonth("next")}>
-            <ChevronRight className="h-4 w-4" />
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={() => onWeekNavigate("prev")}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => onWeekNavigate("next")}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+          <span className="font-semibold text-lg whitespace-nowrap">
+            {currentWeekStart.toLocaleDateString("en-US", { month: "short", day: "numeric" })} - {" "}
+            {weekDays[6].toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button 
+            variant={view === "week" ? "default" : "outline"} 
+            size="sm"
+            onClick={() => setView("week")}
+          >
+            WEEK
+          </Button>
+          <Button 
+            variant={view === "day" ? "default" : "outline"} 
+            size="sm"
+            onClick={() => setView("day")}
+          >
+            DAY
           </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-7 gap-1 mb-4">
-        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-          <div key={day} className="p-3 text-center text-sm font-medium text-muted-foreground">
-            {day}
+      {/* Calendar Grid */}
+      <div className="flex-1 overflow-auto min-h-0">
+        {isLoading ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-muted-foreground">Loading repair requests...</div>
           </div>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-7 gap-1 flex-1">
-        {emptyDays.map((day) => (
-          <div key={`empty-${day}`} className="p-2 min-h-[120px]" />
-        ))}
-
-        {days.map((day) => {
-          const dayAppointments = getDayAppointments(day)
-          const isSelected =
-            selectedDate.getDate() === day &&
-            selectedDate.getMonth() === currentMonth.getMonth() &&
-            selectedDate.getFullYear() === currentMonth.getFullYear()
-
-          return (
-            <div
-              key={day}
-              className={cn(
-                "p-2 min-h-[120px] border border-border rounded-md cursor-pointer hover:bg-accent/50 transition-colors",
-                isSelected && "bg-primary/10 border-primary",
-              )}
-              onClick={() => {
-                const newDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day)
-                onDateSelect(newDate)
-              }}
-            >
-              <div className="text-sm font-medium mb-2">{day}</div>
-              <div className="space-y-1">
-                {dayAppointments.slice(0, 3).map((appointment) => (
-                  <div
-                    key={appointment.id}
-                    className={cn(
-                      "text-xs p-1 rounded border cursor-pointer hover:opacity-80",
-                      getStatusColor(appointment.status),
-                    )}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onAppointmentSelect(appointment.id)
-                    }}
-                  >
-                    <div className="font-medium">{appointment.time}</div>
-                    <div className="truncate">{appointment.customer}</div>
-                  </div>
-                ))}
-                {dayAppointments.length > 3 && (
-                  <div className="text-xs text-muted-foreground p-1">+{dayAppointments.length - 3} more</div>
+        ) : repairRequests.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full gap-2">
+            <div className="text-muted-foreground">No repair requests found</div>
+            <div className="text-xs text-muted-foreground">Total requests loaded: {repairRequests.length}</div>
+          </div>
+        ) : (
+        <div className="min-w-[1200px] h-full">
+          {/* Day Headers */}
+          <div className="grid grid-cols-8 border-b bg-muted/30 sticky top-0 z-10">
+            <div className="p-3 border-r"></div>
+            {weekDays.map((day, idx) => (
+              <div 
+                key={idx} 
+                className={cn(
+                  "p-3 text-center border-r",
+                  isToday(day) && "bg-primary/10"
+                )}
+              >
+                <div className="font-medium">{formatDate(day)}</div>
+                {isToday(day) && (
+                  <div className="text-xs text-muted-foreground mt-1">Today</div>
                 )}
               </div>
-            </div>
-          )
-        })}
+            ))}
+          </div>
+
+          {/* Time Slots Grid */}
+          <div className="relative" style={{ minHeight: "880px" }}>
+            {timeSlots.map((time) => (
+              <div key={time} className="grid grid-cols-8 border-b" style={{ height: "80px" }}>
+                <div className="p-2 border-r text-sm text-muted-foreground text-right pr-4">
+                  {time}
+                </div>
+                {weekDays.map((day, dayIdx) => (
+                  <div 
+                    key={dayIdx} 
+                    className={cn(
+                      "border-r relative",
+                      isToday(day) && "bg-primary/5"
+                    )}
+                  />
+                ))}
+              </div>
+            ))}
+
+            {/* Repair Requests Overlay */}
+            {(() => {
+              // Group all requests by date and time to handle overlaps
+              const groupedRequests = groupRequestsByDateTime(repairRequests)
+              
+              return weekDays.map((day, dayIdx) => {
+                const dayRequests = getRepairRequestsForDate(day)
+                return dayRequests.map(req => {
+                  if (!req.time) return null
+                  const baseTopPosition = getRepairRequestPosition(req.time)
+                  
+                  // Get position within the group of overlapping requests
+                  const dateTimeKey = `${req.date}_${req.time}`
+                  const group = groupedRequests[dateTimeKey] || []
+                  const indexInGroup = group.findIndex(r => r.requestID === req.requestID)
+                  const { topOffset, height: individualHeight } = getVerticalOffset(groupedRequests, req, indexInGroup)
+                  
+                  // Adjust the top position based on the vertical offset
+                  const adjustedTopPosition = baseTopPosition + topOffset
+                  
+                  return (
+                    <div
+                      key={req.requestID}
+                      className={cn(
+                        "absolute rounded-md border-l-4 p-2 cursor-pointer hover:shadow-lg transition-shadow overflow-hidden z-20",
+                        getStatusColor(req.status || "pending")
+                      )}
+                      style={{
+                        left: `${12.5 + dayIdx * 12.5}%`,
+                        top: `${adjustedTopPosition}px`,
+                        width: "11.5%",
+                        height: `${individualHeight}px`
+                      }}
+                      onClick={() => {
+                        onDateSelect(day)
+                        onAppointmentSelect(req.requestID)
+                      }}
+                    >
+                      <div className="text-white text-sm font-medium truncate">
+                        {req.customerName || "Unknown Customer"}
+                      </div>
+                      <div className="text-white/90 text-xs truncate">
+                        {req.displayService || req.description || "Repair Service"}
+                      </div>
+                    </div>
+                  )
+                })
+              })
+            })()}
+          </div>
+        </div>
+        )}
       </div>
-    </Card>
+    </div>
   )
 }

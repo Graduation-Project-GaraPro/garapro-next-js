@@ -37,7 +37,7 @@ export default function ServicesTable({ services }: ServicesTableProps) {
             {services.map((service) => (
               <tr key={service.id}>
                 <td
-                  rowSpan={service.parts.length}
+                  rowSpan={Math.max(1, service.parts.length)} // Ensure at least 1 row
                   className="border-b border-border px-6 py-4 font-semibold text-card-foreground align-top"
                 >
                   <div className="flex items-center gap-2">
@@ -52,18 +52,37 @@ export default function ServicesTable({ services }: ServicesTableProps) {
                     </span>
                   )}
                 </td>
-                <td className="border-b border-border px-6 py-3 text-sm text-card-foreground">
-                  {service.parts[0].name}
-                </td>
-                <td className="border-b border-border px-6 py-3 text-center text-sm text-card-foreground">
-                  {service.parts[0].quantity}
-                </td>
-                <td className="border-b border-border px-6 py-3 text-right text-sm text-card-foreground">
-                  ${service.parts[0].unitPrice.toLocaleString()}
-                </td>
-                <td className="border-b border-border px-6 py-3 text-right text-sm font-medium text-card-foreground">
-                  ${(service.parts[0].quantity * service.parts[0].unitPrice).toLocaleString()}
-                </td>
+                {service.parts.length > 0 ? (
+                  <>
+                    <td className="border-b border-border px-6 py-3 text-sm text-card-foreground">
+                      {service.parts[0].name}
+                    </td>
+                    <td className="border-b border-border px-6 py-3 text-center text-sm text-card-foreground">
+                      {service.parts[0].quantity}
+                    </td>
+                    <td className="border-b border-border px-6 py-3 text-right text-sm text-card-foreground">
+                      ${service.parts[0].unitPrice.toLocaleString()}
+                    </td>
+                    <td className="border-b border-border px-6 py-3 text-right text-sm font-medium text-card-foreground">
+                      ${(service.parts[0].quantity * service.parts[0].unitPrice).toLocaleString()}
+                    </td>
+                  </>
+                ) : (
+                  <>
+                    <td className="border-b border-border px-6 py-3 text-sm text-card-foreground">
+                      No parts
+                    </td>
+                    <td className="border-b border-border px-6 py-3 text-center text-sm text-card-foreground">
+                      0
+                    </td>
+                    <td className="border-b border-border px-6 py-3 text-right text-sm text-card-foreground">
+                      $0
+                    </td>
+                    <td className="border-b border-border px-6 py-3 text-right text-sm font-medium text-card-foreground">
+                      $0
+                    </td>
+                  </>
+                )}
               </tr>
             ))}
           </tbody>
@@ -88,18 +107,22 @@ export default function ServicesTable({ services }: ServicesTableProps) {
                 </span>
               )}
               <div className="mt-3 space-y-2">
-                {service.parts.map((part) => (
-                  <div key={part.id} className="flex items-center justify-between text-sm">
-                    <span className="text-card-foreground">{part.name}</span>
-                    <div className="flex gap-4">
-                      <span className="text-muted-foreground">Qty: {part.quantity}</span>
-                      <span className="text-muted-foreground">${part.unitPrice.toLocaleString()}</span>
-                      <span className="font-medium text-card-foreground">
-                        ${(part.quantity * part.unitPrice).toLocaleString()}
-                      </span>
+                {service.parts && service.parts.length > 0 ? (
+                  service.parts.map((part) => (
+                    <div key={part.id} className="flex items-center justify-between text-sm">
+                      <span className="text-card-foreground">{part.name}</span>
+                      <div className="flex gap-4">
+                        <span className="text-muted-foreground">Qty: {part.quantity}</span>
+                        <span className="text-muted-foreground">${part.unitPrice.toLocaleString()}</span>
+                        <span className="font-medium text-card-foreground">
+                          ${(part.quantity * part.unitPrice).toLocaleString()}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  <div className="text-sm text-muted-foreground">No parts associated with this service</div>
+                )}
               </div>
               <div className="mt-3 border-t border-border pt-3">
                 <div className="flex justify-between font-semibold text-card-foreground">

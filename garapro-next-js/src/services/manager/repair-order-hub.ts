@@ -1,5 +1,6 @@
 import { HubConnection, HubConnectionBuilder, LogLevel } from "@microsoft/signalr";
 import { apiClient } from "./api-client";
+import type { ApiResponse } from "./api-client";
 import { PaidStatus } from "@/types/manager/repair-order";
 
 // Define the structure for the card data used in real-time updates
@@ -114,17 +115,27 @@ class RepairOrderHubService {
   }
 
   // Update repair order status (for drag and drop)
-  public async updateRepairOrderStatus(repairOrderId: string, newStatusId: string): Promise<boolean> {
+  public async updateRepairOrderStatus(repairOrderId: string, newStatusId: string): Promise<ApiResponse<unknown>> {
     try {
       const response = await apiClient.post<unknown>("/api/RepairOrder/status/update", {
         repairOrderId: repairOrderId,
         newStatusId: newStatusId
       });
 
-      return response.success;
+      return response;
     } catch (error) {
       console.error("Failed to update repair order status:", error);
-      return false;
+      // Extract error message if available
+      let message = "Failed to update repair order status";
+      if (error && typeof error === 'object' && 'message' in error) {
+        message = error.message as string;
+      }
+      return { 
+        success: false, 
+        message,
+        status: error && typeof error === 'object' && 'status' in error ? (error.status as number) : 0,
+        data: null
+      };
     }
   }
 

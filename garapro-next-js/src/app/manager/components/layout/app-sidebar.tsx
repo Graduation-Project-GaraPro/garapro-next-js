@@ -48,7 +48,7 @@ const data = {
   // Main section
   mainNav: [
     {
-      title: "Appointments",
+      title: "Repair Requests",
       url: "/manager/CustomerAppointments",
       icon: CalendarDays,
     },

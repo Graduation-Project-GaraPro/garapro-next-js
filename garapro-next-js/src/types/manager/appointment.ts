@@ -41,3 +41,5 @@ export interface CreateManagerAppointmentData {
 export interface UpdateManagerAppointmentData extends Partial<CreateManagerAppointmentData> {
   status?: ManagerAppointment["status"];
 }
+
+
