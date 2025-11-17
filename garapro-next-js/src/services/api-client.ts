@@ -21,7 +21,7 @@ class ApiClient {
   private responseInterceptors: Array<(response: Response) => Response> = []
 
   constructor(
-    baseUrl: string = process.env.NEXT_PUBLIC_API_URL || "/api",
+    baseUrl: string = process.env.NEXT_PUBLIC_BASE_URL || "/api",
     retryAttempts: number = 3,
     retryDelay: number = 1000
   ) {
