@@ -361,7 +361,7 @@ class TechnicianService {
   // Get all technician workloads
   async getAllTechnicianWorkloads(): Promise<TechnicianWorkload[]> {
     try {
-      // Use the correct endpoint format with /api prefix
+      // Use the correct endpoint format - should be relative to base URL
       const endpoint = `/api/Technician/workload`
       console.log(`Fetching all technician workloads at endpoint: ${endpoint}`)
       
@@ -378,8 +378,8 @@ class TechnicianService {
   // Get specific technician workload
   async getTechnicianWorkload(technicianId: string): Promise<TechnicianWorkload | null> {
     try {
-      // Use the correct endpoint format with /api prefix
-      const endpoint = `/api/Technician/workload?technicianId=${technicianId}`
+      // Use the correct endpoint format - should be relative to base URL
+      const endpoint = `/api/Technician/workload/${technicianId}`
       console.log(`Fetching workload for technician ${technicianId} at endpoint: ${endpoint}`)
       
       const response = await apiClient.get<TechnicianWorkload>(endpoint)
@@ -395,7 +395,7 @@ class TechnicianService {
   // Get all technician schedules
   async getAllTechnicianSchedules(): Promise<TechnicianSchedule[]> {
     try {
-      // Use the correct endpoint format with /api prefix
+      // Use the correct endpoint format - should be relative to base URL
       const endpoint = `/api/Technician/schedule`
       console.log(`Fetching all technician schedules at endpoint: ${endpoint}`)
       
@@ -412,7 +412,7 @@ class TechnicianService {
   // Get specific technician schedule
   async getTechnicianSchedule(technicianId: string): Promise<TechnicianSchedule | null> {
     try {
-      // Use the correct endpoint format with /api prefix
+      // Use the correct endpoint format - should be relative to base URL
       const endpoint = `/api/Technician/${technicianId}/schedule`
       console.log(`Fetching schedule for technician ${technicianId} at endpoint: ${endpoint}`)
       
@@ -429,8 +429,8 @@ class TechnicianService {
   // Filter technicians by status
   async getTechniciansByStatus(status: string): Promise<TechType[]> {
     try {
-      // Use the correct endpoint format with /api prefix
-      const endpoint = `/api/Technician/schedule?status=${status}`
+      // Use the correct endpoint format - should be relative to base URL
+      const endpoint = `/api/Technician?status=${status}`
       console.log(`Fetching technicians with status ${status} at endpoint: ${endpoint}`)
       
       const response = await apiClient.get<unknown[]>(endpoint)
