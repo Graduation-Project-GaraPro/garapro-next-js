@@ -18,11 +18,16 @@ import {
   Sparkles,
   ClipboardCheck, 
   AlertTriangle, 
-  Loader
+  Loader,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight
 } from "lucide-react";
 
 import { getMyInspections, startInspection } from "@/services/technician/inspectionTechnicianService"; 
-
+import inspectionSignalRService, { InspectionAssignedEvent } from "@/services/technician/inspectionSignalRService";
+import { getTechnicianId } from "@/services/technician/inspectionTechnicianService";
 type TaskStatus = "New" | "Pending" | "InProgress" | "Completed";
 
 interface InspectionJob {
@@ -59,6 +64,16 @@ export default function VehicleInspection() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [startingId, setStartingId] = useState<string | null>(null);
+  const [technicianId, setTechnicianId] = useState<string | null>(null);
+  const [signalRConnected, setSignalRConnected] = useState(false);
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(6);
+  const [totalCount, setTotalCount] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [hasPreviousPage, setHasPreviousPage] = useState(false);
+  const [hasNextPage, setHasNextPage] = useState(false);
+
   const router = useRouter();
 
   const inspectionImages = [
@@ -93,8 +108,75 @@ export default function VehicleInspection() {
 
   useEffect(() => {
     fetchInspections();
-  }, []);
+  }, [currentPage, pageSize]);
 
+  useEffect(() => {
+  const setupSignalR = async () => {
+    try {
+      // Lấy technicianId
+      const id = await getTechnicianId();
+      if (!id) {
+        console.warn("Could not get technician ID");
+        return;
+      }
+      setTechnicianId(id);
+      console.log("TechnicianId:", id);
+
+      // Start SignalR connection
+      await inspectionSignalRService.startConnection();
+      setSignalRConnected(true);
+      
+      // Join group
+      await inspectionSignalRService.joinTechnicianGroup(id);
+
+      // Listen to InspectionAssigned event
+      inspectionSignalRService.onInspectionAssigned(async (data: InspectionAssignedEvent) => {
+        console.log("InspectionAssigned event:", data);
+
+        // Fetch full inspection data từ API
+        try {
+          const fullData: ApiInspection[] = await getMyInspections();
+          const newInspection = fullData.find((x) => x.inspectionId === data.inspectionId);
+
+          if (newInspection) {
+            const mapped: InspectionJob = {
+              id: newInspection.inspectionId,
+              vehicle: `${newInspection.repairOrder?.vehicle?.brand?.brandName || ""} ${newInspection.repairOrder?.vehicle?.model?.modelName || ""}`.trim() || "Unknown",
+              licensePlate: newInspection.repairOrder?.vehicle?.licensePlate || "N/A",
+              customer: newInspection.repairOrder?.customer?.fullName || "Unknown",
+              assignedDate: newInspection.createdAt 
+                ? new Date(newInspection.createdAt).toLocaleDateString("vi-VN") 
+                : "N/A",
+              status: (newInspection.statusText as TaskStatus) || "New",
+            };
+
+            setInspections((prev) => [mapped, ...prev]);
+            setTotalCount((prev) => prev + 1);
+            setTotalPages(Math.ceil((totalCount + 1) / pageSize));
+
+           //alert(`You have been assigned a new inspection!\nVehicle: ${mapped.vehicle}`);
+          }
+        } catch (error) {
+          console.error("Error fetching new inspection details:", error);
+        }
+      });
+
+    } catch (error) {
+      console.error("SignalR setup failed:", error);
+      setSignalRConnected(false);
+    }
+  };
+
+  setupSignalR();
+
+  // Cleanup
+  return () => {
+    if (technicianId) {
+      inspectionSignalRService.leaveTechnicianGroup(technicianId);
+    }
+    inspectionSignalRService.offInspectionAssigned();
+  };
+}, []);
   const fetchInspections = async () => {
     try {
       setLoading(true);
@@ -104,10 +186,15 @@ export default function VehicleInspection() {
       
       if (!data || !Array.isArray(data) || data.length === 0) {
         setInspections([]);
+        setTotalCount(0);
+        setTotalPages(0);
         return;
       }
+      const startIndex = (currentPage - 1) * pageSize;
+      const endIndex = startIndex + pageSize;
+      const paginatedData = data.slice(startIndex, endIndex);
 
-      const mapped: InspectionJob[] = data.map((x) => ({
+      const mapped: InspectionJob[] = paginatedData.map((x) => ({
         id: x.inspectionId,
         vehicle: `${x.repairOrder?.vehicle?.brand?.brandName || ""} ${x.repairOrder?.vehicle?.model?.modelName || ""}`.trim() || "Unknown",
         licensePlate: x.repairOrder?.vehicle?.licensePlate || "N/A",
@@ -119,6 +206,11 @@ export default function VehicleInspection() {
       }));
 
       setInspections(mapped);
+      
+      setTotalCount(data.length);
+      setTotalPages(Math.ceil(data.length / pageSize));
+      setHasPreviousPage(currentPage > 1);
+      setHasNextPage(currentPage < Math.ceil(data.length / pageSize));
       
     } catch (err: unknown) {
       console.error("Fetch error:", err);
@@ -132,32 +224,69 @@ export default function VehicleInspection() {
     }
   };
 
-  // ✅ Handle Start Inspection
   const handleStartInspection = async (id: string) => {
     try {
       setStartingId(id);
       await startInspection(id);
-      
-      // Update local state
+
       setInspections(prev => 
         prev.map(item => 
           item.id === id ? { ...item, status: "InProgress" } : item
         )
       );
       
-      // Navigate to check page
       router.push(`/technician/inspectionAndRepair/inspection/checkVehicle?id=${id}`);
     } catch (err) {
       console.error("Failed to start inspection:", err);
-      alert("Không thể bắt đầu kiểm tra. Vui lòng thử lại.");
+      alert("The test could not be started. Please try again.");
     } finally {
       setStartingId(null);
     }
   };
 
-  // ✅ Handle Navigate (for other statuses)
   const handleNavigateToCheck = (id: string) => {
     router.push(`/technician/inspectionAndRepair/inspection/checkVehicle?id=${id}`);
+  };
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+    }
+  };
+
+  const getPageNumbers = () => {
+    const pages: (number | string)[] = [];
+    const maxVisible = 5;
+
+    if (totalPages <= maxVisible) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      if (currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) {
+          pages.push(i);
+        }
+        pages.push("...");
+        pages.push(totalPages);
+      } else if (currentPage >= totalPages - 2) {
+        pages.push(1);
+        pages.push("...");
+        for (let i = totalPages - 3; i <= totalPages; i++) {
+          pages.push(i);
+        }
+      } else {
+        pages.push(1);
+        pages.push("...");
+        for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+          pages.push(i);
+        }
+        pages.push("...");
+        pages.push(totalPages);
+      }
+    }
+
+    return pages;
   };
 
   const getStatusColor = (status: string) => {
@@ -202,7 +331,7 @@ export default function VehicleInspection() {
   );
 
   return (
-    <div className="flex gap-6 bg-gradient-to-br from-blue-200 via-slate-100 to-indigo-200 rounded-xl h-160">
+    <div className="flex gap-6 bg-gradient-to-br from-blue-200 via-slate-100 to-indigo-200 rounded-xl h-full">
       <div className="max-w-7xl mx-auto p-4">
         {/* Header Section */}
         <div className="flex items-center justify-between mb-1 gap-4">
@@ -213,9 +342,19 @@ export default function VehicleInspection() {
                 <ClipboardCheck className="w-7 h-7 text-white" />
               </div>
               <div className="flex flex-col items-start">
+                <div className="flex items-center gap-2">
                 <h2 className="text-[27px] font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent italic">
                   Vehicle Condition Inspection
                 </h2>
+                <div 
+                  className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                    signalRConnected 
+                      ? "bg-green-500 animate-pulse shadow-lg shadow-green-400" 
+                      : "bg-red-500 shadow-lg shadow-red-400"
+                  }`}
+                  title={signalRConnected ? "Real-time Connected" : "Disconnected"}
+                />
+                 </div>
                 <p className="text-gray-700 italic">Advanced automotive diagnostics & quality assurance</p>
               </div>
             </div>
@@ -237,13 +376,13 @@ export default function VehicleInspection() {
               <div className="flex items-center space-x-2 bg-white/40 rounded-xl p-1 shadow-sm border border-gray-200">
                 <h2 className="text-[16px] font-semibold text-gray-800 flex items-center gap-2">
                   <Car className="w-6 h-6 text-blue-600" />
-                  Inspection Queue: ({searchedVehicles.length})
+                  Inspection Queue: ({totalCount})
                 </h2>
                 <div className="flex items-center gap-2 ml-auto">
                   <Filter className="w-5 h-5 text-gray-800" />
                   <span className="text-gray-900 font-medium text-[16px]">Filter: </span>
                   <div className="flex space-x-2">
-                    {(["all", "New", "Pending", "InProgress", "Completed"] as const).map((status) => (
+                    {(["all", "New", "InProgress", "Completed"] as const).map((status) => (
                       <button
                         key={status}
                         onClick={() => setFilter(status)}
@@ -263,7 +402,7 @@ export default function VehicleInspection() {
           </div>
         </div>
         
-        <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">      
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap">      
           {/* Vehicle List */}
           <div className="xl:col-span-3 max-h-[63vh] overflow-y-auto rounded-xl rounded-scroll">
              {/* Loading state */}
@@ -303,7 +442,7 @@ export default function VehicleInspection() {
                 </div>
               </div>
             )}
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-2">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-2 mt">
               {searchedVehicles.map((vehicle) => (
                 <div
                   key={vehicle.id}
@@ -400,6 +539,8 @@ export default function VehicleInspection() {
               ))}
             </div>
 
+
+
             {!loading && !error && inspections.length > 0 && searchedVehicles.length === 0 && (
               <div className="text-center py-16">
                 <div className="bg-white rounded-2xl p-8 shadow-lg max-w-md mx-auto">
@@ -417,6 +558,94 @@ export default function VehicleInspection() {
                   >
                     Clear Filters
                   </button>
+                </div>
+              </div>
+            )}
+
+                       {/* Pagination Controls - STICKY BOTTOM */}
+            {totalPages > 1 && (
+              <div className="sticky bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md rounded-xl p-1 border-t border-gray-300 mt-4 z-10">
+                <div className="flex items-center justify-between">
+                  {/* Pagination info */}
+                  <div className="text-sm text-gray-700 font-medium">
+                    Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, totalCount)} of{" "}
+                    {totalCount} inspections
+                  </div>
+
+                  {/* Pagination buttons */}
+                  <div className="flex items-center gap-2">
+                    {/* First page */}
+                    <button
+                      onClick={() => handlePageChange(1)}
+                      disabled={!hasPreviousPage}
+                      className={`p-2 rounded-lg transition-all duration-200 ${
+                        hasPreviousPage
+                          ? "bg-white hover:bg-gray-100 text-gray-700 border border-gray-300"
+                          : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                      }`}
+                    >
+                      <ChevronsLeft className="w-4 h-4" />
+                    </button>
+
+                    {/* Previous page */}
+                    <button
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={!hasPreviousPage}
+                      className={`p-2 rounded-lg transition-all duration-200 ${
+                        hasPreviousPage
+                          ? "bg-white hover:bg-gray-100 text-gray-700 border border-gray-300"
+                          : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                      }`}
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+
+                    {/* Page numbers */}
+                    <div className="flex items-center gap-1">
+                      {getPageNumbers().map((page, index) => (
+                        <button
+                          key={index}
+                          onClick={() => typeof page === "number" && handlePageChange(page)}
+                          disabled={page === "..."}
+                          className={`px-3 py-1 rounded-lg font-medium transition-all duration-200 ${
+                            page === currentPage
+                              ? "bg-blue-500 text-white shadow-md"
+                              : page === "..."
+                              ? "bg-transparent text-gray-400 cursor-default"
+                              : "bg-white hover:bg-gray-100 text-gray-700 border border-gray-300"
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Next page */}
+                    <button
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={!hasNextPage}
+                      className={`p-2 rounded-lg transition-all duration-200 ${
+                        hasNextPage
+                          ? "bg-white hover:bg-gray-100 text-gray-700 border border-gray-300"
+                          : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                      }`}
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+
+                    {/* Last page */}
+                    <button
+                      onClick={() => handlePageChange(totalPages)}
+                      disabled={!hasNextPage}
+                      className={`p-2 rounded-lg transition-all duration-200 ${
+                        hasNextPage
+                          ? "bg-white hover:bg-gray-100 text-gray-700 border border-gray-300"
+                          : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                      }`}
+                    >
+                      <ChevronsRight className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             )}

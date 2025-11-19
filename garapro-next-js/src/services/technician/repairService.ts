@@ -1,19 +1,17 @@
-// /services/technician/repairService.ts
 import axios from "axios";
 
 const API_URL = "https://localhost:7113/odata/Repairs";
 
-// Interfaces
 export interface RepairCreateDto {
-  JobId: string;
-  Description: string;
-  Notes: string;
-  EstimatedTime: string; // Format: "HH:mm:ss" e.g., "02:30:00"
+  jobId: string; 
+  description?: string;
+  notes?: string;
+  estimatedTime: string; 
 }
 
 export interface RepairUpdateDto {
-  Description: string;
-  Notes: string;
+  description?: string;
+  notes?: string;
 }
 
 export interface RepairResponseDto {
@@ -26,18 +24,25 @@ export interface RepairResponseDto {
   notes: string;
   startTime?: string;
   endTime?: string;
-  actualTime?: string;
-  estimatedTime?: string;
+  actualTimeShort?: string; 
+  estimatedTimeShort?: string; 
 }
 
 export interface JobPartDto {
+  partId: string;
   partName: string;
   unitPrice: number;
 }
 
+export interface PartCategoryRepairDto {
+  partCategoryId: string;
+  categoryName: string;
+  parts: JobPartDto[];
+}
+
 export interface TechnicianDto {
   technicianId: string;
-  technicianName: string;
+  fullName: string; 
   email: string;
   phoneNumber: string;
 }
@@ -48,8 +53,8 @@ export interface RepairDto {
   notes: string;
   startTime?: string;
   endTime?: string;
-  actualTime?: string;
-  estimatedTime?: string;
+  actualTimeShort?: string; 
+  estimatedTimeShort?: string; 
 }
 
 export interface JobDetailDto {
@@ -58,17 +63,43 @@ export interface JobDetailDto {
   serviceName: string;
   status: string;
   note: string;
-  parts: JobPartDto[];
+  parts: PartCategoryRepairDto[];
   repairs: RepairDto | null;
   technicians: TechnicianDto[];
+}
+
+export interface VehicleBrandDto {
+  brandId: string;
+  brandName: string;
+  country: string;
+}
+
+export interface VehicleModelDto {
+  modelId: string;
+  modelName: string;
+  manufacturingYear: number;
+}
+
+export interface VehicleColorDto {
+  colorId: string;
+  colorName: string;
+  hexCode?: string;
+}
+
+export interface VehicleDto {
+  vehicleId: string;
+  licensePlate: string;
+  vin: string;
+  brand: VehicleBrandDto;
+  model: VehicleModelDto;
+  color?: VehicleColorDto;
 }
 
 export interface RepairDetailDto {
   repairOrderId: string;
   vin: string;
-  vehicleBrand: string;        
-  vehicleModel: string;       
   vehicleLicensePlate: string;
+  vehicle: VehicleDto;  
   customerName: string;
   customerEmail: string;
   customerPhone: string;
@@ -91,7 +122,10 @@ export const getRepairOrderDetails = async (repairOrderId: string): Promise<Repa
     });
     return response.data;
   } catch (error) {
-    console.error("Error fetching repair order details:", error);
+    if (axios.isAxiosError(error)) {
+      const message = error.response?.data?.message || error.message;
+      throw new Error(message);
+    }
     throw error;
   }
 };
@@ -112,27 +146,34 @@ export const createRepair = async (data: RepairCreateDto): Promise<RepairRespons
     });
     return response.data;
   } catch (error) {
-    console.error("Error creating repair:", error);
+    if (axios.isAxiosError(error)) {
+      const message = error.response?.data?.message || error.message;
+      throw new Error(message);
+    }
     throw error;
   }
 };
 
 // Update repair
-export const updateRepair = async (repairId: string, data: RepairUpdateDto): Promise<void> => {
+export const updateRepair = async (repairId: string, data: RepairUpdateDto): Promise<{ message: string }> => {
   try {
     const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
     if (!token) {
       throw new Error("Missing authentication token");
     }
 
-    await axios.put(`${API_URL}/${repairId}/Update`, data, {
+    const response = await axios.put(`${API_URL}/${repairId}/Update`, data, {
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
     });
+    return response.data; // Backend trả về { message: "Cập nhật Repair thành công." }
   } catch (error) {
-    console.error("Error updating repair:", error);
+    if (axios.isAxiosError(error)) {
+      const message = error.response?.data?.message || error.message;
+      throw new Error(message);
+    }
     throw error;
   }
 };
