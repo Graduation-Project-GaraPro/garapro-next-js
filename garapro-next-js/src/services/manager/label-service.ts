@@ -2,7 +2,7 @@ import type { Label, NewLabel } from "@/types/manager/label"
 
 // TODO: Replace with actual API calls when backend is ready
 class LabelService {
-  private baseUrl = process.env.NEXT_PUBLIC_API_URL || "/api"
+  private baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://localhost:7113/api"
 
   // Get all labels
   async getAllLabels(): Promise<Label[]> {

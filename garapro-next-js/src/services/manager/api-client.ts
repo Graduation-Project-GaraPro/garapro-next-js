@@ -1,25 +1,7 @@
-// Update the ApiResponse interface to match your backend
-export interface ApiResponse<T> {
-  data?: T;
-  message?: string;
-  status: number;
-  success: boolean;
-  repairOrderId?: string;
-  oldStatusId?: string | null;
-  newStatusId?: string | null;
-  updatedAt?: string;
-  updatedCard?: unknown | null;
-  warnings?: unknown[];
-  errors?: unknown[];
-}
+import type { ApiResponse, ApiError } from '@/types/manager/api';
 
-// Keep ApiError as is
-export interface ApiError {
-  message: string;
-  status: number;
-  code?: string;
-  details?: unknown;
-}
+// Re-export types for backward compatibility
+export type { ApiResponse, ApiError };
 
 class ApiClient {
   private baseUrl: string;
@@ -30,7 +12,7 @@ class ApiClient {
   private responseInterceptors: Array<(response: Response) => Response> = [];
 
   constructor(
-    baseUrl: string = process.env.NEXT_PUBLIC_API_URL || "https://localhost:7113",
+    baseUrl: string = process.env.NEXT_PUBLIC_BASE_URL || "https://localhost:7113/api",
     retryAttempts: number = 3,
     retryDelay: number = 1000
   ) {

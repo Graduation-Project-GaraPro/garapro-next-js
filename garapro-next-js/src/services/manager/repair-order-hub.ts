@@ -1,25 +1,10 @@
 import { HubConnection, HubConnectionBuilder, LogLevel } from "@microsoft/signalr";
 import { apiClient } from "./api-client";
-import type { ApiResponse } from "./api-client";
-import { PaidStatus } from "@/types/manager/repair-order";
+import type { ApiResponse } from "@/types/manager/api";
+import type { RoBoardCardDto } from "@/types/manager/repair-order-hub";
 
-// Define the structure for the card data used in real-time updates
-export interface RoBoardCardDto {
-  repairOrderId: string;
-  receiveDate: string;
-  statusName: string;
-  vehicleInfo: string;
-  customerInfo: string;
-  serviceName: string;
-  estimatedAmount: number;
-  branchName: string;
-  label: {
-    labelId: number;
-    labelName: string;
-    color: string;
-  } | null;
-  paidStatus: PaidStatus;
-}
+// Re-export for backward compatibility
+export type { RoBoardCardDto }
 
 class RepairOrderHubService {
   private connection: HubConnection | null = null;
@@ -36,8 +21,10 @@ class RepairOrderHubService {
     }
 
     try {
-      // Get the base URL from environment variables
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://localhost:7113";
+      // Get the base URL from environment variables (without /api for SignalR hubs)
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://localhost:7113/api";
+      // SignalR hubs are at root level, not under /api
+      const hubBaseUrl = baseUrl.replace('/api', '');
       
       // Get the authentication token from localStorage
       const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
@@ -45,7 +32,7 @@ class RepairOrderHubService {
       // Configure the connection with authentication
       // Note: SignalR automatically appends "/negotiate" to the URL
       const builder = new HubConnectionBuilder()
-        .withUrl(`${baseUrl}/api/repairorderhub`, {
+        .withUrl(`${hubBaseUrl}/api/repairorderhub`, {
           accessTokenFactory: () => token || ""
         })
         .configureLogging(LogLevel.Information);
@@ -117,7 +104,7 @@ class RepairOrderHubService {
   // Update repair order status (for drag and drop)
   public async updateRepairOrderStatus(repairOrderId: string, newStatusId: string): Promise<ApiResponse<unknown>> {
     try {
-      const response = await apiClient.post<unknown>("/api/RepairOrder/status/update", {
+      const response = await apiClient.post<unknown>("/RepairOrder/status/update", {
         repairOrderId: repairOrderId,
         newStatusId: newStatusId
       });

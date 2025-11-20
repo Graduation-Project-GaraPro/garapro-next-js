@@ -6,8 +6,8 @@ import { branchService } from "@/services/branch-service"
 import { mapApiToRepairOrder } from "@/types/manager/repair-order"
 
 class RepairOrderService {
-  private baseUrl = "/api/RepairOrder"
-  private orderStatusBaseUrl = "/api/OrderStatus"
+  private baseUrl = "/RepairOrder"
+  private orderStatusBaseUrl = "/OrderStatus"
 
   /**
    * Fetch all repair orders for the current user's branch

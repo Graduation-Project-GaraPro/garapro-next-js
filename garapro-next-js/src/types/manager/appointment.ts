@@ -42,4 +42,14 @@ export interface UpdateManagerAppointmentData extends Partial<CreateManagerAppoi
   status?: ManagerAppointment["status"];
 }
 
+export interface RepairRequestFilter {
+  status?: "pending" | "completed" | "cancelled" | "in-progress" | "confirmed";
+  service?: string;
+  dateRange?: {
+    start: Date;
+    end: Date;
+  };
+}
+
+
 

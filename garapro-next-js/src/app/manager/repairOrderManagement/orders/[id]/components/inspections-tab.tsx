@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
+import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Edit2, Trash2, Loader2, Plus, User, Eye } from "lucide-react"
@@ -12,9 +13,11 @@ import { InspectionDetailDialog } from "./inspection-detail-dialog"
 
 interface InspectionsTabProps {
   orderId: string
+  highlightInspectionId?: string
 }
 
-export default function InspectionsTab({ orderId }: InspectionsTabProps) {
+export default function InspectionsTab({ orderId, highlightInspectionId }: InspectionsTabProps) {
+  const searchParams = useSearchParams()
   const [inspectionTasks, setInspectionTasks] = useState<InspectionDto[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -24,6 +27,8 @@ export default function InspectionsTab({ orderId }: InspectionsTabProps) {
   const [selectedInspectionId, setSelectedInspectionId] = useState<string | null>(null)
   const [detailInspectionId, setDetailInspectionId] = useState<string | null>(null)
   const [branchId, setBranchId] = useState<string | null>(null)
+  const [highlightedInspectionId, setHighlightedInspectionId] = useState<string | null>(null)
+  const inspectionRefs = useRef<Record<string, HTMLDivElement | null>>({})
 
   useEffect(() => {
     const fetchData = async () => {
@@ -52,6 +57,28 @@ export default function InspectionsTab({ orderId }: InspectionsTabProps) {
       fetchData()
     }
   }, [orderId])
+
+  // Handle highlighting inspection from query params or prop
+  useEffect(() => {
+    const inspectionIdToHighlight = highlightInspectionId || searchParams?.get("highlightInspection")
+    
+    if (inspectionIdToHighlight && inspectionTasks.length > 0) {
+      setHighlightedInspectionId(inspectionIdToHighlight)
+      
+      // Scroll to the highlighted inspection after a short delay
+      setTimeout(() => {
+        const element = inspectionRefs.current[inspectionIdToHighlight]
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth", block: "center" })
+        }
+      }, 300)
+      
+      // Remove highlight after 3 seconds
+      setTimeout(() => {
+        setHighlightedInspectionId(null)
+      }, 3000)
+    }
+  }, [highlightInspectionId, searchParams, inspectionTasks])
 
   const getStatusDisplayName = (status: string): string => {
     switch (status.toLowerCase()) {
@@ -178,7 +205,17 @@ export default function InspectionsTab({ orderId }: InspectionsTabProps) {
           ) : (
             <div className="space-y-4">
               {inspectionTasks.map((task) => (
-                <div key={task.inspectionId} className="border rounded-lg p-4">
+                <div 
+                  key={task.inspectionId} 
+                  ref={(el) => {
+                    inspectionRefs.current[task.inspectionId] = el
+                  }}
+                  className={`border rounded-lg p-4 transition-all duration-300 ${
+                    highlightedInspectionId === task.inspectionId 
+                      ? "ring-2 ring-blue-500 shadow-lg bg-blue-50" 
+                      : ""
+                  }`}
+                >
                   <div className="flex justify-between items-start">
                     <div>
                       <h3 className="font-medium text-gray-900">Inspection #{task.inspectionId.slice(0, 8)}</h3>

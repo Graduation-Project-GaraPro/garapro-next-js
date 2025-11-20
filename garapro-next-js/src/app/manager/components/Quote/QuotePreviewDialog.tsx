@@ -1,6 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 import {
   Dialog,
   DialogContent,
@@ -15,6 +17,7 @@ import QuoteActions from "./quotePreview/quoteActions"
 import { quotationService } from "@/services/manager/quotation-service"
 import { QuotationDto } from "@/types/manager/quotation"
 import { Button } from "@/components/ui/button"
+import { FileSearch } from "lucide-react"
 
 // Helper function to convert string ID to number
 const stringIdToNumber = (id: string): number => {
@@ -35,6 +38,7 @@ interface QuotePreviewDialogProps {
 }
 
 export default function QuotePreviewDialog({ open, onOpenChange, quotationId }: QuotePreviewDialogProps) {
+  const router = useRouter()
   const [quotation, setQuotation] = useState<QuotationDto | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -110,6 +114,8 @@ export default function QuotePreviewDialog({ open, onOpenChange, quotationId }: 
   const handleSend = async () => {
     if (!quotation) return
     
+    const loadingToast = toast.loading("Sending quotation to customer...");
+    
     try {
       // Update the quotation status to "Sent"
       const updatedQuotation = await quotationService.updateQuotationStatus(
@@ -120,11 +126,19 @@ export default function QuotePreviewDialog({ open, onOpenChange, quotationId }: 
       // Update the local state with the updated quotation
       setQuotation(updatedQuotation);
       
-      // Show success message
-      alert(`Quote ${quotation.quotationId} has been sent to the customer and status updated to Sent`);
+      // Dismiss loading and show success
+      toast.dismiss(loadingToast);
+      toast.success("Quotation sent successfully!", {
+        description: `Quote #${quotation.quotationId.slice(0, 8)} has been sent to the customer.`,
+        duration: 4000,
+      });
     } catch (error) {
+      toast.dismiss(loadingToast);
+      toast.error("Failed to send quotation", {
+        description: error instanceof Error ? error.message : "Please try again.",
+        duration: 5000,
+      });
       console.error("Failed to send quotation:", error);
-      alert("Failed to send quotation. Please try again.");
     }
   }
 
@@ -133,8 +147,8 @@ export default function QuotePreviewDialog({ open, onOpenChange, quotationId }: 
     
     if (confirm("Are you sure you want to delete this quote?")) {
       // In a real implementation, you would call an API to delete the quote
-      alert("Quote deleted")
-      onOpenChange(false)
+      toast.success("Quote deleted successfully");
+      onOpenChange(false);
     }
   }
 
@@ -148,15 +162,44 @@ export default function QuotePreviewDialog({ open, onOpenChange, quotationId }: 
   const handleCopyToJobs = async () => {
     if (!quotation) return
     
+    // Show loading toast
+    const loadingToast = toast.loading("Converting quotation to jobs...");
+    
     try {
       // Call the API to copy quotation to jobs
       await quotationService.copyQuotationToJobs(quotation.quotationId);
       
-      // Show success message
-      alert(`Quote ${quotation.quotationId} has been copied to jobs successfully`);
+      // Dismiss loading toast and show success
+      toast.dismiss(loadingToast);
+      toast.success("Quotation converted to jobs successfully!", {
+        description: `Quote #${quotation.quotationId.slice(0, 8)} has been added to the jobs list.`,
+        duration: 4000,
+      });
+      
+      // Close dialog after successful conversion
+      setTimeout(() => {
+        onOpenChange(false);
+      }, 1000);
     } catch (error) {
+      // Dismiss loading toast
+      toast.dismiss(loadingToast);
+      
+      // Extract error message from the error object
+      let errorMessage = "Failed to convert quotation to jobs. Please try again.";
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      }
+      
+      // Show error toast with specific message
+      toast.error("Conversion Failed", {
+        description: errorMessage,
+        duration: 5000,
+      });
+      
       console.error("Failed to copy quotation to jobs:", error);
-      alert("Failed to copy quotation to jobs. Please try again.");
     }
   }
 
@@ -207,7 +250,26 @@ export default function QuotePreviewDialog({ open, onOpenChange, quotationId }: 
         className="max-w-6xl w-3/5 h-5/6 sm:max-w-6xl overflow-hidden p-0"
       >
         <DialogHeader className="p-6">
-          <DialogTitle>Quote Preview</DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle>Quote Preview</DialogTitle>
+            {quotation.inspectionId && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => {
+                  onOpenChange(false)
+                  // Small delay to ensure dialog closes smoothly before navigation
+                  setTimeout(() => {
+                    router.push(`/manager/repairOrderManagement/orders/${quotation.repairOrderId}?tab=inspections&highlightInspection=${quotation.inspectionId}`)
+                  }, 100)
+                }}
+                className="flex items-center gap-2"
+              >
+                <FileSearch className="w-4 h-4" />
+                View Source Inspection
+              </Button>
+            )}
+          </div>
         </DialogHeader>
         <div className="space-y-8 p-6 overflow-y-auto h-[calc(100%-4rem)]">
           <QuoteHeader quote={quoteHeaderData} />
