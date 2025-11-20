@@ -2,7 +2,7 @@ export interface GoogleLoginDto {
   idToken: string;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:7113/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:7113/api';
 
 export interface AuthResponseDto {
   token: string;      // access token JWT
@@ -66,7 +66,7 @@ class AuthService {
     userId: string;
   }> {
     const response = await fetch(
-      `${API_BASE_URL}/Auth/complete-registration`,
+      `${API_BASE_URL}/api/Auth/complete-registration`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },

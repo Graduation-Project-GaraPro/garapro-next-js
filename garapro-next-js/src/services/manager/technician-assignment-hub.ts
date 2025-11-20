@@ -1,32 +1,17 @@
 import { HubConnection, HubConnectionBuilder, LogLevel } from "@microsoft/signalr";
+import type {
+  TechnicianAssignmentNotification,
+  TechnicianReassignmentNotification,
+  InspectionAssignmentNotification,
+  InspectionReassignmentNotification
+} from "@/types/manager/technician";
 
-// Define the structure for assignment notifications
-export interface TechnicianAssignmentNotification {
-  technicianId: string;
-  technicianName: string;
-  jobCount: number;
-  jobNames: string[];
-}
-
-export interface TechnicianReassignmentNotification {
-  jobId: string;
-  oldTechnicianId: string;
-  newTechnicianId: string;
-  jobName: string;
-}
-
-export interface InspectionAssignmentNotification {
-  technicianId: string;
-  technicianName: string;
-  inspectionCount: number;
-  inspectionNames: string[];
-}
-
-export interface InspectionReassignmentNotification {
-  inspectionId: string;
-  oldTechnicianId: string;
-  newTechnicianId: string;
-  inspectionName: string;
+// Re-export for backward compatibility
+export type { 
+  TechnicianAssignmentNotification, 
+  TechnicianReassignmentNotification, 
+  InspectionAssignmentNotification, 
+  InspectionReassignmentNotification 
 }
 
 class TechnicianAssignmentHubService {
@@ -59,15 +44,17 @@ class TechnicianAssignmentHubService {
     }
 
     try {
-      // Get the base URL from environment variables
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://localhost:7113";
+      // Get the base URL from environment variables (without /api for SignalR hubs)
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://localhost:7113/api";
+      // SignalR hubs are at root level, not under /api
+      const hubBaseUrl = baseUrl.replace('/api', '');
       
       // Get the authentication token from localStorage
       const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
       
       // Configure the connection with authentication
       this.connection = new HubConnectionBuilder()
-        .withUrl(`${baseUrl}/api/technicianassignmenthub`, {
+        .withUrl(`${hubBaseUrl}/api/technicianassignmenthub`, {
           accessTokenFactory: () => token || ""
         })
         .configureLogging(LogLevel.Information)

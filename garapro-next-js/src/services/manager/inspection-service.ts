@@ -1,59 +1,21 @@
 import { apiClient } from "./api-client"
 import { serviceCatalog } from "@/services/service-catalog"
 import type { ServiceCategory, GarageServiceCatalogItem } from "@/services/service-catalog"
+import type { 
+  InspectionDto, 
+  InspectionServiceDto, 
+  InspectionPartDto, 
+  CreateInspectionRequest
+} from "@/types/manager/inspection"
+import { InspectionStatus } from "@/types/manager/inspection"
 
-// Define the inspection interface based on the API response
-export interface InspectionDto {
-  inspectionId: string
-  repairOrderId: string
-  technicianId: string | null
-  status: string
-  customerConcern: string | null
-  finding: string | null
-  issueRating: number
-  note: string | null
-  inspectionPrice: number
-  inspectionType: number
-  createdAt: string
-  updatedAt: string | null
-  technicianName: string | null
-  services: InspectionServiceDto[]
-}
-
-export interface InspectionServiceDto {
-  serviceId: string
-  serviceName: string
-  description: string
-  price: number
-  estimatedDuration: number
-  parts: InspectionPartDto[]
-}
-
-export interface InspectionPartDto {
-  partId: string
-  name: string
-  price: number
-  quantity: number
-  totalPrice: number
-}
-
-// Define the request interface for creating an inspection
-export interface CreateInspectionRequest {
-  repairOrderId: string
-  customerConcern: string
-}
-
-// Define the inspection status enum to match the backend
-export enum InspectionStatus {
-  New = 0,
-  Pending = 1,
-  InProgress = 2,
-  Completed = 3
-}
+// Re-export for backward compatibility
+export type { InspectionDto, InspectionServiceDto, InspectionPartDto, CreateInspectionRequest }
+export { InspectionStatus }
 
 class InspectionService {
-  private baseUrl = "/api/Inspection"
-  private categoriesBaseUrl = "/api/ServiceCategories"
+  private baseUrl = "/Inspection"
+  private categoriesBaseUrl = "/ServiceCategories"
 
   /**
    * Fetch all inspections for a specific repair order

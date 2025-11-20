@@ -1,36 +1,14 @@
 // src/services/manager/technician-service.ts
 import { apiClient } from './api-client'
 import type { Technician as TechType } from "@/types/manager/tech-schedule"
-
-// Define the workload interface based on the API specification
-export interface TechnicianWorkload {
-  technicianId: string
-  technicianName: string
-  totalJobs: number
-  completedJobs: number
-  inProgressJobs: number
-  pendingJobs: number
-  completionRate: number
-  upcomingJobs: unknown[] // Using unknown[] instead of any[]
-}
-
-// Define the schedule interface based on the API specification
-export interface TechnicianSchedule {
-  technicianId: string
-  technicianName: string
-  jobs: TechnicianJob[]
-}
-
-export interface TechnicianJob {
-  jobId: string
-  jobTitle: string
-  status: string
-  deadline: string
-  priority: string
-}
+import type { 
+  TechnicianWorkload, 
+  TechnicianSchedule, 
+  TechnicianJob 
+} from "@/types/manager/technician"
 
 class TechnicianService {
-  private baseUrl = '/api/users/technicians'
+  private baseUrl = '/users/technicians'
 
   async getAllTechnicians(): Promise<TechType[]> {
     try {
@@ -215,8 +193,8 @@ class TechnicianService {
   // Get technicians by branch (Primary Option)
   async getTechniciansByBranch(branchId: string): Promise<TechType[]> {
     try {
-      // Use the correct endpoint format with /api prefix
-      const endpoint = `/api/Technician/by-branch/${branchId}`
+      // Use the correct endpoint format (apiClient already has /api in base URL)
+      const endpoint = `/Technician/by-branch/${branchId}`
       console.log(`Fetching technicians for branch ${branchId} at endpoint: ${endpoint}`)
       
       const response = await apiClient.get<unknown[]>(endpoint)
@@ -362,7 +340,7 @@ class TechnicianService {
   async getAllTechnicianWorkloads(): Promise<TechnicianWorkload[]> {
     try {
       // Use the correct endpoint format - should be relative to base URL
-      const endpoint = `/api/Technician/workload`
+      const endpoint = `/Technician/workload`
       console.log(`Fetching all technician workloads at endpoint: ${endpoint}`)
       
       const response = await apiClient.get<TechnicianWorkload[]>(endpoint)
@@ -379,7 +357,7 @@ class TechnicianService {
   async getTechnicianWorkload(technicianId: string): Promise<TechnicianWorkload | null> {
     try {
       // Use the correct endpoint format - should be relative to base URL
-      const endpoint = `/api/Technician/workload/${technicianId}`
+      const endpoint = `/Technician/workload/${technicianId}`
       console.log(`Fetching workload for technician ${technicianId} at endpoint: ${endpoint}`)
       
       const response = await apiClient.get<TechnicianWorkload>(endpoint)
@@ -396,7 +374,7 @@ class TechnicianService {
   async getAllTechnicianSchedules(): Promise<TechnicianSchedule[]> {
     try {
       // Use the correct endpoint format - should be relative to base URL
-      const endpoint = `/api/Technician/schedule`
+      const endpoint = `/Technician/schedule`
       console.log(`Fetching all technician schedules at endpoint: ${endpoint}`)
       
       const response = await apiClient.get<TechnicianSchedule[]>(endpoint)
@@ -413,7 +391,7 @@ class TechnicianService {
   async getTechnicianSchedule(technicianId: string): Promise<TechnicianSchedule | null> {
     try {
       // Use the correct endpoint format - should be relative to base URL
-      const endpoint = `/api/Technician/${technicianId}/schedule`
+      const endpoint = `/Technician/${technicianId}/schedule`
       console.log(`Fetching schedule for technician ${technicianId} at endpoint: ${endpoint}`)
       
       const response = await apiClient.get<TechnicianSchedule>(endpoint)
@@ -430,7 +408,7 @@ class TechnicianService {
   async getTechniciansByStatus(status: string): Promise<TechType[]> {
     try {
       // Use the correct endpoint format - should be relative to base URL
-      const endpoint = `/api/Technician?status=${status}`
+      const endpoint = `/Technician?status=${status}`
       console.log(`Fetching technicians with status ${status} at endpoint: ${endpoint}`)
       
       const response = await apiClient.get<unknown[]>(endpoint)

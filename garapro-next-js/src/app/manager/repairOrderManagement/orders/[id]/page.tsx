@@ -69,6 +69,7 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
   useEffect(() => {
     const tab = searchParams?.get("tab")
     if (tab) {
+      console.log("Switching to tab from URL:", tab)
       setActiveTab(tab)
     }
   }, [searchParams])
@@ -107,9 +108,11 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
   ]
 
   const renderTabContent = () => {
+    const highlightInspectionId = searchParams?.get("highlightInspection") || undefined
+    
     const tabComponents = {
       "vehicle-info": <VehicleInformation orderId={orderId} />,
-      inspections: <InspectionsTab orderId={orderId} />,
+      inspections: <InspectionsTab orderId={orderId} highlightInspectionId={highlightInspectionId} />,
       quotation: <QuotationTab orderId={orderId} />,
       jobs: <JobsTab orderId={orderId} branchId={userBranchId || undefined} />,
       "work-in-progress": <WorkProgressTab orderId={orderId} />,

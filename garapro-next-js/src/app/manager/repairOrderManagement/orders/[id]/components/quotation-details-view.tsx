@@ -2,6 +2,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +14,8 @@ import {
   Check,
   X,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  FileSearch
 } from "lucide-react";
 import {
   Dialog,
@@ -36,14 +38,17 @@ interface QuotationDetailsViewProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onQuotationUpdated: (quotation: QuotationDto) => void;
+  onViewInspection?: (inspectionId: string) => void;
 }
 
 export default function QuotationDetailsView({ 
   quotation, 
   open, 
   onOpenChange,
-  onQuotationUpdated
+  onQuotationUpdated,
+  onViewInspection
 }: QuotationDetailsViewProps) {
+  const router = useRouter();
   const [expandedServices, setExpandedServices] = useState<Record<string, boolean>>({});
   const [isApproving, setIsApproving] = useState(false);
   const [isRejecting, setIsRejecting] = useState(false);
@@ -79,6 +84,24 @@ export default function QuotationDetailsView({
       console.error(err);
     } finally {
       setIsRejecting(false);
+    }
+  };
+
+  const handleViewInspection = () => {
+    if (quotation.inspectionId) {
+      // Close the dialog
+      onOpenChange(false);
+      
+      // Small delay to ensure dialog closes smoothly before navigation
+      setTimeout(() => {
+        // If callback is provided, use it (for parent component control)
+        if (onViewInspection) {
+          onViewInspection(quotation.inspectionId);
+        } else {
+          // Otherwise, navigate directly with query params
+          router.push(`/manager/repairOrderManagement/orders/${quotation.repairOrderId}?tab=inspections&highlightInspection=${quotation.inspectionId}`);
+        }
+      }, 100);
     }
   };
 
@@ -118,7 +141,20 @@ export default function QuotationDetailsView({
             <CardHeader>
               <div className="flex justify-between items-center">
                 <CardTitle className="text-lg">Quotation #{quotation.quotationId}</CardTitle>
-                {getStatusBadge(quotation.status)}
+                <div className="flex items-center gap-2">
+                  {quotation.inspectionId && (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={handleViewInspection}
+                      className="flex items-center gap-2"
+                    >
+                      <FileSearch className="w-4 h-4" />
+                      View Source Inspection
+                    </Button>
+                  )}
+                  {getStatusBadge(quotation.status)}
+                </div>
               </div>
             </CardHeader>
             <CardContent>

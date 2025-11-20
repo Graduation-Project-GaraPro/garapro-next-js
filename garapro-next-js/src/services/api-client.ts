@@ -9,7 +9,7 @@ interface ApiError {
   message: string
   status: number
   code?: string
-  details?: any
+  details?: unknown
 }
 
 class ApiClient {
@@ -21,7 +21,7 @@ class ApiClient {
   private responseInterceptors: Array<(response: Response) => Response> = []
 
   constructor(
-    baseUrl: string = process.env.NEXT_PUBLIC_BASE_URL || "/api",
+    baseUrl: string = process.env.NEXT_PUBLIC_BASE_URL || "https://localhost:7113/api",
     retryAttempts: number = 3,
     retryDelay: number = 1000
   ) {
@@ -62,7 +62,9 @@ class ApiClient {
     options: RequestInit = {}, 
     attempt: number = 1
   ): Promise<ApiResponse<T>> {
-    const url = `${this.baseUrl}${endpoint}`
+    // Ensure endpoint starts with "/"
+    const normalizedEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
+    const url = `${this.baseUrl}${normalizedEndpoint}`
 
     // Apply request interceptors
     let config: RequestInit = {
@@ -102,21 +104,21 @@ class ApiClient {
       }
 
       // For customer endpoints, try to parse the response even if status is not ok
-      let data;
+      let data: unknown;
       try {
         data = await processedResponse.json();
-      } catch (parseError) {
+      } catch {
         // If JSON parsing fails, throw the original error for non-customer endpoints
         if (!isCustomerEndpoint) {
           const errorData = await this.parseErrorResponse(processedResponse);
           throw new Error(errorData.message || `HTTP error! status: ${processedResponse.status}`);
         }
         // For customer endpoints, return empty data if parsing fails
-        data = {} as T;
+        data = {};
       }
       
       return {
-        data,
+        data: data as T,
         status: processedResponse.status,
         success: processedResponse.ok
       }
@@ -131,12 +133,14 @@ class ApiClient {
     }
   }
 
-  private shouldRetry(error: any): boolean {
+  private shouldRetry(error: unknown): boolean {
     // Retry on network errors or 5xx server errors
-    if (error.name === 'TypeError' && error.message.includes('fetch')) {
+    if (error instanceof Error && error.name === 'TypeError' && error.message.includes('fetch')) {
       return true
     }
-    if (error.status >= 500 && error.status < 600) {
+    // Check if error has status property and is a 5xx error
+    if (error && typeof error === 'object' && 'status' in error && 
+        typeof error.status === 'number' && error.status >= 500 && error.status < 600) {
       return true
     }
     return false
@@ -159,21 +163,33 @@ class ApiClient {
     }
   }
 
-  private formatError(error: any): ApiError {
-    if (error.status) {
+  private formatError(error: unknown): ApiError {
+    // Handle error objects with status properties
+    if (error && typeof error === 'object' && 'status' in error) {
+      const err = error as ApiError;
       return {
-        message: error.message || 'API request failed',
-        status: error.status,
-        code: error.code,
-        details: error.details
-      }
+        message: err.message || 'API request failed',
+        status: err.status,
+        code: err.code,
+        details: err.details
+      };
     }
 
+    // Handle generic Error objects
+    if (error instanceof Error) {
+      return {
+        message: error.message || 'Network error occurred',
+        status: 0,
+        code: 'NETWORK_ERROR'
+      };
+    }
+
+    // Handle other types of errors
     return {
-      message: error.message || 'Network error occurred',
+      message: String(error) || 'Network error occurred',
       status: 0,
       code: 'NETWORK_ERROR'
-    }
+    };
   }
 
   async get<T>(endpoint: string, params?: Record<string, unknown>): Promise<ApiResponse<T>> {
@@ -220,8 +236,7 @@ class ApiClient {
   // Upload file with progress tracking
   async uploadFile<T>(
     endpoint: string, 
-    file: File, 
-    onProgress?: (progress: number) => void
+    file: File
   ): Promise<ApiResponse<T>> {
     const formData = new FormData()
     formData.append('file', file)
@@ -232,7 +247,7 @@ class ApiClient {
       headers: {
         // Remove Content-Type to let browser set it with boundary
         ...this.defaultHeaders,
-        'Content-Type': undefined as any,
+        'Content-Type': 'multipart/form-data',
       },
     })
   }
@@ -267,15 +282,9 @@ export const apiClient = new ApiClient()
 // Add default interceptors for common use cases
 apiClient.addRequestInterceptor((config) => {
   // Add timestamp for cache busting
-  if (config.method === 'GET' && config.url) {
-    try {
-      const url = new URL(config.url as string, window.location.origin)
-      url.searchParams.set('_t', Date.now().toString())
-      config.url = url.toString()
-    } catch (e) {
-      // If URL parsing fails, continue without cache busting
-      console.warn('Failed to parse URL for cache busting:', e)
-    }
+  if (config.method === 'GET') {
+    // We can't modify the URL directly in RequestInit, so we'll handle this differently
+    console.log('GET request - cache busting handled by browser');
   }
   return config
 })

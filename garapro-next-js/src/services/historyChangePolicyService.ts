@@ -28,7 +28,7 @@ export interface PaginatedResponse<T> {
 }
   
   class HistoryChangePolicyService {
-    private baseUrl = 'https://localhost:7113/SecurityPolicy';
+    private baseUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:7113/api'}/SecurityPolicy`;
   
     async getAuditHistory(params: PaginationParams): Promise<PaginatedResponse<AuditHistory>> {
       try {
