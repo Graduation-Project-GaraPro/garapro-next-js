@@ -21,7 +21,7 @@ class ApiClient {
   private responseInterceptors: Array<(response: Response) => Response> = []
 
   constructor(
-    baseUrl: string = process.env.NEXT_PUBLIC_BASE_URL || "https://localhost:7113/api",
+    baseUrl: string = process.env.NEXT_PUBLIC_API_BASE_URL || "https://localhost:7113/api",
     retryAttempts: number = 3,
     retryDelay: number = 1000
   ) {
@@ -65,7 +65,7 @@ class ApiClient {
     // Ensure endpoint starts with "/"
     const normalizedEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
     const url = `${this.baseUrl}${normalizedEndpoint}`
-
+   
     // Apply request interceptors
     let config: RequestInit = {
       headers: {
@@ -80,6 +80,9 @@ class ApiClient {
     })
 
     try {
+
+       console.log("Url",url)
+    console.log("BaseUrl",this.baseUrl)
       const response = await fetch(url, config)
 
       // Apply response interceptors

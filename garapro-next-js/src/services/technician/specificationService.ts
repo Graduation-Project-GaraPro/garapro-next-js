@@ -25,25 +25,28 @@ export interface VehicleSpecificationDto {
 // Get all vehicle specifications
 export const getAllSpecifications = async (): Promise<VehicleSpecificationDto[]> => {
   try {
-    const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
-    if (!token) {
-      throw new Error("Missing authentication token");
+    const response = await fetch('YOUR_API_URL', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        // Thêm token nếu cần
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    const response = await axios.get(`${API_URL}/all`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    });
+    const data = await response.json();
     
-    return response.data;
-  } catch (error) {
-    console.error("Error fetching specifications:", error);
-    if (axios.isAxiosError(error)) {
-      throw new Error(error.response?.data?.message || "Unable to load vehicle specifications");
+    if (!data || !Array.isArray(data)) {
+      console.warn('API response is not an array:', data);
+      return [];
     }
-    throw error;
+    return data;
+  } catch (error) {
+    console.error('Error fetching specifications:', error);
+    return []; // Trả về array rỗng thay vì throw error
   }
 };
 

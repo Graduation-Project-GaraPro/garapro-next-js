@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   Car, FileText, ArrowLeft, ClipboardCheck, ChevronDown, ChevronRight,
   Settings, Package, CheckCircle, Info, Phone, User, Hash, Trash2, Loader, 
-  AlertTriangle, Plus, X, Search
+  AlertTriangle, Plus, X, Search, ChevronLeft, Image
 } from "lucide-react";
 import {
   getInspectionById, updateInspection, removePartFromInspection,
@@ -39,6 +39,7 @@ interface PartInspectionDto {
   partName: string;
   partCategoryId: string;
   categoryName: string;
+  quantity: number;
 }
 
 interface ServiceInspectionDto {
@@ -81,11 +82,17 @@ interface CustomerDto {
   phoneNumber?: string;
 }
 
+interface RepairImageDto {
+  imageId: string;
+  imageUrl: string;
+}
+
 interface RepairOrderDto {
   repairOrderId: string;
   vehicle?: VehicleDto;
   customer?: CustomerDto;
   services: RepairOrderServiceDto[];
+  repairImages: RepairImageDto[];
 }
 
 interface InspectionResponse {
@@ -113,7 +120,7 @@ interface InspectionItem {
   allPartCategories: PartCategoryDto[];
   suggestedParts: PartInspectionDto[];
   selectedPartCategories: string[];
-  selectedPartsByCategory: { [key: string]: string[] };
+  selectedPartsByCategory: { [key: string]: any[] };
 }
 
 interface ServiceOption {
@@ -135,6 +142,7 @@ interface VehicleInfo {
   model: string;
   color: string;
   customerConcern?: string;
+  repairImages?: RepairImageDto[];
 }
 
 interface AddServiceModalProps {
@@ -157,14 +165,98 @@ interface ErrorModalProps {
   onClose: () => void;
 }
 
+interface ImageModalProps {
+  isOpen: boolean;
+  images: RepairImageDto[];
+  onClose: () => void;
+}
+
 interface PartCategorySelectionProps {
   category: PartCategoryDto;
   service: InspectionItem;
   isCompleted: boolean;
   onCategoryToggle: (categoryId: string, selected: boolean) => void;
-  onPartToggle: (categoryId: string, partId: string, selected: boolean) => void;
+  onPartToggle: (categoryId: string, partId: string, selected: boolean, quantity?: number) => void;
   onRemoveCategory: (categoryId: string) => void;
   onRemovePart: (categoryId: string, partId: string) => void;
+  onQuantityChange: (categoryId: string, partId: string, quantity: number) => void;
+}
+
+// Component ImageModal
+function ImageModal({ isOpen, images, onClose }: ImageModalProps) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  if (!isOpen || !images.length) return null;
+
+  const nextImage = () => {
+    setCurrentIndex((prev) => (prev + 1) % images.length);
+  };
+
+  const prevImage = () => {
+    setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-2xl max-w-4xl w-full max-h-full overflow-hidden">
+        <div className="flex items-center justify-between p-4 border-b">
+          <h3 className="text-lg font-semibold">Vehicle Images</h3>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 rounded-lg"
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+        
+        <div className="relative p-4">
+          <div className="flex items-center justify-center mb-4">
+            <img
+              src={images[currentIndex].imageUrl}
+              alt={`Vehicle image ${currentIndex + 1}`}
+              className="max-h-96 max-w-full object-contain rounded-lg"
+            />
+          </div>
+          
+          {images.length > 1 && (
+            <>
+              <button
+                onClick={prevImage}
+                className="absolute left-4 top-1/2 transform -translate-y-1/2 p-2 bg-white/80 rounded-full shadow-lg hover:bg-white"
+              >
+                <ChevronLeft className="w-6 h-6" />
+              </button>
+              
+              <button
+                onClick={nextImage}
+                className="absolute right-4 top-1/2 transform -translate-y-1/2 p-2 bg-white/80 rounded-full shadow-lg hover:bg-white"
+              >
+                <ChevronRight className="w-6 h-6" />
+              </button>
+              
+              <div className="flex justify-center mt-4">
+                <div className="flex space-x-2">
+                  {images.map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setCurrentIndex(index)}
+                      className={`w-3 h-3 rounded-full ${
+                        index === currentIndex ? 'bg-blue-600' : 'bg-gray-300'
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
+              
+              <div className="text-center mt-2 text-sm text-gray-600">
+                {currentIndex + 1} / {images.length}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // Component PartCategorySelection
@@ -175,11 +267,23 @@ function PartCategorySelection({
   onCategoryToggle,
   onPartToggle,
   onRemoveCategory,
-  onRemovePart
+  onRemovePart,
+  onQuantityChange
 }: PartCategorySelectionProps) {
   const [expanded, setExpanded] = useState(false);
   const isCategorySelected = service.selectedPartCategories.includes(category.partCategoryId);
   const selectedPartsInCategory = service.selectedPartsByCategory[category.partCategoryId] || [];
+
+  const getPartQuantity = (partId: string): number => {
+    const partWithQuantity = selectedPartsInCategory.find((p: any) => p.partId === partId);
+    return partWithQuantity?.quantity || 1;
+  };
+
+  const handleQuantityChange = (partId: string, newQuantity: number) => {
+    if (newQuantity >= 1 && !isCompleted) { // Chỉ cho phép thay đổi khi chưa completed
+      onQuantityChange(category.partCategoryId, partId, newQuantity);
+    }
+  };
 
   return (
     <div className={`border rounded-lg transition-all duration-200 ${
@@ -187,11 +291,12 @@ function PartCategorySelection({
     }`}>
       <div className="p-3 flex items-center justify-between">
         <div className="flex items-center gap-3 flex-1">
+          {/* Cho phép mở rộng để xem ngay cả khi completed, nhưng disable checkbox/radio */}
           {service.isAdvanced ? (
             <input
               type="checkbox"
               checked={isCategorySelected}
-              onChange={(e) => onCategoryToggle(category.partCategoryId, e.target.checked)}
+              onChange={(e) => !isCompleted && onCategoryToggle(category.partCategoryId, e.target.checked)}
               disabled={isCompleted}
               className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
             />
@@ -200,7 +305,7 @@ function PartCategorySelection({
               type="radio"
               checked={isCategorySelected}
               onChange={(e) => {
-                if (e.target.checked) {
+                if (e.target.checked && !isCompleted) {
                   onCategoryToggle(category.partCategoryId, true);
                 }
               }}
@@ -214,21 +319,28 @@ function PartCategorySelection({
             <div className="flex items-center gap-2">
               <Package className="w-4 h-4 text-gray-600" />
               <span className="font-semibold text-gray-900">{category.categoryName}</span>
+              {isCompleted && isCategorySelected && (
+                <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded">
+                  Selected
+                </span>
+              )}
             </div>
             {selectedPartsInCategory.length > 0 && (
               <div className="flex flex-wrap gap-1 mt-1">
-                {selectedPartsInCategory.map(partId => {
-                  const part = category.parts.find(p => p.partId === partId);
-                  return part ? (
-                    <div key={partId} className="flex items-center gap-1 bg-green-100 text-green-700 px-2 py-1 rounded text-xs">
-                      <span>{part.partName}</span>
-                      <button
-                        onClick={() => onRemovePart(category.partCategoryId, partId)}
-                        disabled={isCompleted}
-                        className="p-0.5 bg-green-200 rounded-full hover:bg-green-300"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
+                {selectedPartsInCategory.map((part: any) => {
+                  const partData = category.parts.find(p => p.partId === part.partId);
+                  return partData ? (
+                    <div key={part.partId} className="flex items-center gap-1 bg-green-100 text-green-700 px-2 py-1 rounded text-xs">
+                      <span>{partData.partName} (x{part.quantity})</span>
+                      {!isCompleted && ( // Chỉ hiển thị nút xóa khi chưa completed
+                        <button
+                          onClick={() => onRemovePart(category.partCategoryId, part.partId)}
+                          disabled={isCompleted}
+                          className="p-0.5 bg-green-200 rounded-full hover:bg-green-300"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      )}
                     </div>
                   ) : null;
                 })}
@@ -238,7 +350,7 @@ function PartCategorySelection({
         </div>
 
         <div className="flex items-center gap-2">
-          {isCategorySelected && selectedPartsInCategory.length > 0 && (
+          {isCategorySelected && selectedPartsInCategory.length > 0 && !isCompleted && (
             <button
               onClick={() => onRemoveCategory(category.partCategoryId)}
               disabled={isCompleted}
@@ -249,9 +361,10 @@ function PartCategorySelection({
             </button>
           )}
           
+          {/* Luôn cho phép mở rộng để xem, ngay cả khi completed */}
           <button
             onClick={() => setExpanded(!expanded)}
-            disabled={!isCategorySelected || isCompleted}
+            disabled={!isCategorySelected} // Chỉ disable khi category không được chọn
             className="p-1 bg-gray-200 hover:bg-gray-300 rounded transition-colors disabled:opacity-50"
           >
             {expanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
@@ -262,42 +375,95 @@ function PartCategorySelection({
       {isCategorySelected && expanded && (
         <div className="border-t border-gray-200 p-3 bg-white">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            {category.parts.map((part) => (
-              <div
-                key={part.partId}
-                className={`p-2 border rounded-lg cursor-pointer transition-all duration-200 ${
-                  selectedPartsInCategory.includes(part.partId)
-                    ? 'border-green-300 bg-green-50'
-                    : 'border-gray-200 bg-gray-50 hover:border-gray-300'
-                } ${isCompleted ? 'opacity-50 cursor-not-allowed' : ''}`}
-                onClick={() => !isCompleted && onPartToggle(
-                  category.partCategoryId, 
-                  part.partId, 
-                  !selectedPartsInCategory.includes(part.partId)
-                )}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <Package className="w-4 h-4 text-gray-600" />
-                      <span className="font-medium text-gray-900">{part.partName}</span>
+            {category.parts.map((part) => {
+              const isSelected = selectedPartsInCategory.some((p: any) => p.partId === part.partId);
+              const quantity = getPartQuantity(part.partId);
+              
+              return (
+                <div
+                  key={part.partId}
+                  className={`p-2 border rounded-lg transition-all duration-200 ${
+                    isSelected
+                      ? 'border-green-300 bg-green-50'
+                      : 'border-gray-200 bg-gray-50'
+                  } ${isCompleted ? 'cursor-default' : 'cursor-pointer hover:border-gray-300'}`}
+                  onClick={() => !isCompleted && onPartToggle( // Chỉ cho phép toggle khi chưa completed
+                    category.partCategoryId, 
+                    part.partId, 
+                    !isSelected,
+                    quantity
+                  )}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <Package className="w-4 h-4 text-gray-600" />
+                        <span className="font-medium text-gray-900">{part.partName}</span>
+                        {isSelected && isCompleted && (
+                          <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded">
+                            Selected
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-1">
+                        <span className="font-bold text-green-600">
+                          {part.unitPrice.toLocaleString('vi-VN')} VND
+                        </span>
+                      </div>
+                      
+                      {isSelected && (
+                        <div className="mt-2 flex items-center gap-2">
+                          <span className="text-sm text-gray-600">Quantity:</span>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleQuantityChange(part.partId, quantity - 1);
+                              }}
+                              disabled={quantity <= 1 || isCompleted}
+                              className="w-6 h-6 bg-gray-200 rounded flex items-center justify-center disabled:opacity-50"
+                            >
+                              -
+                            </button>
+                            <input
+                              type="number"
+                              value={quantity}
+                              onChange={(e) => {
+                                const newQuantity = parseInt(e.target.value);
+                                if (!isNaN(newQuantity) && newQuantity >= 1 && !isCompleted) {
+                                  handleQuantityChange(part.partId, newQuantity);
+                                }
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                              disabled={isCompleted}
+                              min="1"
+                              className="w-12 text-center border rounded py-1 text-sm"
+                            />
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleQuantityChange(part.partId, quantity + 1);
+                              }}
+                              disabled={isCompleted}
+                              className="w-6 h-6 bg-gray-200 rounded flex items-center justify-center"
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <div className="mt-1">
-                      <span className="font-bold text-green-600">
-                        {part.unitPrice.toLocaleString('vi-VN')} VND
-                      </span>
+                    <div className="ml-4">
+                      {isSelected ? (
+                        <CheckCircle className="w-5 h-5 text-green-500" />
+                      ) : (
+                        <div className="w-5 h-5 border-2 border-gray-300 rounded"></div>
+                      )}
                     </div>
-                  </div>
-                  <div className="ml-4">
-                    {selectedPartsInCategory.includes(part.partId) ? (
-                      <CheckCircle className="w-5 h-5 text-green-500" />
-                    ) : (
-                      <div className="w-5 h-5 border-2 border-gray-300 rounded"></div>
-                    )}
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
@@ -532,12 +698,13 @@ export default function CheckConditionPage() {
   const [successMessage, setSuccessMessage] = useState("");
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  
   const [showAddServiceModal, setShowAddServiceModal] = useState(false);
   const [availableServices, setAvailableServices] = useState<ServiceOption[]>([]);
   const [addingService, setAddingService] = useState(false);
   const [canAddService, setCanAddService] = useState(false);
   const [expandedPartCategories, setExpandedPartCategories] = useState<Record<string, boolean>>({});
+  const [showImageModal, setShowImageModal] = useState(false);
+  const [vehicleImages, setVehicleImages] = useState<RepairImageDto[]>([]);
 
   const statusConfig = {
     good: { color: "bg-green-200 text-green-800 border-green-300", label: "Good" },
@@ -571,7 +738,10 @@ export default function CheckConditionPage() {
           model: vehicle?.model?.modelName || "N/A",
           color: "N/A",
           customerConcern: data.customerConcern || "",
+          repairImages: data.repairOrder?.repairImages || []
         });
+
+        setVehicleImages(data.repairOrder?.repairImages || []);
 
         const services = data.repairOrder?.services || [];
         const serviceInspections = data.serviceInspections || [];
@@ -588,7 +758,7 @@ export default function CheckConditionPage() {
             );
 
             const suggestedParts = existingInspection?.suggestedParts || [];
-            const selectedPartsByCategory: { [key: string]: string[] } = {};
+            const selectedPartsByCategory: { [key: string]: any[] } = {};
             const selectedPartCategories: string[] = [];
 
             suggestedParts.forEach((part: PartInspectionDto) => {
@@ -596,7 +766,10 @@ export default function CheckConditionPage() {
                 selectedPartsByCategory[part.partCategoryId] = [];
                 selectedPartCategories.push(part.partCategoryId);
               }
-              selectedPartsByCategory[part.partCategoryId].push(part.partId);
+              selectedPartsByCategory[part.partCategoryId].push({
+                partId: part.partId,
+                quantity: part.quantity || 1
+              });
             });
 
             let status: "good" | "needs-attention" | "replace" | "not-checked" = "not-checked";
@@ -626,7 +799,7 @@ export default function CheckConditionPage() {
         } else {
           mappedItems = serviceInspections.map((si: ServiceInspectionDto) => {
             const suggestedParts = si.suggestedParts || [];
-            const selectedPartsByCategory: { [key: string]: string[] } = {};
+            const selectedPartsByCategory: { [key: string]: any[] } = {};
             const selectedPartCategories: string[] = [];
 
             suggestedParts.forEach((part: PartInspectionDto) => {
@@ -634,7 +807,10 @@ export default function CheckConditionPage() {
                 selectedPartsByCategory[part.partCategoryId] = [];
                 selectedPartCategories.push(part.partCategoryId);
               }
-              selectedPartsByCategory[part.partCategoryId].push(part.partId);
+              selectedPartsByCategory[part.partCategoryId].push({
+                partId: part.partId,
+                quantity: part.quantity || 1
+              });
             });
 
             let status: "good" | "needs-attention" | "replace" | "not-checked" = "not-checked";
@@ -714,7 +890,7 @@ export default function CheckConditionPage() {
 
       const mappedItems: InspectionItem[] = serviceInspections.map((si: ServiceInspectionDto) => {
         const suggestedParts = si.suggestedParts || [];
-        const selectedPartsByCategory: { [key: string]: string[] } = {};
+        const selectedPartsByCategory: { [key: string]: any[] } = {};
         const selectedPartCategories: string[] = [];
 
         suggestedParts.forEach((part: PartInspectionDto) => {
@@ -722,7 +898,10 @@ export default function CheckConditionPage() {
             selectedPartsByCategory[part.partCategoryId] = [];
             selectedPartCategories.push(part.partCategoryId);
           }
-          selectedPartsByCategory[part.partCategoryId].push(part.partId);
+          selectedPartsByCategory[part.partCategoryId].push({
+            partId: part.partId,
+            quantity: part.quantity || 1
+          });
         });
 
         let status: "good" | "needs-attention" | "replace" | "not-checked" = "not-checked";
@@ -848,16 +1027,16 @@ export default function CheckConditionPage() {
     }));
   };
 
-  const handlePartToggle = (serviceId: string, categoryId: string, partId: string, selected: boolean) => {
+  const handlePartToggle = (serviceId: string, categoryId: string, partId: string, selected: boolean, quantity: number = 1) => {
     setInspectionItems(prev => prev.map(item => {
       if (item.serviceId === serviceId) {
         const currentParts = item.selectedPartsByCategory[categoryId] || [];
-        let newParts: string[];
+        let newParts: any[];
         
         if (selected) {
-          newParts = [...currentParts, partId];
+          newParts = [...currentParts, { partId, quantity }];
         } else {
-          newParts = currentParts.filter(id => id !== partId);
+          newParts = currentParts.filter((p: any) => p.partId !== partId);
         }
         
         return {
@@ -865,6 +1044,25 @@ export default function CheckConditionPage() {
           selectedPartsByCategory: {
             ...item.selectedPartsByCategory,
             [categoryId]: newParts
+          }
+        };
+      }
+      return item;
+    }));
+  };
+
+  const handleQuantityChange = (serviceId: string, categoryId: string, partId: string, quantity: number) => {
+    setInspectionItems(prev => prev.map(item => {
+      if (item.serviceId === serviceId) {
+        const updatedParts = item.selectedPartsByCategory[categoryId]?.map((part: any) => 
+          part.partId === partId ? { ...part, quantity } : part
+        ) || [];
+        
+        return {
+          ...item,
+          selectedPartsByCategory: {
+            ...item.selectedPartsByCategory,
+            [categoryId]: updatedParts
           }
         };
       }
@@ -924,7 +1122,7 @@ export default function CheckConditionPage() {
     setInspectionItems(prev => prev.map(prevItem => {
       if (prevItem.serviceId === serviceId) {
         const currentParts = prevItem.selectedPartsByCategory[categoryId] || [];
-        const newParts = currentParts.filter(id => id !== partId);
+        const newParts = currentParts.filter((p: any) => p.partId !== partId);
         
         return {
           ...prevItem,
@@ -959,7 +1157,13 @@ export default function CheckConditionPage() {
           item.status === "replace" ? ConditionStatus.Replace :
           ConditionStatus.Not_Checked,
         SelectedPartCategoryIds: item.selectedPartCategories,
-        SuggestedPartsByCategory: item.selectedPartsByCategory
+        SuggestedPartsByCategory: Object.entries(item.selectedPartsByCategory).reduce((acc, [categoryId, parts]) => {
+          acc[categoryId] = parts.map((part: any) => ({
+            partId: part.partId,
+            quantity: part.quantity || 1
+          }));
+          return acc;
+        }, {} as { [key: string]: any[] })
       }));
 
       const hasAnyChange = serviceUpdates.some(su => 
@@ -993,7 +1197,7 @@ export default function CheckConditionPage() {
       };
 
       await updateInspection(inspectionId, request);
-      setSuccessMessage("Inspection completed and sent to Manager for review!");
+      setSuccessMessage("Inspection completed and sent to Manager!");
       setShowSuccessModal(true);
     } catch (err) {
       console.error("Error saving inspection:", err);
@@ -1040,6 +1244,20 @@ export default function CheckConditionPage() {
     setShowSuccessModal(false);
   };
 
+  const renderImageButton = () => {
+    if (vehicleImages.length === 0) return null;
+    
+    return (
+      <button
+        onClick={() => setShowImageModal(true)}
+        className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-semibold rounded-xl transition-all duration-200 flex items-center gap-2 shadow-lg"
+      >
+        <Image className="w-5 h-5" />
+        <span>View Images ({vehicleImages.length})</span>
+      </button>
+    );
+  };
+
   if (loading) {
     return (
       <div className="bg-[url('/images/image9.png')] bg-cover bg-no-repeat h-full p-4 rounded-lg shadow-md ">
@@ -1075,38 +1293,38 @@ export default function CheckConditionPage() {
 
   return (
     <div className="bg-[url('/images/image9.png')] bg-cover bg-no-repeat h-full p-4 rounded-lg shadow-md max-h-[86vh] overflow-y-auto rounded-xl">
-<div className="flex items-center justify-between mb-2 gap-4 flex-nowrap">
-  <div className="relative inline-block mb-3 flex-shrink-0">
-    <div className="absolute inset-0 w-full max-w-md bg-white/70 shadow-md rounded-lg"></div>
-    <div className="relative flex items-center gap-2 px-4 py-2">
-      <button
-        onClick={() => router.back()}
-        className="p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors duration-200 mr-2"
-      >
-        <ArrowLeft className="w-5 h-5 text-gray-600" />
-      </button>
-      <div className="p-2 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-lg flex-shrink-0">
-        <ClipboardCheck className="w-5 h-5 text-white" />
-      </div>
-      <div className="flex flex-col items-start min-w-0">
-        <h2 className="text-[24px] font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent italic truncate max-w-[300px]">
-          {vehicleInfo?.vehicle || "Vehicle Inspection"}
-        </h2>
-        <p className="text-sm text-gray-600 truncate">Status: {inspectionStatus}</p>
-      </div>
-    </div>
-  </div>
+      <div className="flex items-center justify-between mb-2 gap-4 flex-nowrap">
+        <div className="relative inline-block mb-3 flex-shrink-0">
+          <div className="absolute inset-0 w-full max-w-md bg-white/70 shadow-md rounded-lg"></div>
+          <div className="relative flex items-center gap-2 px-4 py-2">
+            <button
+              onClick={() => router.back()}
+              className="p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors duration-200 mr-2"
+            >
+              <ArrowLeft className="w-5 h-5 text-gray-600" />
+            </button>
+            <div className="p-2 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-lg flex-shrink-0">
+              <ClipboardCheck className="w-5 h-5 text-white" />
+            </div>
+            <div className="flex flex-col items-start min-w-0">
+              <h2 className="text-[24px] font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent italic truncate max-w-[300px]">
+                {vehicleInfo?.vehicle || "Vehicle Inspection"}
+              </h2>
+              <p className="text-sm text-gray-600 truncate">Status: {inspectionStatus}</p>
+            </div>
+          </div>
+        </div>
 
-  <div className="flex items-center gap-4 flex-shrink-0">
-    {canAddService && !isCompleted && (
-      <button
-        onClick={handleOpenAddServiceModal}
-        className="px-4 py-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold rounded-xl transition-all duration-200 flex items-center gap-2 shadow-lg whitespace-nowrap"
-      >
-        <Plus className="w-5 h-5" />
-        <span>Add Services</span>
-      </button>
-    )}
+        <div className="flex items-center gap-4 flex-shrink-0">         
+          {canAddService && !isCompleted && (
+            <button
+              onClick={handleOpenAddServiceModal}
+              className="px-4 py-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold rounded-xl transition-all duration-200 flex items-center gap-2 shadow-lg whitespace-nowrap"
+            >
+              <Plus className="w-5 h-5" />
+              <span>Add Services</span>
+            </button>
+          )}
 
           <div className="relative w-190 px-10">
             <button
@@ -1120,80 +1338,99 @@ export default function CheckConditionPage() {
               {showVehicleDetails ? <ChevronDown className="w-5 h-5 text-gray-600" /> : <ChevronRight className="w-5 h-5 text-gray-600" />}
             </button>
 
-            {showVehicleDetails && vehicleInfo && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white border-2 border-gray-200 rounded-xl shadow-2xl z-10 overflow-hidden max-h-[calc(100vh-200px)] overflow-y-auto">
-                <div className="px-4 py-4">
-                  <div className="text-center mb-2">
-                    <h3 className="text-[16px] font-bold text-gray-800">Vehicle Details</h3>
-                    <div className="w-20 h-1 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full mx-auto"></div>
-                  </div>
-                  <div className="p-3 bg-gradient-to-r from-blue-50 to-purple-50">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-2 border border-blue-200/50">
-                          <div className="flex items-center gap-3 mb-1">
-                            <div className="px-2 py-1 bg-blue-100 rounded-lg"><Car className="w-4 h-4 text-blue-600" /></div>
-                            <span className="text-sm font-medium text-blue-700">Vehicle Model</span>
-                          </div>
-                          <p className="text-gray-800 font-bold text-sx px-11">{vehicleInfo.vehicle}</p>
-                        </div>
-                        <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-2 border border-purple-200/50">
-                          <div className="flex items-center gap-3 mb-1">
-                            <div className="px-2 py-1 bg-purple-100 rounded-lg"><User className="w-4 h-4 text-purple-600" /></div>
-                            <span className="text-sm font-medium text-purple-700">Customer Name</span>
-                          </div>
-                          <p className="text-gray-800 font-bold text-sx px-11">{vehicleInfo.owner}</p>
-                        </div>
-                        <div className="bg-gradient-to-br from-orange-50 to-red-50 rounded-xl p-2 border border-orange-200/50">
-                          <div className="flex items-center gap-3 mb-1">
-                            <div className="px-2 py-1 bg-orange-100 rounded-lg"><Phone className="w-4 h-4 text-orange-600" /></div>
-                            <span className="text-sm font-medium text-orange-700">Phone Number</span>
-                          </div>
-                          <p className="text-gray-800 font-bold text-sx px-11">{vehicleInfo.phone}</p>
-                        </div>
-                      </div>
-                      <div className="space-y-3">
-                        <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-2 border border-green-200/50">
-                          <div className="flex items-center gap-3 mb-1">
-                            <div className="px-2 py-1 bg-green-100 rounded-lg"><Hash className="w-4 h-4 text-green-600" /></div>
-                            <span className="text-sm font-medium text-green-700">License Plate</span>
-                          </div>
-                          <p className="text-gray-800 font-bold text-sx px-11">{vehicleInfo.licensePlate}</p>
-                        </div>
-                        <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl p-2 border border-yellow-200/50">
-                          <div className="flex items-center gap-3 mb-1">
-                            <div className="px-2 py-1 bg-yellow-100 rounded-lg"><Info className="w-5 h-5 text-yellow-600" /></div>
-                            <span className="text-sm font-semibold text-yellow-700">VIN</span>
-                          </div>
-                          <p className="text-gray-800 font-bold text-sx px-11">{vehicleInfo.vin}</p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="bg-gradient-to-br from-slate-50 to-gray-50 rounded-xl p-2 border border-slate-200/50 mt-2">
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className="px-2 py-1 bg-slate-100 rounded-lg">
-                          <Info className="w-5 h-5 text-slate-600" />
-                        </div>
-                        <span className="text-[18px] font-semibold text-slate-700">Customer Concern</span>
-                      </div>
-                      <div className="bg-white rounded-lg p-4 border border-slate-200 shadow-sm">
-                        <p className="text-gray-700 leading-relaxed text-base">
-                          {vehicleInfo.customerConcern || "No concerns reported"}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex justify-center mt-4">
-                      <button
-                        onClick={() => setShowVehicleDetails(false)}
-                        className="px-5 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg"
-                      >
-                        Close Details
-                      </button>
-                    </div>
-                  </div>
+{showVehicleDetails && vehicleInfo && (
+  <div className="absolute top-full left-0 right-0 mt-2 bg-white border-2 border-gray-200 rounded-xl shadow-2xl z-10 overflow-hidden max-h-[calc(100vh-200px)] overflow-y-auto">
+    <div className="px-4 py-4">
+      <div className="text-center mb-2">
+        <h3 className="text-[16px] font-bold text-gray-800">Vehicle Details</h3>
+        <div className="w-20 h-1 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full mx-auto"></div>
+      </div>
+      <div className="p-3 bg-gradient-to-r from-blue-50 to-purple-50">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-2 border border-blue-200/50">
+              <div className="flex items-center gap-3 mb-1">
+                <div className="px-2 py-1 bg-blue-100 rounded-lg"><Car className="w-4 h-4 text-blue-600" /></div>
+                <span className="text-sm font-medium text-blue-700">Vehicle Model</span>
+              </div>
+              <p className="text-gray-800 font-bold text-sx px-11">{vehicleInfo.vehicle}</p>
+            </div>
+            <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-2 border border-purple-200/50">
+              <div className="flex items-center gap-3 mb-1">
+                <div className="px-2 py-1 bg-purple-100 rounded-lg"><User className="w-4 h-4 text-purple-600" /></div>
+                <span className="text-sm font-medium text-purple-700">Customer Name</span>
+              </div>
+              <p className="text-gray-800 font-bold text-sx px-11">{vehicleInfo.owner}</p>
+            </div>
+            <div className="bg-gradient-to-br from-orange-50 to-red-50 rounded-xl p-2 border border-orange-200/50">
+              <div className="flex items-center gap-3 mb-1">
+                <div className="px-2 py-1 bg-orange-100 rounded-lg"><Phone className="w-4 h-4 text-orange-600" /></div>
+                <span className="text-sm font-medium text-orange-700">Phone Number</span>
+              </div>
+              <p className="text-gray-800 font-bold text-sx px-11">{vehicleInfo.phone}</p>
+            </div>
+          </div>
+          <div className="space-y-3">
+            <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-2 border border-green-200/50">
+              <div className="flex items-center gap-3 mb-1">
+                <div className="px-2 py-1 bg-green-100 rounded-lg"><Hash className="w-4 h-4 text-green-600" /></div>
+                <span className="text-sm font-medium text-green-700">License Plate</span>
+              </div>
+              <p className="text-gray-800 font-bold text-sx px-11">{vehicleInfo.licensePlate}</p>
+            </div>
+            <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl p-2 border border-yellow-200/50">
+              <div className="flex items-center gap-3 mb-1">
+                <div className="px-2 py-1 bg-yellow-100 rounded-lg"><Info className="w-5 h-5 text-yellow-600" /></div>
+                <span className="text-sm font-semibold text-yellow-700">VIN</span>
+              </div>
+              <p className="text-gray-800 font-bold text-sx px-11">{vehicleInfo.vin}</p>
+            </div>
+            
+            {vehicleImages.length > 0 && (
+              <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-2 border border-purple-200/50">
+                <div className="flex justify-center mt-2">
+                  <button
+                    onClick={() => {
+                      setShowImageModal(true);
+                      setShowVehicleDetails(false);
+                    }}
+                    className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-semibold rounded-xl transition-all duration-200 flex items-center gap-2 shadow-lg"
+                  >
+                    <Image className="w-4 h-4" />
+                    <span>View Images ({vehicleImages.length})</span>
+                  </button>
                 </div>
               </div>
             )}
+          </div>
+        </div>
+        
+        <div className="bg-gradient-to-br from-slate-50 to-gray-50 rounded-xl p-2 border border-slate-200/50 mt-2">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="px-2 py-1 bg-slate-100 rounded-lg">
+              <Info className="w-5 h-5 text-slate-600" />
+            </div>
+            <span className="text-[18px] font-semibold text-slate-700">Customer Concern</span>
+          </div>
+          <div className="bg-white rounded-lg p-4 border border-slate-200 shadow-sm">
+            <p className="text-gray-700 leading-relaxed text-base">
+              {vehicleInfo.customerConcern || "No concerns reported"}
+            </p>
+          </div>
+        </div>
+        
+        <div className="flex justify-center mt-4">
+          <button
+            onClick={() => setShowVehicleDetails(false)}
+            className="px-5 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg"
+          >
+            Close Details
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
           </div>
         </div>
       </div>
@@ -1253,54 +1490,60 @@ export default function CheckConditionPage() {
                         </div>
                       </div>
 
-                      {(item.status === "replace" || item.status === "needs-attention") && item.allPartCategories.length > 0 && (
-                        <div className="mt-3 mb-2 bg-white rounded-lg border border-red-200">
-                          <button
-                            onClick={() => togglePartCategoriesExpanded(item.serviceId)}
-                            disabled={isCompleted}
-                            className="w-full p-2 bg-gradient-to-r from-red-50 to-orange-50 hover:from-red-100 hover:to-orange-100 border-b border-red-200 rounded-t-lg transition-all duration-200 flex items-center justify-between disabled:opacity-50"
-                          >
-                            <div className="flex items-center gap-2">
-                              <Settings className="w-4 h-4 text-red-600" />
-                              <span className="font-medium text-red-700">
-                                Part Categories Suggestions
-                                {item.selectedPartCategories.length > 0 && 
-                                  ` (${item.selectedPartCategories.length} categories selected)`}
-                              </span>
-                            </div>
-                            {expandedPartCategories[item.serviceId] ? (
-                              <ChevronDown className="w-4 h-4 text-red-600" />
-                            ) : (
-                              <ChevronRight className="w-4 h-4 text-red-600" />
-                            )}
-                          </button>
+{((item.status === "replace" || item.status === "needs-attention") || 
+  (isCompleted && item.selectedPartCategories.length > 0)) && 
+  item.allPartCategories.length > 0 && (
+  <div className="mt-3 mb-2 bg-white rounded-lg border border-red-200">
+    <button
+      onClick={() => togglePartCategoriesExpanded(item.serviceId)}     
+      disabled={item.allPartCategories.length === 0}
+      className="w-full p-2 bg-gradient-to-r from-red-50 to-orange-50 hover:from-red-100 hover:to-orange-100 border-b border-red-200 rounded-t-lg transition-all duration-200 flex items-center justify-between disabled:opacity-50 "
+    >
+      <div className="flex items-center gap-2">
+        <Settings className="w-4 h-4 text-red-600" />
+        <span className="font-medium text-red-700">
+          Part Categories Suggestions
+          {item.selectedPartCategories.length > 0 && 
+            ` (${item.selectedPartCategories.length} categories selected)`}
+          {isCompleted && item.selectedPartCategories.length > 0 }
+        </span>
+      </div>
+      {expandedPartCategories[item.serviceId] ? (
+        <ChevronDown className="w-4 h-4 text-red-600" />
+      ) : (
+        <ChevronRight className="w-4 h-4 text-red-600" />
+      )}
+    </button>
 
-                          {expandedPartCategories[item.serviceId] && (
-                            <div className="p-4 space-y-4">
-                              {item.allPartCategories.map((category) => (
-                                <PartCategorySelection
-                                  key={category.partCategoryId}
-                                  category={category}
-                                  service={item}
-                                  isCompleted={isCompleted}
-                                  onCategoryToggle={(categoryId, selected) => 
-                                    handleCategoryToggle(item.serviceId, categoryId, selected)
-                                  }
-                                  onPartToggle={(categoryId, partId, selected) => 
-                                    handlePartToggle(item.serviceId, categoryId, partId, selected)
-                                  }
-                                  onRemoveCategory={(categoryId) => 
-                                    handleRemoveCategory(item.serviceId, categoryId)
-                                  }
-                                  onRemovePart={(categoryId, partId) => 
-                                    handleRemovePart(item.serviceId, categoryId, partId)
-                                  }
-                                />
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )}
+    {expandedPartCategories[item.serviceId] && (
+      <div className="p-4 space-y-4">
+        {item.allPartCategories.map((category) => (
+          <PartCategorySelection
+            key={category.partCategoryId}
+            category={category}
+            service={item}
+            isCompleted={isCompleted}
+            onCategoryToggle={(categoryId, selected) => 
+              !isCompleted && handleCategoryToggle(item.serviceId, categoryId, selected)
+            }
+            onPartToggle={(categoryId, partId, selected) => 
+              !isCompleted && handlePartToggle(item.serviceId, categoryId, partId, selected)
+            }
+            onRemoveCategory={(categoryId) => 
+              !isCompleted && handleRemoveCategory(item.serviceId, categoryId)
+            }
+            onRemovePart={(categoryId, partId) => 
+              !isCompleted && handleRemovePart(item.serviceId, categoryId, partId)
+            }
+            onQuantityChange={(categoryId, partId, quantity) => 
+              !isCompleted && handleQuantityChange(item.serviceId, categoryId, partId, quantity)
+            }
+          />
+        ))}
+      </div>
+    )}
+  </div>
+)}
                     </div>
                   </div>
                 ))}
@@ -1349,6 +1592,12 @@ export default function CheckConditionPage() {
         onClose={() => setShowAddServiceModal(false)}
         onAdd={handleAddServices}
         loading={addingService}
+      />
+
+      <ImageModal 
+        isOpen={showImageModal}
+        images={vehicleImages}
+        onClose={() => setShowImageModal(false)}
       />
 
       <SuccessModal 

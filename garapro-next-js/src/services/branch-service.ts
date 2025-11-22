@@ -134,7 +134,7 @@ export interface GetBranchesResponse {
 }
 
 class BranchService {
-  private baseURL = process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:7113/api'
+  private baseURL = process.env.NEXT_PUBLIC_API_BASE_URL|| 'https://localhost:7113/api'
 
   constructor() {
     // Debug log to verify the environment variable is being read
