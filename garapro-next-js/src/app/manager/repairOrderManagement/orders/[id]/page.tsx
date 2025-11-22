@@ -11,6 +11,7 @@ import {
   CreditCard,
   Settings,
   MessageSquare,
+  Edit,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -20,8 +21,11 @@ import {
   JobsTab, 
   WorkProgressTab, 
   PaymentTab,
-  QuotationTab
+  QuotationTab,
+  EditRepairOrderDialog
 } from "./components"
+import { repairOrderService } from "@/services/manager/repair-order-service"
+import type { RepairOrder } from "@/types/manager/repair-order"
 import { authService } from "@/services/authService"
 import { branchService } from "@/services/branch-service"
 
@@ -36,6 +40,9 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
   const [orderId, setOrderId] = useState<string>("")
   const [userBranchId, setUserBranchId] = useState<string | null>(null)
   const [loadingBranch, setLoadingBranch] = useState(true)
+  const [repairOrder, setRepairOrder] = useState<RepairOrder | null>(null)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [isLoadingOrder, setIsLoadingOrder] = useState(true)
 
   // Handle async params
   useEffect(() => {
@@ -44,9 +51,9 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
     })
   }, [params])
 
-  // Get user's branch
+  // Get user's branch and repair order data
   useEffect(() => {
-    const fetchUserBranch = async () => {
+    const fetchData = async () => {
       try {
         const currentUser = authService.getCurrentUser()
         if (currentUser.userId) {
@@ -55,15 +62,32 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
             setUserBranchId(branch.branchId)
           }
         }
+
+        // Fetch repair order data if orderId is available
+        if (orderId) {
+          const orderData = await repairOrderService.getRepairOrderById(orderId)
+          setRepairOrder(orderData)
+        }
       } catch (error) {
-        console.error("Failed to fetch user branch:", error)
+        console.error("Failed to fetch data:", error)
       } finally {
         setLoadingBranch(false)
+        setIsLoadingOrder(false)
       }
     }
 
-    fetchUserBranch()
-  }, [])
+    if (orderId) {
+      fetchData()
+    }
+  }, [orderId])
+
+  const handleOrderUpdated = async () => {
+    // Refresh repair order data after update
+    if (orderId) {
+      const orderData = await repairOrderService.getRepairOrderById(orderId)
+      setRepairOrder(orderData)
+    }
+  }
 
   // Apply tab from query when available
   useEffect(() => {
@@ -75,14 +99,14 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
   }, [searchParams])
 
   // Show loading while params are being resolved
-  if (!orderId || loadingBranch) {
+  if (!orderId || loadingBranch || isLoadingOrder) {
     return (
-             <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-         <div className="text-center">
-           <div className="animate-spin rounded-full h-8 w-8 border-b-2 mx-auto mb-4" style={{ borderColor: "#154c79" }}></div>
-           <p className="text-gray-600">Loading order details...</p>
-         </div>
-       </div>
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 mx-auto mb-4" style={{ borderColor: "#154c79" }}></div>
+          <p className="text-gray-600">Loading order details...</p>
+        </div>
+      </div>
     )
   }
 
@@ -152,6 +176,16 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
           </div>
 
           <div className="flex items-center space-x-2">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-white hover:bg-opacity-80" 
+              style={{ backgroundColor: "rgba(255, 255, 255, 0.1)" }}
+              onClick={() => setIsEditDialogOpen(true)}
+              title="Edit Repair Order"
+            >
+              <Edit className="w-4 h-4" />
+            </Button>
             <Button variant="ghost" size="sm" className="text-white hover:bg-opacity-80" style={{ backgroundColor: "rgba(255, 255, 255, 0.1)" }}>
               <FileText className="w-4 h-4" />
             </Button>
@@ -206,6 +240,18 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
 
       {/* Content */}
       <div className="p-6">{renderTabContent()}</div>
+
+      {/* Edit Repair Order Dialog */}
+      {repairOrder && (
+        <EditRepairOrderDialog
+          open={isEditDialogOpen}
+          onOpenChange={setIsEditDialogOpen}
+          orderId={orderId}
+          currentStatusId={parseInt(repairOrder.statusId)}
+          currentNote={repairOrder.note}
+          onSuccess={handleOrderUpdated}
+        />
+      )}
     </div>
   )
 }

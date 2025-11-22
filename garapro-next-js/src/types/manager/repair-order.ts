@@ -27,6 +27,7 @@ export interface RepairOrder {
   totalJobs: number
   completedJobs: number
   progressPercentage: number
+  serviceIds?: string[] // Optional array of service IDs
 }
 
 // Add the PaidStatus enum
@@ -157,4 +158,12 @@ export interface CreateRepairOrderRequest {
 
 export interface UpdateRepairOrderRequest extends Partial<CreateRepairOrderRequest> {
   repairOrderId: string
+}
+
+// New interface for the simplified PUT endpoint
+export interface UpdateRepairOrderStatusRequest {
+  statusId: number
+  note?: string
+  selectedServiceIds: string[]
+  updatedAt?: string
 }

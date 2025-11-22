@@ -1,5 +1,5 @@
 import { apiClient } from "./api-client"
-import type { RepairOrder, CreateRepairOrderRequest, UpdateRepairOrderRequest, RepairOrderApiResponse } from "@/types/manager/repair-order"
+import type { RepairOrder, CreateRepairOrderRequest, UpdateRepairOrderRequest, RepairOrderApiResponse, UpdateRepairOrderStatusRequest } from "@/types/manager/repair-order"
 import type { OrderStatus, OrderStatusResponse } from "@/types/manager/order-status"
 import { authService } from "@/services/authService"
 import { branchService } from "@/services/branch-service"
@@ -102,6 +102,19 @@ class RepairOrderService {
     } catch (error) {
       console.error(`Failed to update repair order ${repairOrder.repairOrderId}:`, error)
       return null
+    }
+  }
+
+  /**
+   * Update repair order status, note, and services (simplified PUT endpoint)
+   */
+  async updateRepairOrderStatus(id: string, updateData: UpdateRepairOrderStatusRequest): Promise<RepairOrder | null> {
+    try {
+      const response = await apiClient.put<RepairOrder>(`${this.baseUrl}/${id}`, updateData)
+      return response.data || null
+    } catch (error) {
+      console.error(`Failed to update repair order status ${id}:`, error)
+      throw error
     }
   }
 
