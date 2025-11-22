@@ -2,11 +2,20 @@ import axios from "axios";
 
 const API_URL = "https://localhost:7113/odata/InspectionsTechnician";
 
+export interface RepairImageDto {
+  imageId: string;
+  imageUrl: string;
+}
+
+export interface PartWithQuantityDto {
+  partId: string;
+  quantity: number;
+}
 export interface ServiceUpdateDto {
   ServiceId: string;
   ConditionStatus: number;
   SelectedPartCategoryIds?: string[];
-  SuggestedPartsByCategory?: { [key: string]: string[] }; // PartCategoryId -> List PartIds
+   SuggestedPartsByCategory?: { [key: string]: PartWithQuantityDto[] };
 }
 
 export interface UpdateInspectionRequest {

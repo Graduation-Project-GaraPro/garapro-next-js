@@ -51,7 +51,7 @@ export default function TechnicianHeader() {
         <div className="flex items-center space-x-12">
           <div className="flex items-center space-x-2">
             <img
-              src="/gr_logo.png"
+              src="/logo.png"
               alt="GaragePro Logo"
               className="w-10 h-10 object-contain"
             />
