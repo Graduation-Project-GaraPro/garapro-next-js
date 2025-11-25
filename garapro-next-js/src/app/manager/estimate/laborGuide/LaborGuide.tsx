@@ -311,8 +311,8 @@ export default function LaborGuide({ onClose, onSave }: { onClose?: () => void; 
                 <BookOpen className="h-6 w-6" />
               </div>
               <div>
-                <h1 className="text-xl sm:text-2xl font-bold">Labor Guide - John Smith 2018 Honda Civic</h1>
-                <p className="text-white/80 text-xs sm:text-sm">Order #12345 - Estimate Builder</p>
+                <h1 className="text-xl sm:text-2xl font-bold">John Smith 2018 Honda Civic</h1>
+                <p className="text-white/80 text-xs sm:text-sm">Order #12345 - Job Builder</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -395,7 +395,7 @@ export default function LaborGuide({ onClose, onSave }: { onClose?: () => void; 
         <div className="flex-1 flex gap-4 p-3 sm:p-4 overflow-hidden">
           <div className="flex-[7] flex flex-col overflow-hidden">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold">Labor Categories ({filteredOperations.length})</h2>
+              <h2 className="text-lg font-semibold">Service Categories ({filteredOperations.length})</h2>
               <Button variant="outline" size="sm">
                 Export List
               </Button>

@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useRouter } from "next/navigation"
 import type { RepairOrder } from "@/types/manager/repair-order"
+import { PaidStatus } from "@/types/manager/repair-order"
 
 interface RepairOrderCardProps {
   repairOrder: RepairOrder
@@ -27,13 +28,13 @@ export default function RepairOrderCard({ repairOrder, onDragStart, onDragEnd, o
     router.push(`/manager/repairOrderManagement/orders/${repairOrder.repairOrderId}`)
   }
 
-  const getPaidStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "paid":
+  const getPaidStatusColor = (status: PaidStatus) => {
+    switch (status) {
+      case PaidStatus.Paid:
         return "bg-green-100 text-green-700 border-green-200"
-      case "partial":
+      case PaidStatus.Partial:
         return "bg-yellow-100 text-yellow-700 border-yellow-200"
-      case "unpaid":
+      case PaidStatus.Unpaid:
         return "bg-red-100 text-red-700 border-red-200"
       default:
         return "bg-gray-100 text-gray-700 border-gray-200"
@@ -107,7 +108,6 @@ export default function RepairOrderCard({ repairOrder, onDragStart, onDragEnd, o
           </div>
         </div>
       </CardHeader>
-
       <CardContent className="pt-1 pb-1.5 px-2 space-y-1">
         <div className="flex items-center gap-1 text-xs">
           <User className="w-2.5 h-2.5 text-gray-500 flex-shrink-0" />

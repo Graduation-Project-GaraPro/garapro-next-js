@@ -17,11 +17,13 @@ import { Badge } from "@/components/ui/badge"
 import {
   VehicleInformation, 
   InspectionsTab, 
-  EstimateTab, 
+  JobsTab, 
   WorkProgressTab, 
   PaymentTab,
   QuotationTab
 } from "./components"
+import { authService } from "@/services/authService"
+import { branchService } from "@/services/branch-service"
 
 interface OrderDetailsProps {
   params: Promise<{ id: string }>
@@ -32,6 +34,8 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
   const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState("vehicle-info")
   const [orderId, setOrderId] = useState<string>("")
+  const [userBranchId, setUserBranchId] = useState<string | null>(null)
+  const [loadingBranch, setLoadingBranch] = useState(true)
 
   // Handle async params
   useEffect(() => {
@@ -40,16 +44,38 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
     })
   }, [params])
 
+  // Get user's branch
+  useEffect(() => {
+    const fetchUserBranch = async () => {
+      try {
+        const currentUser = authService.getCurrentUser()
+        if (currentUser.userId) {
+          const branch = await branchService.getCurrentUserBranch(currentUser.userId)
+          if (branch) {
+            setUserBranchId(branch.branchId)
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch user branch:", error)
+      } finally {
+        setLoadingBranch(false)
+      }
+    }
+
+    fetchUserBranch()
+  }, [])
+
   // Apply tab from query when available
   useEffect(() => {
     const tab = searchParams?.get("tab")
     if (tab) {
+      console.log("Switching to tab from URL:", tab)
       setActiveTab(tab)
     }
   }, [searchParams])
 
   // Show loading while params are being resolved
-  if (!orderId) {
+  if (!orderId || loadingBranch) {
     return (
              <div className="min-h-screen bg-gray-100 flex items-center justify-center">
          <div className="text-center">
@@ -76,17 +102,19 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
     { id: "vehicle-info", label: "VEHICLE INFO", icon: FileText },
     { id: "inspections", label: "INSPECTIONS", icon: Clipboard },
     { id: "quotation", label: "QUOTATION", icon: Clipboard },
-    { id: "estimate", label: "JOBS", icon: Calculator },
+    { id: "jobs", label: "JOBS", icon: Calculator },
     { id: "work-in-progress", label: "WORK-IN-PROGRESS", icon: Wrench },
     { id: "payment", label: "PAYMENT", icon: CreditCard },
   ]
 
   const renderTabContent = () => {
+    const highlightInspectionId = searchParams?.get("highlightInspection") || undefined
+    
     const tabComponents = {
       "vehicle-info": <VehicleInformation orderId={orderId} />,
-      inspections: <InspectionsTab orderId={orderId} />,
+      inspections: <InspectionsTab orderId={orderId} highlightInspectionId={highlightInspectionId} />,
       quotation: <QuotationTab orderId={orderId} />,
-      estimate: <EstimateTab orderId={orderId} />,
+      jobs: <JobsTab orderId={orderId} branchId={userBranchId || undefined} />,
       "work-in-progress": <WorkProgressTab orderId={orderId} />,
       payment: <PaymentTab orderId={orderId} />
     }

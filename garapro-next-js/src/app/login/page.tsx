@@ -1,13 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,7 +13,7 @@ import Link from "next/link";
 
 declare global {
   interface Window {
-    google: any;
+    google: typeof google;
   }
 }
 
@@ -89,18 +83,18 @@ export default function LoginPage() {
     if (typeof window !== "undefined" && window.google) {
       window.google.accounts.id.renderButton(
         document.getElementById(elementId),
-        {
-          theme: "outline",
-          size: "large",
-          width: "100%",
+        { 
+          theme: "outline", 
+          size: "large", 
+          width: "100%", 
           text: "continue_with",
-          shape: "rectangular",
+          shape: "rectangular"
         }
       );
     }
   };
 
-  const handleCredentialResponse = async (response: any) => {
+  const handleCredentialResponse = async (response: GoogleCredentialResponse) => {
     try {
       setIsLoading(true);
       const idToken = response.credential;
@@ -114,23 +108,14 @@ export default function LoginPage() {
       localStorage.setItem("userId", result.userId);
       localStorage.setItem("userEmail", result.email);
       localStorage.setItem("userRoles", JSON.stringify(result.roles));
-
+      
       // Redirect based on user role
       if (result.roles.includes("Manager")) {
         window.location.href = "/manager/repairOrderManagement/ro-board";
-      } else {
-        // Redirect to dashboard for other roles
-        window.location.href = "/dashboard";
-      }
-      // localStorage.setItem("auth_token", result.token);
-      // // Redirect to dashboard
-      // window.location.href = "/dashboard";
-      // Kiểm tra role để điều hướng
-      const hasTechnicianRole = result.roles.includes("Technician");
-
-      if (hasTechnicianRole) {
+      } else if (result.roles.includes("Technician")) {
         window.location.href = "/technician";
       } else {
+        // Redirect to dashboard for other roles
         window.location.href = "/dashboard";
       }
     } catch (err) {
@@ -143,26 +128,27 @@ export default function LoginPage() {
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
-
+  
     if (!loginForm.phoneNumber.trim()) {
       newErrors.phoneNumber = "Please enter your phone number";
     } else if (!/^(0[3|5|7|8|9])+([0-9]{8})$/.test(loginForm.phoneNumber)) {
       newErrors.phoneNumber = "Invalid phone number format";
     }
-
+  
     if (!loginForm.password) {
       newErrors.password = "Please enter your password";
     } else if (loginForm.password.length < 6) {
       newErrors.password = "Password must be at least 6 characters";
     }
-
+  
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
+  
 
   const handlePhoneLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-
+    
     if (!validateForm()) {
       return;
     }
@@ -184,26 +170,20 @@ export default function LoginPage() {
       localStorage.setItem("userId", result.userId);
       localStorage.setItem("userEmail", result.email);
       localStorage.setItem("userRoles", JSON.stringify(result.roles));
-
+      
       // Redirect based on user role
       if (result.roles.includes("Manager")) {
         window.location.href = "/manager/repairOrderManagement/ro-board";
+      } else if (result.roles.includes("Technician")) {
+        window.location.href = "/technician";
       } else {
         // Redirect to dashboard for other roles
         window.location.href = "/dashboard";
       }
-      const hasTechnicianRole = result.roles.includes("Technician");
-      if (hasTechnicianRole) {
-        window.location.href = "/technician";
-      } else {
-        window.location.href = "/dashboard";
-      }
-      // // Redirect to dashboard or home page
-      // window.location.href = "/";
     } catch (err) {
       console.error("❌ Phone login failed:", err);
-      setErrors({
-        general: err instanceof Error ? err.message : "Đăng nhập thất bại",
+      setErrors({ 
+        general: err instanceof Error ? err.message : "Đăng nhập thất bại" 
       });
     } finally {
       setIsLoading(false);
@@ -211,13 +191,13 @@ export default function LoginPage() {
   };
 
   const handleInputChange = (field: string, value: string) => {
-    setLoginForm((prev) => ({ ...prev, [field]: value }));
+    setLoginForm(prev => ({ ...prev, [field]: value }));
     // Clear error when user starts typing
     if (errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: "" }));
+      setErrors(prev => ({ ...prev, [field]: "" }));
     }
     if (errors.general) {
-      setErrors((prev) => ({ ...prev, general: "" }));
+      setErrors(prev => ({ ...prev, general: "" }));
     }
   };
 
@@ -232,36 +212,25 @@ export default function LoginPage() {
             Welcome back! Please sign in to continue
           </CardDescription>
         </CardHeader>
-
+        
         <CardContent className="space-y-6">
           {/* General error display */}
           {errors.general && (
             <div className="p-3 border border-red-200 bg-red-50 rounded-md">
-              <p className="text-sm text-red-700 text-center">
-                {errors.general}
-              </p>
+              <p className="text-sm text-red-700 text-center">{errors.general}</p>
             </div>
           )}
-
-          <Tabs
-            value={activeTab}
-            onValueChange={setActiveTab}
-            className="w-full"
-          >
-            <TabsList className="grid w-full g">
-              <TabsTrigger className="w-full" value="phone">
-                Phone Number
-              </TabsTrigger>
+  
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger className="w-full" value="phone">Phone Number</TabsTrigger>
             </TabsList>
-
+            
             {/* Phone number login tab */}
             <TabsContent value="phone" className="space-y-4">
               <form onSubmit={handlePhoneLogin} className="space-y-4">
                 <div className="space-y-2">
-                  <Label
-                    htmlFor="phoneNumber"
-                    className="text-sm font-medium text-gray-700"
-                  >
+                  <Label htmlFor="phoneNumber" className="text-sm font-medium text-gray-700">
                     Phone Number
                   </Label>
                   <div className="relative">
@@ -272,9 +241,7 @@ export default function LoginPage() {
                       placeholder="Enter your phone number"
                       className="pl-10"
                       value={loginForm.phoneNumber}
-                      onChange={(e) =>
-                        handleInputChange("phoneNumber", e.target.value)
-                      }
+                      onChange={(e) => handleInputChange("phoneNumber", e.target.value)}
                       disabled={isLoading}
                     />
                   </div>
@@ -282,12 +249,9 @@ export default function LoginPage() {
                     <p className="text-sm text-red-600">{errors.phoneNumber}</p>
                   )}
                 </div>
-
+  
                 <div className="space-y-2">
-                  <Label
-                    htmlFor="password"
-                    className="text-sm font-medium text-gray-700"
-                  >
+                  <Label htmlFor="password" className="text-sm font-medium text-gray-700">
                     Password
                   </Label>
                   <div className="relative">
@@ -298,9 +262,7 @@ export default function LoginPage() {
                       placeholder="Enter your password"
                       className="pl-10 pr-10"
                       value={loginForm.password}
-                      onChange={(e) =>
-                        handleInputChange("password", e.target.value)
-                      }
+                      onChange={(e) => handleInputChange("password", e.target.value)}
                       disabled={isLoading}
                     />
                     <Button
@@ -321,19 +283,20 @@ export default function LoginPage() {
                     <p className="text-sm text-red-600">{errors.password}</p>
                   )}
                 </div>
-
+  
                 <div className="flex justify-between items-center">
                   <Link href="/forgot-password">
-                    <Button
-                      variant="link"
-                      className="p-0 text-blue-600 hover:text-blue-800 text-sm"
-                    >
+                    <Button variant="link" className="p-0 text-blue-600 hover:text-blue-800 text-sm">
                       Forgot password?
                     </Button>
                   </Link>
                 </div>
-
-                <Button type="submit" className="w-full" disabled={isLoading}>
+  
+                <Button 
+                  type="submit" 
+                  className="w-full" 
+                  disabled={isLoading}
+                >
                   {isLoading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -349,46 +312,37 @@ export default function LoginPage() {
               </form>
             </TabsContent>
           </Tabs>
-
+  
           {/* Separator for alternative login options */}
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
               <Separator className="w-full" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white px-2 text-gray-500">
-                Or continue with
-              </span>
+              <span className="bg-white px-2 text-gray-500">Or continue with</span>
             </div>
           </div>
-
+  
           {/* Google Sign-In Button outside tabs */}
           <div className="space-y-3">
             <div id="googleBtnMain" />
-
+            
             <div className="text-center">
               <p className="text-sm text-gray-600">
-                Don’t have an account?{" "}
+                Don&apos;t have an account?{" "}
                 <Link href="/register">
-                  <Button
-                    variant="link"
-                    className="p-0 text-blue-600 hover:text-blue-800 font-medium"
-                  >
+                  <Button variant="link" className="p-0 text-blue-600 hover:text-blue-800 font-medium">
                     Register now
                   </Button>
                 </Link>
               </p>
             </div>
           </div>
-
+  
           {/* Additional links */}
           <div className="text-center space-y-2">
             <Link href="/">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-gray-600 hover:text-gray-800"
-              >
+              <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-800">
                 ← Back to homepage
               </Button>
             </Link>

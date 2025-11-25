@@ -17,6 +17,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
+import TechnicianAssignmentNotification from "@/components/manager/technician-assignment-notification"
 
 export function SiteHeader() {
   const { toggleSidebar } = useSidebar()
@@ -62,7 +63,10 @@ export function SiteHeader() {
             <Settings className="h-4 w-4" />
           </Button>
 
-          {/* Notifications Button with Badge */}
+          {/* Technician Assignment Notifications */}
+          <TechnicianAssignmentNotification />
+
+          {/* General Notifications Button with Badge */}
           <div className="relative">
             <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:text-white hover:bg-white/10">
               <Bell className="h-4 w-4" />

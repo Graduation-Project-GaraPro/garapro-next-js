@@ -1,192 +1,147 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import {
-  HubConnection,
-  HubConnectionBuilder,
-  LogLevel,
-} from "@microsoft/signalr";
+import { HubConnection, HubConnectionBuilder, LogLevel } from "@microsoft/signalr";
 import { apiClient } from "./api-client";
+import type { ApiResponse } from "@/types/manager/api";
+import type { RoBoardCardDto } from "@/types/manager/repair-order-hub";
 
-export interface RoBoardCardDto {
-  repairOrderId: string;
-  receiveDate: string;
-  roTypeName?: string;
-  statusName: string;
-  vehicleInfo: string;
-  customerInfo: string;
-  customerName?: string;
-  customerPhone?: string;
-  branchId?: string;
-  estimatedRepairTime?: number;
-  serviceName: string;
-  estimatedAmount: number;
-  branchName: string;
-  label: {
-    labelId: number;
-    labelName: string;
-    color: string;
-  } | null;
-}
+// Re-export for backward compatibility
+export type { RoBoardCardDto }
 
 class RepairOrderHubService {
   private connection: HubConnection | null = null;
-  private isConnected = false;
-  private reconnecting = false;
+  private isConnected: boolean = false;
 
-  private createdHandler?: (repairOrder: RoBoardCardDto) => void;
-  private movedHandler?: (
-    repairOrderId: string,
-    newStatusId: string,
-    updatedCard: RoBoardCardDto
-  ) => void;
-  private updatedHandler?: (repairOrder: RoBoardCardDto) => void;
-  private deletedHandler?: (repairOrderId: string) => void;
+  constructor() {
+    // Connection will be initialized when needed
+  }
 
-  /** Initialize SignalR connection */
+  // Initialize the SignalR connection
   public async initialize(): Promise<void> {
-    if (this.connection && this.isConnected) {
-      console.log("SignalR already initialized");
+    if (this.connection) {
       return;
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://localhost:7113";
-    const token =
-      typeof window !== "undefined"
-        ? localStorage.getItem("authToken") || ""
-        : "";
-
-    this.connection = new HubConnectionBuilder()
-      .withUrl(`${baseUrl}/api/repairorderhub`, {
-        accessTokenFactory: () => token,
-      })
-      .configureLogging(LogLevel.Information)
-      .withAutomaticReconnect()
-      .build();
-
-    // 🟩 Đăng ký handler NGAY SAU khi build
-    this.connection.on("RepairOrderCreated", (order) => {
-      console.log("📦 RepairOrderCreated received:", order);
-      this.createdHandler?.(order);
-    });
-
-    this.connection.on("RepairOrderMoved", (id, statusId, card) => {
-      console.log("📦 RepairOrderMoved:", id, statusId);
-      this.movedHandler?.(id, statusId, card);
-    });
-
-    this.connection.on("RepairOrderUpdated", (order) => {
-      console.log("📦 RepairOrderUpdated:", order);
-      this.updatedHandler?.(order);
-    });
-
-    this.connection.on("RepairOrderDeleted", (id) => {
-      console.log("📦 RepairOrderDeleted:", id);
-      this.deletedHandler?.(id);
-    });
-
-    // 🟦 Sự kiện hệ thống
-    this.registerDefaultEvents();
-
     try {
+      // Get the base URL from environment variables (without /api for SignalR hubs)
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://localhost:7113/api";
+      // SignalR hubs are at root level, not under /api
+      const hubBaseUrl = baseUrl.replace('/api', '');
+      
+      // Get the authentication token from localStorage
+      const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
+      
+      // Configure the connection with authentication
+      // Note: SignalR automatically appends "/negotiate" to the URL
+      const builder = new HubConnectionBuilder()
+        .withUrl(`${hubBaseUrl}/api/repairorderhub`, {
+          accessTokenFactory: () => token || ""
+        })
+        .configureLogging(LogLevel.Information);
+
+      this.connection = builder.build();
+
+      // Start
       await this.connection.start();
       this.isConnected = true;
-      console.log("✅ SignalR Connected to RepairOrderHub");
+      console.log("SignalR Connected");
+
+      // Handle
+      this.connection.onclose(async () => {
+        this.isConnected = false;
+        console.log("SignalR Disconnected. Reconnecting...");
+        await this.reconnect();
+      });
+      
+      // The server will automatically send events to the client
     } catch (error) {
-      console.error("❌ SignalR Connection Error:", error);
+      console.error("SignalR Connection Error: ", error);
       this.isConnected = false;
-      this.tryReconnect();
     }
   }
 
-  /** Client-side listener registration */
-  public onRepairOrderCreated(callback: (repairOrder: RoBoardCardDto) => void) {
-    this.createdHandler = callback;
-  }
+  // Reconnect logic
+  private async reconnect(): Promise<void> {
+    let retryCount = 0;
+    const maxRetries = 5;
+    const retryInterval = 5000; // 5 seconds
 
-  public onRepairOrderMoved(
-    callback: (
-      repairOrderId: string,
-      newStatusId: string,
-      updatedCard: RoBoardCardDto
-    ) => void
-  ) {
-    this.movedHandler = callback;
-  }
-
-  public onRepairOrderUpdated(callback: (repairOrder: RoBoardCardDto) => void) {
-    this.updatedHandler = callback;
-  }
-
-  public onRepairOrderDeleted(callback: (repairOrderId: string) => void) {
-    this.deletedHandler = callback;
-  }
-
-  // 🔄 Hỗ trợ reconnect
-  private async tryReconnect(): Promise<void> {
-    if (this.reconnecting) return;
-    this.reconnecting = true;
-
-    for (let i = 0; i < 5 && !this.isConnected; i++) {
+    while (retryCount < maxRetries && !this.isConnected) {
       try {
-        console.log(`🔁 Trying to reconnect... (${i + 1}/5)`);
-        await new Promise((resolve) => setTimeout(resolve, 4000));
+        await new Promise(resolve => setTimeout(resolve, retryInterval));
         await this.connection?.start();
         this.isConnected = true;
-        console.log("✅ SignalR Reconnected");
-        break;
+        console.log("SignalR Reconnected");
+        return;
       } catch (error) {
-        console.error(`Reconnect attempt ${i + 1} failed`, error);
+        console.error(`Reconnection attempt ${retryCount + 1} failed:`, error);
+        retryCount++;
       }
     }
 
-    this.reconnecting = false;
+    console.error("Failed to reconnect to SignalR after maximum retries");
   }
 
+  // Register event listeners
+  public onRepairOrderMoved(callback: (repairOrderId: string, newStatusId: string, updatedCard: RoBoardCardDto) => void): void {
+    this.connection?.on("RepairOrderMoved", callback);
+  }
+
+  public onRepairOrderCreated(callback: (repairOrder: RoBoardCardDto) => void): void {
+    this.connection?.on("RepairOrderCreated", callback);
+  }
+
+  public onRepairOrderUpdated(callback: (repairOrder: RoBoardCardDto) => void): void {
+    this.connection?.on("RepairOrderUpdated", callback);
+  }
+
+  public onRepairOrderDeleted(callback: (repairOrderId: string) => void): void {
+    this.connection?.on("RepairOrderDeleted", callback);
+  }
+
+  public onConnected(callback: (connectionId: string) => void): void {
+    this.connection?.on("Connected", callback);
+  }
+
+  // Update repair order status (for drag and drop)
+  public async updateRepairOrderStatus(repairOrderId: string, newStatusId: string): Promise<ApiResponse<unknown>> {
+    try {
+      const response = await apiClient.post<unknown>("/RepairOrder/status/update", {
+        repairOrderId: repairOrderId,
+        newStatusId: newStatusId
+      });
+
+      return response;
+    } catch (error) {
+      console.error("Failed to update repair order status:", error);
+      // Extract error message if available
+      let message = "Failed to update repair order status";
+      if (error && typeof error === 'object' && 'message' in error) {
+        message = error.message as string;
+      }
+      return { 
+        success: false, 
+        message,
+        status: error && typeof error === 'object' && 'status' in error ? (error.status as number) : 0,
+        data: null
+      };
+    }
+  }
+
+  // Check if connected
+  public get IsConnected(): boolean {
+    return this.isConnected;
+  }
+
+  // Disconnect
   public async disconnect(): Promise<void> {
     try {
       await this.connection?.stop();
       this.isConnected = false;
-      console.log("🔌 SignalR Disconnected");
+      console.log("SignalR Disconnected");
     } catch (error) {
-      console.error("Error disconnecting SignalR:", error);
+      console.error("Error disconnecting from SignalR:", error);
     }
-  }
-
-  /** Update repair order status (used in drag-drop UI) */
-  public async updateRepairOrderStatus(
-    repairOrderId: string,
-    newStatusId: string
-  ): Promise<boolean> {
-    try {
-      const response = await apiClient.post<unknown>(
-        "/api/RepairOrder/status/update",
-        { repairOrderId, newStatusId }
-      );
-      return (response as any)?.success ?? true;
-    } catch (error) {
-      console.error("Failed to update repair order status:", error);
-      return false;
-    }
-  }
-
-  private registerDefaultEvents(): void {
-    if (!this.connection) return;
-
-    this.connection.onclose(async (error) => {
-      this.isConnected = false;
-      console.warn("⚠️ SignalR Disconnected:", error?.message || error);
-      await this.tryReconnect();
-    });
-
-    this.connection.onreconnecting(() => {
-      console.log("🟡 SignalR reconnecting...");
-      this.isConnected = false;
-    });
-
-    this.connection.onreconnected(() => {
-      console.log("🟢 SignalR reconnected successfully");
-      this.isConnected = true;
-    });
   }
 }
 
+// Export singleton instance
 export const repairOrderHubService = new RepairOrderHubService();
