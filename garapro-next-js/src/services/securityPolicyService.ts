@@ -16,7 +16,7 @@ export interface SecurityPolicy {
 
 class SecurityPolicyService {
   private policy: SecurityPolicy | null = null;
-  private readonly apiUrl = "https://localhost:7113/api/SecurityPolicy";
+  private readonly apiUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:7113/api'}/SecurityPolicy`;
 
   async loadPolicy(): Promise<SecurityPolicy> {
     try {

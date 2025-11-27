@@ -60,10 +60,10 @@ function hasServiceCategoryId(data: Partial<CreateServiceData>): data is CreateS
 
 // Updated service to use the correct API endpoints
 class ServiceCatalogService {
-  private servicesBaseUrl = '/api/Services'
-  private categoriesBaseUrl = '/api/ServiceCategories'
-  private partsBaseUrl = '/api/PartCategories'
-  private quotationsBaseUrl = '/api/Quotations' // Add quotations endpoint
+  private servicesBaseUrl = '/Services'
+  private categoriesBaseUrl = '/ServiceCategories'
+  private partsBaseUrl = '/PartCategories'
+  private quotationsBaseUrl = '/Quotations' // Add quotations endpoint
   private storageKey = 'mock.serviceCatalog'
 
   private readCache(): GarageServiceCatalogItem[] {
@@ -96,7 +96,7 @@ class ServiceCatalogService {
       if (filters?.serviceTypeId) params.serviceTypeId = filters.serviceTypeId
       
       const response = await apiClient.get<{ data: GarageServiceCatalogItem[] }>(`${this.servicesBaseUrl}/paged`, params)
-      return response.data.data
+      return response.data?.data || []
     } catch {
       let items = this.readCache()
       if (filters?.searchTerm) {
@@ -116,7 +116,7 @@ class ServiceCatalogService {
   async getCategories(): Promise<ServiceCategory[]> {
     try {
       const response = await apiClient.get<ServiceCategory[]>(this.categoriesBaseUrl)
-      return response.data
+      return response.data || []
     } catch (error) {
       console.error('Failed to fetch service categories:', error)
       return []
@@ -127,7 +127,7 @@ class ServiceCatalogService {
   async getPartCategories(): Promise<PartCategory[]> {
     try {
       const response = await apiClient.get<PartCategory[]>(this.partsBaseUrl)
-      return response.data
+      return response.data || []
     } catch (error) {
       console.error('Failed to fetch part categories:', error)
       return []
@@ -147,8 +147,8 @@ class ServiceCatalogService {
   // New method to get parts by service ID
   async getPartsByServiceId(serviceId: string): Promise<Part[]> {
     try {
-      const response = await apiClient.get<Part[]>(`/api/Parts/service/${serviceId}`);
-      return response.data;
+      const response = await apiClient.get<Part[]>(`/Parts/service/${serviceId}`);
+      return response.data || [];
     } catch (error) {
       console.error(`Failed to fetch parts for service ${serviceId}:`, error);
       return [];
@@ -176,6 +176,9 @@ class ServiceCatalogService {
       };
       
       const response = await apiClient.post<GarageServiceCatalogItem>(this.servicesBaseUrl, requestData)
+      if (!response.data) {
+        throw new Error('Failed to create service');
+      }
       return response.data
     } catch {
       const items = this.readCache()
@@ -208,6 +211,9 @@ class ServiceCatalogService {
   async update(id: string, updates: Partial<GarageServiceCatalogItem>): Promise<GarageServiceCatalogItem> {
     try {
       const response = await apiClient.put<GarageServiceCatalogItem>(`${this.servicesBaseUrl}/${id}`, updates)
+      if (!response.data) {
+        throw new Error('Failed to update service');
+      }
       return response.data
     } catch {
       const items = this.readCache()
@@ -232,6 +238,9 @@ class ServiceCatalogService {
   async createQuotation(data: CreateQuotationDto): Promise<QuotationDto> {
     try {
       const response = await apiClient.post<QuotationDto>(this.quotationsBaseUrl, data)
+      if (!response.data) {
+        throw new Error('Failed to create quotation');
+      }
       return response.data
     } catch (error) {
       console.error('Failed to create quotation:', error)

@@ -2,8 +2,8 @@ import { apiClient } from "./api-client";
 import type { VehicleWithCustomerDto, CreateVehicleDto, VehicleDto } from "@/types/manager/vehicle";
 
 class VehicleService {
-  private baseUrl = "/api/VehicleIntegration";
-  private vehiclesBaseUrl = "/api/Vehicles";
+  private baseUrl = "/VehicleIntegration";
+  private vehiclesBaseUrl = "/Vehicles";
 
   /**
    * Get all vehicles for a specific customer

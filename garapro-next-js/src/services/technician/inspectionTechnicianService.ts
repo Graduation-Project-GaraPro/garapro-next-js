@@ -2,20 +2,16 @@ import axios from "axios";
 
 const API_URL = "https://localhost:7113/odata/InspectionsTechnician";
 
-export interface RepairImageDto {
-  imageId: string;
-  imageUrl: string;
-}
-
 export interface PartWithQuantityDto {
   partId: string;
   quantity: number;
 }
+
 export interface ServiceUpdateDto {
   ServiceId: string;
   ConditionStatus: number;
   SelectedPartCategoryIds?: string[];
-   SuggestedPartsByCategory?: { [key: string]: PartWithQuantityDto[] };
+  SuggestedPartsByCategory?: { [key: string]: PartWithQuantityDto[] };
 }
 
 export interface UpdateInspectionRequest {
@@ -27,6 +23,12 @@ export interface UpdateInspectionRequest {
 export interface AddServiceToInspectionRequest {
   ServiceId: string;
 }
+
+export interface RepairImageDto {
+  imageId: string;
+  imageUrl: string;
+}
+
 export const getTechnicianId = async (): Promise<string | null> => {
   try {
     const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
@@ -51,7 +53,6 @@ export const getTechnicianId = async (): Promise<string | null> => {
   }
 };
 
-// Lấy danh sách inspections
 export const getMyInspections = async () => {  
   try {
     const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
@@ -70,7 +71,7 @@ export const getMyInspections = async () => {
     throw error;
   }
 };
-// Lấy chi tiết 1 inspection
+
 export const getInspectionById = async (id: string) => {
   try {
     const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
@@ -89,7 +90,7 @@ export const getInspectionById = async (id: string) => {
     throw error;
   }
 };
-//Bắt đầu kiếm tra (New → InProgress)
+
 export const startInspection = async (id: string) => {
   try {
     const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
@@ -112,7 +113,7 @@ export const startInspection = async (id: string) => {
     throw error;
   }
 };
-// Tiến hành kiểm tra xe (Save findings + parts)
+
 export const updateInspection = async (id: string, data: UpdateInspectionRequest) => {
   try {
     const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
@@ -130,6 +131,7 @@ export const updateInspection = async (id: string, data: UpdateInspectionRequest
         },
       }
     );
+    console.log("inspection data", data);
     return response.data;
   } catch (error) {
     console.error("Error updating inspection:", error);
@@ -137,7 +139,6 @@ export const updateInspection = async (id: string, data: UpdateInspectionRequest
   }
 };
 
-// Xóa phụ tùng khỏi inspection
 export const removePartFromInspection = async (
   inspectionId: string,
   serviceId: string,
@@ -163,7 +164,7 @@ export const removePartFromInspection = async (
     throw error;
   }
 };
-// Lấy danh sách tất cả services
+
 export const getAllServices = async () => {
   try {
     const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
@@ -183,7 +184,6 @@ export const getAllServices = async () => {
   }
 };
 
-// Thêm service vào inspection
 export const addServiceToInspection = async (inspectionId: string, serviceId: string) => {
   try {
     const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
@@ -208,7 +208,6 @@ export const addServiceToInspection = async (inspectionId: string, serviceId: st
   }
 };
 
-// Xóa service khỏi inspection
 export const removeServiceFromInspection = async (
   inspectionId: string,
   serviceInspectionId: string

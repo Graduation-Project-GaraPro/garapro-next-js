@@ -28,8 +28,7 @@ import {
 } from "lucide-react";
 import { getMyJobs } from "@/services/technician/jobTechnicianService";
 import jobSignalRService, { 
-  JobAssignedEvent, 
-  JobReassignedEvent
+  JobAssignedEvent
 } from "@/services/technician/jobSignalRService";
 import { getTechnicianId } from "@/services/technician/jobTechnicianService";
 interface Vehicle {
@@ -143,13 +142,7 @@ useEffect(() => {
         console.log("JobAssigned event in ConditionInspection:", data);
         
         await fetchJobs();
-      });
-
-      jobSignalRService.onJobReassigned(async (data: JobReassignedEvent) => {
-        console.log("JobReassigned event in ConditionInspection:", data);
-      
-        await fetchJobs();
-      });
+      });      
 
     } catch (error) {
       console.error("SignalR setup failed in ConditionInspection:", error);

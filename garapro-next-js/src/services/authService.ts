@@ -2,12 +2,14 @@ export interface GoogleLoginDto {
   idToken: string;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:7113';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:7113/api';
+
 
 export interface AuthResponseDto {
   token: string;      // access token JWT
   expiresIn: number;  // số giây token sống
   userId: string;     // Id của user
+  fullName: string;
   email: string;      // Email user
   roles: string[];    // Roles user (Admin, Customer, ...)
 }
@@ -32,7 +34,7 @@ export interface CompleteRegistrationDto {
 
 class AuthService {
   async sendOtp(data: SendOtpDto): Promise<{ message: string }> {
-    const response = await fetch(`${API_BASE_URL}/api/Auth/send-otp`, {
+    const response = await fetch(`${API_BASE_URL}/Auth/send-otp`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
@@ -47,7 +49,7 @@ class AuthService {
   }
 
   async verifyOtp(data: VerifyOtpDto): Promise<{ message: string }> {
-    const response = await fetch(`${API_BASE_URL}/api/Auth/verify-otp`, {
+    const response = await fetch(`${API_BASE_URL}/Auth/verify-otp`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
@@ -83,7 +85,7 @@ class AuthService {
   }
 
   async googleLogin(dto: GoogleLoginDto): Promise<AuthResponseDto> {
-    const response = await fetch(`${API_BASE_URL}/api/Auth/google-login`, {
+    const response = await fetch(`${API_BASE_URL}/Auth/google-login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(dto),
@@ -100,6 +102,7 @@ class AuthService {
     if (typeof window !== 'undefined') {
       localStorage.setItem('authToken', authData.token)
       localStorage.setItem('userId', authData.userId)
+      localStorage.setItem('userFullName', authData.fullName) 
       localStorage.setItem('userEmail', authData.email)
       localStorage.setItem('userRoles', JSON.stringify(authData.roles))
     }
@@ -108,7 +111,7 @@ class AuthService {
   }
 
   async phoneLogin(data: { phoneNumber: string; password: string }): Promise<AuthResponseDto> {
-    const response = await fetch(`${API_BASE_URL}/api/Auth/login`, {
+    const response = await fetch(`${API_BASE_URL}/Auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
@@ -125,6 +128,7 @@ class AuthService {
     if (typeof window !== 'undefined') {
       localStorage.setItem('authToken', authData.token)
       localStorage.setItem('userId', authData.userId)
+      localStorage.setItem('userFullName', authData.fullName) 
       localStorage.setItem('userEmail', authData.email)
       localStorage.setItem('userRoles', JSON.stringify(authData.roles))
     }
@@ -136,20 +140,22 @@ class AuthService {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('authToken')
       localStorage.removeItem('userId')
+      localStorage.removeItem('userFullName')
       localStorage.removeItem('userEmail')
       localStorage.removeItem('userRoles')
     }
   }
 
-  getCurrentUser(): { userId: string | null; email: string | null; roles: string[] } {
+  getCurrentUser(): { userId: string | null; fullName: string | null; email: string | null; roles: string[] } {
     if (typeof window !== 'undefined') {
       return {
         userId: localStorage.getItem('userId'),
+        fullName: localStorage.getItem('userFullName'),
         email: localStorage.getItem('userEmail'),
         roles: JSON.parse(localStorage.getItem('userRoles') || '[]')
       }
     }
-    return { userId: null, email: null, roles: [] }
+    return { userId: null, fullName : null , email: null, roles: [] }
   }
 
   isAuthenticated(): boolean {

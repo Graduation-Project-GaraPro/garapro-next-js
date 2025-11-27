@@ -134,7 +134,13 @@ export interface GetBranchesResponse {
 }
 
 class BranchService {
-  private baseURL = 'https://localhost:7113/api'
+  private baseURL = process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:7113/api'
+
+  constructor() {
+    // Debug log to verify the environment variable is being read
+    console.log('[BranchService] Initialized with baseURL:', this.baseURL);
+    console.log('[BranchService] process.env.NEXT_PUBLIC_BASE_URL:', process.env.NEXT_PUBLIC_BASE_URL);
+  }
 
   private async request<T>(url: string, options: RequestInit = {}): Promise<T> {
     // Get authentication token from localStorage if available

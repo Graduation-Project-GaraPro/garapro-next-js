@@ -53,7 +53,7 @@ export interface AuthResponseDto {
 }
 
 // services/roleService.ts
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:7113';
+const API_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:7113/api';
 
 class RoleService {
   private getAuthToken(): string | null {

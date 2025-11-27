@@ -104,7 +104,7 @@ export default function StatisticalPage() {
   if (!statistics) return null;
 
   return (
-    <div className="space-y-6 p-3 bg-gradient-to-r from-purple-100 to-blue-100 rounded-xl max-h-[85vh] overflow-y-auto rounded-xl rounded-scroll">
+    <div className="flex-col h-full p-3 bg-gradient-to-r from-purple-100 to-blue-100 rounded-xl rounded-xl">
       {/* Header */}
       <div className="relative inline-block mb-4">
         <div className="absolute inset-0 w-full max-w-md bg-white/70 shadow-md rounded-lg"></div>

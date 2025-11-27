@@ -61,7 +61,6 @@ export interface ServiceDto {
   notes: string;
 }
 
-// Lấy lịch sử sửa chữa của technician hiện tại
 export const getMyRepairHistory = async (): Promise<RepairHistoryDto[]> => {
   try {
     const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null;

@@ -2,15 +2,10 @@ import { apiClient } from "./api-client";
 import { authService } from "@/services/authService";
 import { branchService } from "@/services/branch-service";
 import type { ManagerRepairRequestDto, ManagerRepairRequest } from "@/types/manager/repair-request";
+import type { RepairRequestFilter } from "@/types/manager/appointment";
 
-export interface RepairRequestFilter {
-  status?: "pending" | "completed" | "cancelled" | "in-progress" | "confirmed";
-  service?: string;
-  dateRange?: {
-    start: Date;
-    end: Date;
-  };
-}
+// Re-export for backward compatibility
+export type { RepairRequestFilter }
 
 // Helper function to add display properties to repair request
 const enrichRepairRequest = (request: ManagerRepairRequestDto): ManagerRepairRequest => {
@@ -214,7 +209,7 @@ const enrichRepairRequest = (request: ManagerRepairRequestDto): ManagerRepairReq
 }
 
 class RepairRequestService {
-  private baseUrl = "/api/ManagerRepairRequest"
+  private baseUrl = "/ManagerRepairRequest"
 
   /**
    * Fetch all repair requests for the current user's branch

@@ -33,6 +33,14 @@ export default function JobsTab({ orderId, branchId }: JobsTabProps) {
   const [selectedJobIds, setSelectedJobIds] = useState<string[]>([])
   const [assignmentError, setAssignmentError] = useState<string | null>(null)
 
+  // Get technician monogram from name
+  const getTechnicianMonogram = (name: string | null): string => {
+    if (!name) return "NA"
+    const names = name.split(" ")
+    if (names.length === 1) return names[0].substring(0, 2).toUpperCase()
+    return (names[0][0] + names[names.length - 1][0]).toUpperCase()
+  }
+
   useEffect(() => {
     loadJobs()
   }, [orderId])
@@ -49,11 +57,12 @@ export default function JobsTab({ orderId, branchId }: JobsTabProps) {
       const initialAssignedTechs: Record<string, { id: string; name: string; monogram: string } | null> = {}
       data.forEach(job => {
         // Check if at least the assignedTechnicianId is present
-        if (job.assignedTechnicianId) {
+        if (job.assignedTechnicianId && job.assignedTechnicianName) {
+          const techName = job.assignedTechnicianName
           initialAssignedTechs[job.jobId] = {
             id: job.assignedTechnicianId,
-            name: job.assignedTechnicianName || 'Unknown Technician',
-            monogram: job.assignedTechnicianMonogram || job.assignedTechnicianName?.substring(0, 2).toUpperCase() || 'NA'
+            name: techName,
+            monogram: getTechnicianMonogram(techName)
           }
         } else {
           initialAssignedTechs[job.jobId] = null
@@ -213,29 +222,27 @@ export default function JobsTab({ orderId, branchId }: JobsTabProps) {
                     <p className="text-sm text-gray-500">Job ID: {job.jobId}</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    {assignedTechs[job.jobId] ? (
+                    {/* Assign Tech Button - Show for all non-completed jobs */}
+                    {job.status !== 3 && ( // 3 = Completed
                       <Button 
                         variant="outline" 
                         size="sm" 
+                        onClick={() => handleAssignTech(job.jobId)}
                         className="flex items-center gap-2"
-                        onClick={() => handleAssignTech(job.jobId)}
-                        // Allow re-assignment for any job that has an assigned technician
-                        disabled={false}
                       >
-                        <div className="flex items-center justify-center w-5 h-5 rounded-full bg-blue-100 text-blue-800 font-medium text-xs">
-                          {assignedTechs[job.jobId]?.monogram}
-                        </div>
-                        <span>{assignedTechs[job.jobId]?.name}</span>
-                      </Button>
-                    ) : (
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => handleAssignTech(job.jobId)}
-                        disabled={job.status !== 0} // Only allow assignment if job is pending
-                      >
-                        <User className="w-4 h-4 mr-2" />
-                        Assign Tech
+                        {assignedTechs[job.jobId] ? (
+                          <>
+                            <div className="flex items-center justify-center w-5 h-5 rounded-full bg-blue-100 text-blue-800 font-medium text-xs">
+                              {assignedTechs[job.jobId]?.monogram}
+                            </div>
+                            <span>{assignedTechs[job.jobId]?.name}</span>
+                          </>
+                        ) : (
+                          <>
+                            <User className="h-4 w-4" />
+                            <span>Assign Tech</span>
+                          </>
+                        )}
                       </Button>
                     )}
                     <Badge className={getJobStatusColor(job.status)}>

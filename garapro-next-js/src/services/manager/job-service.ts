@@ -1,8 +1,8 @@
-import { apiClient } from '../api-client'
+import { apiClient } from './api-client'
 import type { Job } from "@/types/job"
 
 class JobService {
-  private baseUrl = '/api/Job'
+  private baseUrl = '/Job'
 
   async getJobsByRepairOrderId(repairOrderId: string): Promise<Job[]> {
     try {

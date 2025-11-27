@@ -1,12 +1,10 @@
-// /services/technician/jobTechnicianService.ts
 import axios from "axios";
 
 const API_URL = "https://localhost:7113/odata/JobTechnician";
 
-// Interface for status update
 export interface JobStatusUpdate {
   JobId: string;
-  JobStatus: number; // 0=Pending, 1=New, 2=InProgress, 3=Completed, 4=OnHold
+  JobStatus: number; 
 }
 export const getTechnicianId = async (): Promise<string | null> => {
   try {
@@ -23,10 +21,8 @@ export const getTechnicianId = async (): Promise<string | null> => {
 
     const data = response.data.value || response.data;
     
-    // Log để check response structure
     console.log("API Response for TechnicianId:", data);
     
-    // Giả sử job có technicians array
     if (data && data.length > 0 && data[0].technicians && data[0].technicians.length > 0) {
       const technicianId = data[0].technicians[0].technicianId;
       console.log("TechnicianId found:", technicianId);

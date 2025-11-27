@@ -1,25 +1,8 @@
-import { apiClient } from '../api-client';
-
-export interface Customer {
-  userId: string;
-  firstName: string;
-  lastName: string;
-  birthday: string | null;
-  fullName: string;
-  email: string;
-  phoneNumber: string;
-}
-
-export interface CreateCustomerDto {
-  firstName: string;
-  lastName: string;
-  birthday: string | null;
-  phoneNumber: string;
-  email: string;
-}
+import { apiClient } from './api-client';
+import type { Customer, CreateCustomerDto } from '@/types/manager/customer';
 
 class CustomerService {
-  private readonly baseUrl = '/api/Customer';
+  private readonly baseUrl = '/Customer';
 
   async getAllCustomers(): Promise<Customer[]> {
     try {

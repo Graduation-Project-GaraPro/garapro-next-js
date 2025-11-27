@@ -121,19 +121,15 @@ export default function VehicleInspection() {
       }
       setTechnicianId(id);
       console.log("TechnicianId:", id);
-
       // Start SignalR connection
       await inspectionSignalRService.startConnection();
       setSignalRConnected(true);
       
-      // Join group
       await inspectionSignalRService.joinTechnicianGroup(id);
 
-      // Listen to InspectionAssigned event
       inspectionSignalRService.onInspectionAssigned(async (data: InspectionAssignedEvent) => {
         console.log("InspectionAssigned event:", data);
 
-        // Fetch full inspection data từ API
         try {
           const fullData: ApiInspection[] = await getMyInspections();
           const newInspection = fullData.find((x) => x.inspectionId === data.inspectionId);
@@ -153,8 +149,6 @@ export default function VehicleInspection() {
             setInspections((prev) => [mapped, ...prev]);
             setTotalCount((prev) => prev + 1);
             setTotalPages(Math.ceil((totalCount + 1) / pageSize));
-
-           //alert(`You have been assigned a new inspection!\nVehicle: ${mapped.vehicle}`);
           }
         } catch (error) {
           console.error("Error fetching new inspection details:", error);
@@ -562,7 +556,7 @@ export default function VehicleInspection() {
               </div>
             )}
 
-                       {/* Pagination Controls - STICKY BOTTOM */}
+                       {/* Pagination Controls */}
             {totalPages > 1 && (
               <div className="sticky bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md rounded-xl p-1 border-t border-gray-300 mt-4 z-10">
                 <div className="flex items-center justify-between">
