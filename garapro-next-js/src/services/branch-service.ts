@@ -200,44 +200,17 @@ class BranchService {
     return response
   }
   
-  // Get the branch for the current user (manager) - Preferred method
+  // Get the branch for the current user (manager)
   async getCurrentUserBranch(userId: string): Promise<GarageBranch | null> {
     try {
-      // First try the preferred method: GET /api/Branch/my
-      try {
-        const myBranch = await this.request<GarageBranch>(`${this.baseURL}/Branch/my`);
-        console.log("Current user's branch (direct method):", myBranch);
-        if (myBranch && myBranch.branchId) {
-          return myBranch;
-        }
-      } catch (directError) {
-        console.warn("Direct /api/Branch/my endpoint failed, falling back to legacy method:", directError);
+      const myBranch = await this.request<GarageBranch>(`${this.baseURL}/Branch/my`);
+      console.log("Current user's branch:", myBranch);
+      
+      if (myBranch && myBranch.branchId) {
+        return myBranch;
       }
       
-      // Fallback to legacy method: Get all active branches and find the user's branch
-      const response = await this.getBranches(1, 100, { isActive: true });
-      const branches = response.branches;
-      
-      // Find the branch where the userId matches a manager ID
-      for (const branch of branches) {
-        // Check if the user is a manager in this branch
-        const isManagerInBranch = branch.staffs.some(staff => 
-          staff.id === userId && staff.userName.includes('manager')
-        )
-        
-        if (isManagerInBranch) {
-          return branch;
-        }
-      }
-      
-      // If no branch found for the manager, return the first available branch as fallback
-      if (branches.length > 0) {
-        console.warn(`No branch found for user ${userId}, using first available branch as fallback`);
-        return branches[0];
-      }
-      
-      // No branches available
-      console.warn(`No branches available for user ${userId}`);
+      console.warn(`No branch found for user ${userId}`);
       return null;
     } catch (error) {
       console.error(`Failed to get branch for user ${userId}:`, error);

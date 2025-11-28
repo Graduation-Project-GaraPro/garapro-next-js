@@ -1,7 +1,9 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-// services/auth-service.ts
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "https://localhost:7113/api";
+export interface GoogleLoginDto {
+  idToken: string;
+}
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://localhost:7113/api';
+// const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:7113';
 
 export interface AuthResponseDto {
   token: string;
@@ -175,6 +177,20 @@ class AuthService {
       }
     }
     return null;
+  }
+
+  getCurrentUser(): { 
+    userId: string | null; 
+    fullName: string | null; 
+    email: string | null; 
+    roles: string[] 
+  } {
+    return {
+      userId: this.getCurrentUserId(),
+      fullName: null, // Not stored in current implementation
+      email: this.getCurrentUserEmail(),
+      roles: this.getCurrentUserRoles()
+    };
   }
 
   async handleTokenRefresh(): Promise<string> {

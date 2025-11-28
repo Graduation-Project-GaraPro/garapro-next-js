@@ -173,10 +173,6 @@ export function Calendar({
               <Filter className="h-4 w-4 mr-2" />
               Filters
             </Button>
-            <Button size="sm" className="bg-[#154c79] text-white hover:bg-[#154c79]/90">
-              <Plus className="h-4 w-4 mr-2" />
-              NEW APPOINTMENT
-            </Button>
           </div>
         </div>
       </div>

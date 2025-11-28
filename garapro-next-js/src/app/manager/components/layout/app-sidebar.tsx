@@ -2,6 +2,7 @@
 
 import type * as React from "react"
 import {
+  Archive,
   BarChart3,
   Calendar,
   CalendarDays,
@@ -45,6 +46,14 @@ const data = {
       icon: CircuitBoard,
     },
   ],
+  // Orders submenu
+  ordersNav: [
+    {
+      title: "Archived Orders",
+      url: "/manager/repairOrderManagement/archived",
+      icon: FileText,
+    },
+  ],
   // Main section
   mainNav: [
     {
@@ -58,9 +67,9 @@ const data = {
       icon: Package,
     },
     {
-      title: "Orders",
-      url: "/manager/orders",
-      icon: FileText,
+      title: "Archived Orders",
+      url: "/manager/repairOrderManagement/archived",
+      icon: Archive,
     },
     {
       title: "Reports",

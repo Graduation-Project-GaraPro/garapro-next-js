@@ -13,10 +13,13 @@ import {
   Clock,
   User,
   Users,
-  AlertCircle
+  AlertCircle,
+  Edit
 } from "lucide-react"
 import { jobService } from "@/services/manager/job-service"
 import { TechnicianSelectionDialog } from "@/components/manager/technician-selection-dialog"
+import EditJobDialog from "./edit-job-dialog"
+import { useToast } from "@/hooks/use-toast"
 import type { Job } from "@/types/job"
 
 interface JobsTabProps {
@@ -25,6 +28,7 @@ interface JobsTabProps {
 }
 
 export default function JobsTab({ orderId, branchId }: JobsTabProps) {
+  const { toast } = useToast()
   const [jobs, setJobs] = useState<Job[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -32,6 +36,8 @@ export default function JobsTab({ orderId, branchId }: JobsTabProps) {
   const [isTechSelectionOpen, setIsTechSelectionOpen] = useState(false)
   const [selectedJobIds, setSelectedJobIds] = useState<string[]>([])
   const [assignmentError, setAssignmentError] = useState<string | null>(null)
+  const [isEditJobOpen, setIsEditJobOpen] = useState(false)
+  const [selectedJob, setSelectedJob] = useState<Job | null>(null)
 
   // Get technician monogram from name
   const getTechnicianMonogram = (name: string | null): string => {
@@ -89,6 +95,15 @@ export default function JobsTab({ orderId, branchId }: JobsTabProps) {
     setIsTechSelectionOpen(true)
   }
 
+  const handleEditJob = (job: Job) => {
+    setSelectedJob(job)
+    setIsEditJobOpen(true)
+  }
+
+  const handleJobUpdated = () => {
+    loadJobs()
+  }
+
   const handleTechAssignment = async (technicianId: string) => {
     if (!selectedJobIds.length) return
 
@@ -102,10 +117,24 @@ export default function JobsTab({ orderId, branchId }: JobsTabProps) {
         console.log(`Assigning/reassigning job ${jobId} to technician ${technicianId}`);
         // Use the new assignTechnician method
         await jobService.assignTechnician(jobId, technicianId);
+        
+        // Show success toast for single assignment
+        toast({
+          variant: "success",
+          title: "Technician Assigned",
+          description: "The technician has been successfully assigned to the job.",
+        })
       } else {
         // Batch job assignment
         console.log(`Assigning ${selectedJobIds.length} jobs to technician ${technicianId}`);
         await jobService.assignJobsToTechnician(technicianId, selectedJobIds);
+        
+        // Show success toast for batch assignment
+        toast({
+          variant: "success",
+          title: "Technician Assigned",
+          description: `Successfully assigned technician to ${selectedJobIds.length} jobs.`,
+        })
       }
 
       // Refresh the jobs list to show the change (similar to inspection component)
@@ -120,6 +149,13 @@ export default function JobsTab({ orderId, branchId }: JobsTabProps) {
       // Extract error message if it's an Error object
       const errorMessage = error instanceof Error ? error.message : "Failed to assign technician to job(s)";
       setAssignmentError(errorMessage);
+      
+      // Show error toast
+      toast({
+        variant: "destructive",
+        title: "Assignment Failed",
+        description: errorMessage,
+      })
       
       // Keep the dialog open so the user can try again
       // Or you could close it and show the error in a toast/notification
@@ -222,6 +258,19 @@ export default function JobsTab({ orderId, branchId }: JobsTabProps) {
                     <p className="text-sm text-gray-500">Job ID: {job.jobId}</p>
                   </div>
                   <div className="flex items-center gap-2">
+                    {/* Edit Job Button - Hide for completed jobs */}
+                    {job.status !== 3 && ( // 3 = Completed
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => handleEditJob(job)}
+                        className="flex items-center gap-2"
+                      >
+                        <Edit className="h-4 w-4" />
+                        <span>Edit</span>
+                      </Button>
+                    )}
+                    
                     {/* Assign Tech Button - Show for all non-completed jobs */}
                     {job.status !== 3 && ( // 3 = Completed
                       <Button 
@@ -307,6 +356,16 @@ export default function JobsTab({ orderId, branchId }: JobsTabProps) {
         jobIds={selectedJobIds}
         branchId={branchId}
       />
+
+      {/* Edit Job Dialog */}
+      {selectedJob && (
+        <EditJobDialog
+          open={isEditJobOpen}
+          onOpenChange={setIsEditJobOpen}
+          job={selectedJob}
+          onSuccess={handleJobUpdated}
+        />
+      )}
     </div>
   )
 }

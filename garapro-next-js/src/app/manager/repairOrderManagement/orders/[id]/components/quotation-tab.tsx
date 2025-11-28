@@ -4,9 +4,13 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { 
-  Plus, 
-  RefreshCw
+  Plus,
+  RefreshCw,
+  Send,
+  Briefcase,
+  Loader2
 } from "lucide-react"
+import { toast } from "sonner"
 import { CreateQuotationDialog } from "@/app/manager/components/Quote"
 import QuotePreviewDialog from "@/app/manager/components/Quote/QuotePreviewDialog"
 import { quotationService } from "@/services/manager/quotation-service"
@@ -24,6 +28,7 @@ export default function QuotationTab({ orderId }: QuotationTabProps) {
   const [selectedQuotationId, setSelectedQuotationId] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [actionLoading, setActionLoading] = useState<string | null>(null)
 
   useEffect(() => {
     let pollingInterval: NodeJS.Timeout | null = null;
@@ -63,6 +68,34 @@ export default function QuotationTab({ orderId }: QuotationTabProps) {
   const handleViewQuotation = (quotationId: string) => {
     setSelectedQuotationId(quotationId);
     setIsPreviewOpen(true);
+  };
+  
+  const handleSendToCustomer = async (quotationId: string) => {
+    setActionLoading(quotationId);
+    try {
+      await quotationService.updateQuotationStatus(quotationId, "Sent");
+      toast.success("Quotation sent to customer successfully");
+      loadQuotations();
+    } catch (err: any) {
+      console.error("Failed to send quotation:", err);
+      toast.error(err.message || "Failed to send quotation to customer");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+  
+  const handleCopyToJobs = async (quotationId: string) => {
+    setActionLoading(quotationId);
+    try {
+      await quotationService.copyQuotationToJobs(quotationId);
+      toast.success("Jobs created from quotation successfully");
+      loadQuotations();
+    } catch (err: any) {
+      console.error("Failed to copy quotation to jobs:", err);
+      toast.error(err.message || "Failed to create jobs from quotation");
+    } finally {
+      setActionLoading(null);
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -114,7 +147,10 @@ export default function QuotationTab({ orderId }: QuotationTabProps) {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Quotation</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Quotations</h1>
+          <p className="text-sm text-gray-600 mt-1">
+            Create quotations manually or convert from completed inspections
+          </p>
         </div>
         <div className="flex space-x-2">
           <Button variant="outline" onClick={loadQuotations} disabled={isLoading}>
@@ -123,7 +159,7 @@ export default function QuotationTab({ orderId }: QuotationTabProps) {
           </Button>
           <Button onClick={() => setIsCreateFormOpen(true)}>
             <Plus className="w-4 h-4 mr-2" />
-            Create Quote
+            Create Quotation
           </Button>
         </div>
       </div>
@@ -144,7 +180,8 @@ export default function QuotationTab({ orderId }: QuotationTabProps) {
             <div className="text-center py-4">Loading quotations...</div>
           ) : quotations.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
-              <p>No quotation yet</p>
+              <p className="mb-2">No quotations yet</p>
+              <p className="text-sm">Create a quotation manually or convert from a completed inspection</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -165,14 +202,56 @@ export default function QuotationTab({ orderId }: QuotationTabProps) {
                       </td>
                       <td className="py-3 px-4 text-right">${q.totalAmount.toFixed(2)}</td>
                       <td className="py-3 px-4">{new Date(q.createdAt).toLocaleDateString()}</td>
-                      <td className="py-3 px-4 text-right">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleViewQuotation(q.quotationId)}
-                        >
-                          View
-                        </Button>
+                      <td className="py-3 px-4">
+                        <div className="flex justify-end gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleViewQuotation(q.quotationId)}
+                          >
+                            View
+                          </Button>
+                          
+                          {/* Send to Customer button - only for Pending quotations */}
+                          {q.status.toLowerCase() === "pending" && (
+                            <Button 
+                              variant="default"
+                              size="sm"
+                              onClick={() => handleSendToCustomer(q.quotationId)}
+                              disabled={actionLoading === q.quotationId}
+                              className="bg-blue-600 hover:bg-blue-700"
+                            >
+                              {actionLoading === q.quotationId ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <>
+                                  <Send className="h-4 w-4 mr-2" />
+                                  Send to Customer
+                                </>
+                              )}
+                            </Button>
+                          )}
+                          
+                          {/* Copy to Jobs button - only for Approved quotations */}
+                          {q.status.toLowerCase() === "approved" && (
+                            <Button 
+                              variant="default"
+                              size="sm"
+                              onClick={() => handleCopyToJobs(q.quotationId)}
+                              disabled={actionLoading === q.quotationId}
+                              className="bg-green-600 hover:bg-green-700"
+                            >
+                              {actionLoading === q.quotationId ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <>
+                                  <Briefcase className="h-4 w-4 mr-2" />
+                                  Copy to Jobs
+                                </>
+                              )}
+                            </Button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}

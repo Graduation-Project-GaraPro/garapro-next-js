@@ -1,5 +1,5 @@
 import { apiClient } from "./api-client"
-import type { RepairOrder, CreateRepairOrderRequest, UpdateRepairOrderRequest, RepairOrderApiResponse } from "@/types/manager/repair-order"
+import type { RepairOrder, CreateRepairOrderRequest, UpdateRepairOrderRequest, RepairOrderApiResponse, UpdateRepairOrderStatusRequest, CancelRepairOrderDto, ArchiveRepairOrderDto } from "@/types/manager/repair-order"
 import type { OrderStatus, OrderStatusResponse } from "@/types/manager/order-status"
 import { authService } from "@/services/authService"
 import { branchService } from "@/services/branch-service"
@@ -106,6 +106,19 @@ class RepairOrderService {
   }
 
   /**
+   * Update repair order status, note, and services (simplified PUT endpoint)
+   */
+  async updateRepairOrderStatus(id: string, updateData: UpdateRepairOrderStatusRequest): Promise<RepairOrder | null> {
+    try {
+      const response = await apiClient.put<RepairOrder>(`${this.baseUrl}/${id}`, updateData)
+      return response.data || null
+    } catch (error) {
+      console.error(`Failed to update repair order status ${id}:`, error)
+      throw error
+    }
+  }
+
+  /**
    * Delete a repair order
    */
   async deleteRepairOrder(id: string): Promise<boolean> {
@@ -154,6 +167,52 @@ class RepairOrderService {
     } catch (error) {
       console.error("Failed to fetch order statuses:", error)
       // Return empty array as fallback
+      return []
+    }
+  }
+
+  /**
+   * Cancel a repair order
+   */
+  async cancelRepairOrder(cancelData: CancelRepairOrderDto): Promise<boolean> {
+    try {
+      await apiClient.post(`${this.baseUrl}/cancel`, cancelData)
+      return true
+    } catch (error) {
+      console.error(`Failed to cancel repair order ${cancelData.repairOrderId}:`, error)
+      throw error
+    }
+  }
+
+  /**
+   * Archive a repair order
+   */
+  async archiveRepairOrder(archiveData: ArchiveRepairOrderDto): Promise<boolean> {
+    try {
+      await apiClient.post(`${this.baseUrl}/archive`, archiveData)
+      return true
+    } catch (error) {
+      console.error(`Failed to archive repair order ${archiveData.repairOrderId}:`, error)
+      throw error
+    }
+  }
+
+  /**
+   * Fetch all archived repair orders
+   */
+  async getArchivedRepairOrders(): Promise<RepairOrder[]> {
+    try {
+      const response = await apiClient.get<RepairOrderApiResponse[]>(`${this.baseUrl}/archived`)
+      console.log("Archived repair orders API response:", response);
+      
+      // Map API response to RepairOrder interface
+      if (response.data) {
+        return response.data.map(mapApiToRepairOrder);
+      }
+      
+      return [];
+    } catch (error) {
+      console.error("Failed to fetch archived repair orders:", error)
       return []
     }
   }
