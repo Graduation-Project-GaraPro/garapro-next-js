@@ -9,25 +9,12 @@ export type { RepairRequestFilter }
 
 // Helper function to add display properties to repair request
 const enrichRepairRequest = (request: ManagerRepairRequestDto): ManagerRepairRequest => {
-  // Always use arrivalWindowStart if it exists and is not the default value
-  // Default value indicates no arrival window is set, so we fall back to requestDate
-  const isDefaultArrivalWindow = request.arrivalWindowStart && (
-    request.arrivalWindowStart.startsWith("0001-01-01") ||
-    request.arrivalWindowStart === "0001-01-01T00:00:00+00:00" ||
-    request.arrivalWindowStart.includes("0001-01-01")
-  )
-  
-  const hasValidArrivalWindow = !!request.arrivalWindowStart && !isDefaultArrivalWindow
-  
-  // Always prioritize arrivalWindowStart if it exists and is valid
-  const timeSource = hasValidArrivalWindow ? request.arrivalWindowStart! : request.requestDate
-  const dateSource = hasValidArrivalWindow ? request.arrivalWindowStart! : request.requestDate
+  // Always use requestDate for display
+  const timeSource = request.requestDate
+  const dateSource = request.requestDate
   
   console.log(`[enrichRepairRequest] Request ID: ${request.requestID}`)
-  console.log(`[enrichRepairRequest] arrivalWindowStart: ${request.arrivalWindowStart}`)
   console.log(`[enrichRepairRequest] requestDate: ${request.requestDate}`)
-  console.log(`[enrichRepairRequest] isDefaultArrivalWindow: ${isDefaultArrivalWindow}`)
-  console.log(`[enrichRepairRequest] hasValidArrivalWindow: ${hasValidArrivalWindow}`)
   console.log(`[enrichRepairRequest] Using timeSource: ${timeSource}`)
   
   // Extract date FIRST from the string before timezone conversion (to avoid timezone offset issues)
@@ -211,7 +198,7 @@ const enrichRepairRequest = (request: ManagerRepairRequestDto): ManagerRepairReq
 class RepairRequestService {
   private baseUrl = "/ManagerRepairRequest"
 
-  /**
+  /** 
    * Fetch all repair requests for the current user's branch
    */
   private async getRepairRequestsByBranch(): Promise<ManagerRepairRequestDto[]> {
@@ -352,26 +339,14 @@ class RepairRequestService {
     }
   }
 
-  // Approve a repair request
-  async approveRepairRequest(requestId: string): Promise<boolean> {
+  // Cancel a repair request on behalf of customer
+  async cancelRepairRequest(requestId: string): Promise<boolean> {
     try {
-      const endpoint = `${this.baseUrl}/${requestId}/approve`;
-      const response = await apiClient.put(endpoint);
+      const endpoint = `${this.baseUrl}/${requestId}/cancel-on-behalf`;
+      const response = await apiClient.post(endpoint);
       return response.success;
     } catch (error) {
-      console.error(`Failed to approve repair request ${requestId}:`, error);
-      return false;
-    }
-  }
-
-  // Reject a repair request
-  async rejectRepairRequest(requestId: string): Promise<boolean> {
-    try {
-      const endpoint = `${this.baseUrl}/${requestId}/reject`;
-      const response = await apiClient.put(endpoint);
-      return response.success;
-    } catch (error) {
-      console.error(`Failed to reject repair request ${requestId}:`, error);
+      console.error(`Failed to cancel repair request ${requestId}:`, error);
       return false;
     }
   }

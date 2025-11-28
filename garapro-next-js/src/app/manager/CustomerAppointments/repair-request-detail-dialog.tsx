@@ -44,8 +44,7 @@ export function RepairRequestDetailDialog({
   const [repairRequest, setRepairRequest] = useState<ManagerRepairRequest | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [isApproving, setIsApproving] = useState(false)
-  const [isRejecting, setIsRejecting] = useState(false)
+  const [isCancelling, setIsCancelling] = useState(false)
   const [isConverting, setIsConverting] = useState(false)
   const [conversionData, setConversionData] = useState({
     note: "",
@@ -83,49 +82,26 @@ export function RepairRequestDetailDialog({
     }
   }
 
-  const handleApprove = async () => {
+  const handleCancel = async () => {
     if (!repairRequest) return;
     
     try {
-      setIsApproving(true);
-      const success = await repairRequestService.approveRepairRequest(repairRequest.requestID);
+      setIsCancelling(true);
+      const success = await repairRequestService.cancelRepairRequest(repairRequest.requestID);
       
       if (success) {
-        // Update the local state to reflect the approval
-        setRepairRequest(prev => prev ? {...prev, status: "accept"} : null);
-        // You might want to show a success message here
-      } else {
-        // Handle failure (e.g., show error message)
-        console.error("Failed to approve repair request");
-      }
-    } catch (err) {
-      console.error("Failed to approve repair request:", err);
-      // Handle error appropriately (e.g., show toast notification)
-    } finally {
-      setIsApproving(false);
-    }
-  };
-
-  const handleReject = async () => {
-    if (!repairRequest) return;
-    
-    try {
-      setIsRejecting(true);
-      const success = await repairRequestService.rejectRepairRequest(repairRequest.requestID);
-      
-      if (success) {
-        // Update the local state to reflect the rejection
+        // Update the local state to reflect the cancellation
         setRepairRequest(prev => prev ? {...prev, status: "cancelled"} : null);
         // You might want to show a success message here
       } else {
         // Handle failure (e.g., show error message)
-        console.error("Failed to reject repair request");
+        console.error("Failed to cancel repair request");
       }
     } catch (err) {
-      console.error("Failed to reject repair request:", err);
+      console.error("Failed to cancel repair request:", err);
       // Handle error appropriately (e.g., show toast notification)
     } finally {
-      setIsRejecting(false);
+      setIsCancelling(false);
     }
   };
 
@@ -479,25 +455,15 @@ export function RepairRequestDetailDialog({
 
             {/* Action Buttons */}
             <div className="flex gap-2 pt-4">
-              {repairRequest?.status === "pending" && (
-                <>
-                  <Button 
-                    variant="default" 
-                    className="flex-1 bg-green-600 hover:bg-green-700"
-                    onClick={handleApprove}
-                    disabled={isApproving || isRejecting}
-                  >
-                    {isApproving ? "Approving..." : "Approve"}
-                  </Button>
-                  <Button 
-                    variant="default" 
-                    className="flex-1 bg-red-600 hover:bg-red-700"
-                    onClick={handleReject}
-                    disabled={isApproving || isRejecting}
-                  >
-                    {isRejecting ? "Rejecting..." : "Reject"}
-                  </Button>
-                </>
+              {repairRequest?.status !== "completed" && repairRequest?.status !== "cancelled" && !showConversionForm && (
+                <Button 
+                  variant="destructive" 
+                  className="flex-1"
+                  onClick={handleCancel}
+                  disabled={isCancelling}
+                >
+                  {isCancelling ? "Cancelling..." : "Cancel Request"}
+                </Button>
               )}
               {repairRequest?.status === "accept" && !showConversionForm && (
                 <Button 

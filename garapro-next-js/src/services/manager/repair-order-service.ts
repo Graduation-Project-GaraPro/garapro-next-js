@@ -196,6 +196,26 @@ class RepairOrderService {
       throw error
     }
   }
+
+  /**
+   * Fetch all archived repair orders
+   */
+  async getArchivedRepairOrders(): Promise<RepairOrder[]> {
+    try {
+      const response = await apiClient.get<RepairOrderApiResponse[]>(`${this.baseUrl}/archived`)
+      console.log("Archived repair orders API response:", response);
+      
+      // Map API response to RepairOrder interface
+      if (response.data) {
+        return response.data.map(mapApiToRepairOrder);
+      }
+      
+      return [];
+    } catch (error) {
+      console.error("Failed to fetch archived repair orders:", error)
+      return []
+    }
+  }
 }
 
 export const repairOrderService = new RepairOrderService()

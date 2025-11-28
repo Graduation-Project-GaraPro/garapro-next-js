@@ -45,7 +45,7 @@ class TechnicianAssignmentHubService {
 
     try {
       // Get the base URL from environment variables (without /api for SignalR hubs)
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://localhost:7113/api";
+      const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "https://localhost:7113/api";
       // SignalR hubs are at root level, not under /api
       const hubBaseUrl = baseUrl.replace('/api', '');
       

@@ -258,16 +258,18 @@ export default function JobsTab({ orderId, branchId }: JobsTabProps) {
                     <p className="text-sm text-gray-500">Job ID: {job.jobId}</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    {/* Edit Job Button */}
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => handleEditJob(job)}
-                      className="flex items-center gap-2"
-                    >
-                      <Edit className="h-4 w-4" />
-                      <span>Edit</span>
-                    </Button>
+                    {/* Edit Job Button - Hide for completed jobs */}
+                    {job.status !== 3 && ( // 3 = Completed
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => handleEditJob(job)}
+                        className="flex items-center gap-2"
+                      >
+                        <Edit className="h-4 w-4" />
+                        <span>Edit</span>
+                      </Button>
+                    )}
                     
                     {/* Assign Tech Button - Show for all non-completed jobs */}
                     {job.status !== 3 && ( // 3 = Completed

@@ -14,10 +14,6 @@ export function Header() {
       </div>
 
       <div className="flex items-center gap-3">
-        <Button variant="outline" size="sm">
-          <Plus className="h-4 w-4 mr-2" />
-          New Appointment
-        </Button>
         <Button variant="ghost" size="sm">
           <Bell className="h-4 w-4" />
         </Button>
