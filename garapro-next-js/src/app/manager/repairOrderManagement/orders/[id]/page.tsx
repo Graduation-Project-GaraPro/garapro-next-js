@@ -140,7 +140,7 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
       quotation: <QuotationTab orderId={orderId} />,
       jobs: <JobsTab orderId={orderId} branchId={userBranchId || undefined} />,
       "work-in-progress": <WorkProgressTab orderId={orderId} />,
-      payment: <PaymentTab orderId={orderId} />
+      payment: <PaymentTab orderId={orderId} repairOrderStatus={repairOrder ? parseInt(repairOrder.statusId) : undefined} onPaymentSuccess={handleOrderUpdated} />
     }
 
     return tabComponents[activeTab as keyof typeof tabComponents] || null

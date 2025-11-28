@@ -1,5 +1,5 @@
 import { apiClient } from "./api-client"
-import type { RepairOrder, CreateRepairOrderRequest, UpdateRepairOrderRequest, RepairOrderApiResponse, UpdateRepairOrderStatusRequest } from "@/types/manager/repair-order"
+import type { RepairOrder, CreateRepairOrderRequest, UpdateRepairOrderRequest, RepairOrderApiResponse, UpdateRepairOrderStatusRequest, CancelRepairOrderDto, ArchiveRepairOrderDto } from "@/types/manager/repair-order"
 import type { OrderStatus, OrderStatusResponse } from "@/types/manager/order-status"
 import { authService } from "@/services/authService"
 import { branchService } from "@/services/branch-service"
@@ -168,6 +168,32 @@ class RepairOrderService {
       console.error("Failed to fetch order statuses:", error)
       // Return empty array as fallback
       return []
+    }
+  }
+
+  /**
+   * Cancel a repair order
+   */
+  async cancelRepairOrder(cancelData: CancelRepairOrderDto): Promise<boolean> {
+    try {
+      await apiClient.post(`${this.baseUrl}/cancel`, cancelData)
+      return true
+    } catch (error) {
+      console.error(`Failed to cancel repair order ${cancelData.repairOrderId}:`, error)
+      throw error
+    }
+  }
+
+  /**
+   * Archive a repair order
+   */
+  async archiveRepairOrder(archiveData: ArchiveRepairOrderDto): Promise<boolean> {
+    try {
+      await apiClient.post(`${this.baseUrl}/archive`, archiveData)
+      return true
+    } catch (error) {
+      console.error(`Failed to archive repair order ${archiveData.repairOrderId}:`, error)
+      throw error
     }
   }
 }

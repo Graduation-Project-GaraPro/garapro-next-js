@@ -17,7 +17,19 @@ interface RoColumnProps {
   onDrop: (statusId: string) => void
   onEditRepairOrder: (repairOrder: RepairOrder) => void
   onDeleteRepairOrder: (repairOrderId: string) => void
+  onCancelRepairOrder?: (repairOrderId: string) => void
+  onArchiveRepairOrder?: (repairOrderId: string) => void
+  onLabelsUpdated?: (repairOrderId: string, labels: Array<{
+    labelId: string
+    labelName: string
+    colorName: string
+    hexCode: string
+    orderStatusId: number
+  }>) => void
+  isPending?: boolean
+  isCompleted?: boolean
   isDragOver: boolean
+  defaultLabel?: { labelName: string; hexCode: string } | null
 }
 
 export interface OrderStatus {
@@ -45,7 +57,13 @@ export default function RoColumn({
   onDrop,
   onEditRepairOrder,
   onDeleteRepairOrder,
+  onCancelRepairOrder,
+  onArchiveRepairOrder,
+  onLabelsUpdated,
+  isPending = false,
+  isCompleted = false,
   isDragOver,
+  defaultLabel = null,
 }: RoColumnProps) {
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
@@ -78,6 +96,12 @@ export default function RoColumn({
             onDragEnd={onDragEnd}
             onEdit={() => onEditRepairOrder(repairOrder)}
             onDelete={() => onDeleteRepairOrder(repairOrder.repairOrderId)}
+            onCancel={onCancelRepairOrder ? () => onCancelRepairOrder(repairOrder.repairOrderId) : undefined}
+            onArchive={onArchiveRepairOrder ? () => onArchiveRepairOrder(repairOrder.repairOrderId) : undefined}
+            onLabelsUpdated={onLabelsUpdated}
+            isPending={isPending}
+            isCompleted={isCompleted}
+            defaultLabel={defaultLabel}
           />
         ))}
 
