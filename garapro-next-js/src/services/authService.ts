@@ -55,7 +55,7 @@ class AuthService {
     globalUserRoles = roles;
     
     if (typeof window !== 'undefined') {
-      sessionStorage.setItem('authToken', token);
+      localStorage.setItem('authToken', token);
       sessionStorage.setItem('userId', userId);
       sessionStorage.setItem('userEmail', email);
       sessionStorage.setItem('userRoles', JSON.stringify(roles));
@@ -69,7 +69,7 @@ class AuthService {
     globalUserRoles = [];
     
     if (typeof window !== 'undefined') {
-      sessionStorage.removeItem('authToken');
+      localStorage.removeItem('authToken');
       sessionStorage.removeItem('userId');
       sessionStorage.removeItem('userEmail');
       sessionStorage.removeItem('userRoles');
