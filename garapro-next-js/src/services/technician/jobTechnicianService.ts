@@ -1,14 +1,15 @@
 import axios from "axios";
 
 const API_URL = "https://localhost:7113/odata/JobTechnician";
-
+import { authService } from "@/services/authService";
 export interface JobStatusUpdate {
   JobId: string;
   JobStatus: number; 
 }
+
 export const getTechnicianId = async (): Promise<string | null> => {
   try {
-    const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
+    const token = typeof window !== "undefined" ? authService.getToken() : null;
     if (!token) {
       throw new Error("Missing authentication token");
     }
@@ -39,7 +40,7 @@ export const getTechnicianId = async (): Promise<string | null> => {
 // Lấy danh sách công việc của technician
 export const getMyJobs = async () => {
   try {
-    const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
+    const token = typeof window !== "undefined" ? authService.getToken() : null;
     if (!token) {
       throw new Error("Missing authentication token");
     }
