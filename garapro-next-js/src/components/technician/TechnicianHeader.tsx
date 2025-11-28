@@ -135,7 +135,7 @@ export default function TechnicianHeader() {
             <img
               src="/logo.png"
               alt="GaragePro Logo"
-              className="w-10 h-10 object-contain"
+              className="w-10 h-10 object-contain rounded-xl"
             />
             <span className="text-xl font-bold text-gray-800">GaragePro</span>
           </div>
