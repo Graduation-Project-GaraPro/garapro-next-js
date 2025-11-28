@@ -42,9 +42,9 @@ class JobSignalRService {
       });
 
       await this.connection.start();
-      console.log("✅ JobSignalR: Connected successfully");
+      console.log("JobSignalR: Connected successfully");
     } catch (error) {
-      console.error("❌ JobSignalR: Connection failed", error);
+      console.error("JobSignalR: Connection failed", error);
       this.connection = null;
       throw error;
     } finally {
@@ -59,9 +59,9 @@ class JobSignalRService {
     }
     try {
       await this.connection.invoke("JoinTechnicianGroup", technicianId);
-      console.log(`✅ Joined Technician_${technicianId} group`);
+      console.log(`Joined Technician_${technicianId} group`);
     } catch (error) {
-      console.error("❌ Failed to join technician group", error);
+      console.error("Failed to join technician group", error);
       throw error;
     }
   }
@@ -76,16 +76,15 @@ class JobSignalRService {
     }
   }
 
-  // Join job group (để nhận updates về 1 job cụ thể)
   public async joinJobGroup(jobId: string): Promise<void> {
     if (!this.connection) {
       throw new Error("SignalR connection not established");
     }
     try {
       await this.connection.invoke("JoinJobGroup", jobId);
-      console.log(`✅ Joined Job_${jobId} group`);
+      console.log(`Joined Job_${jobId} group`);
     } catch (error) {
-      console.error("❌ Failed to join job group", error);
+      console.error("Failed to join job group", error);
       throw error;
     }
   }
@@ -100,25 +99,16 @@ class JobSignalRService {
     }
   }
 
-  // Event: JobAssigned - Manager assign job cho technician
   public onJobAssigned(callback: (data: JobAssignedEvent) => void): void {
     if (!this.connection) return;
     this.connection.on("JobAssigned", callback);
   }
 
-  // Event: JobReassigned - Manager reassign job
-  public onJobReassigned(callback: (data: JobReassignedEvent) => void): void {
-    if (!this.connection) return;
-    this.connection.on("JobReassigned", callback);
-  }
-
-  // Event: JobStatusUpdated - Job status thay đổi
   public onJobStatusUpdated(callback: (data: JobStatusUpdatedEvent) => void): void {
     if (!this.connection) return;
     this.connection.on("JobStatusUpdated", callback);
   }
 
-  // Unsubscribe
   public offAllEvents(): void {
     if (!this.connection) return;
     this.connection.off("JobAssigned");
@@ -145,7 +135,6 @@ class JobSignalRService {
   }
 }
 
-// Event interfaces
 export interface JobAssignedEvent {
   jobId: string;
   technicianId: string;

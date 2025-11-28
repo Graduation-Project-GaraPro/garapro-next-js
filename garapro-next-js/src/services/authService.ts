@@ -2,13 +2,19 @@ export interface GoogleLoginDto {
   idToken: string;
 }
 
+<<<<<<< HEAD
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:7113/api';
+
+=======
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://localhost:7113/api';
 // const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:7113';
+>>>>>>> origin/main
 
 export interface AuthResponseDto {
   token: string;      // access token JWT
   expiresIn: number;  // số giây token sống
   userId: string;     // Id của user
+  fullName: string;
   email: string;      // Email user
   roles: string[];    // Roles user (Admin, Customer, ...)
 }
@@ -101,6 +107,7 @@ class AuthService {
     if (typeof window !== 'undefined') {
       localStorage.setItem('authToken', authData.token)
       localStorage.setItem('userId', authData.userId)
+      localStorage.setItem('userFullName', authData.fullName) 
       localStorage.setItem('userEmail', authData.email)
       localStorage.setItem('userRoles', JSON.stringify(authData.roles))
     }
@@ -126,6 +133,7 @@ class AuthService {
     if (typeof window !== 'undefined') {
       localStorage.setItem('authToken', authData.token)
       localStorage.setItem('userId', authData.userId)
+      localStorage.setItem('userFullName', authData.fullName) 
       localStorage.setItem('userEmail', authData.email)
       localStorage.setItem('userRoles', JSON.stringify(authData.roles))
     }
@@ -137,20 +145,22 @@ class AuthService {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('authToken')
       localStorage.removeItem('userId')
+      localStorage.removeItem('userFullName')
       localStorage.removeItem('userEmail')
       localStorage.removeItem('userRoles')
     }
   }
 
-  getCurrentUser(): { userId: string | null; email: string | null; roles: string[] } {
+  getCurrentUser(): { userId: string | null; fullName: string | null; email: string | null; roles: string[] } {
     if (typeof window !== 'undefined') {
       return {
         userId: localStorage.getItem('userId'),
+        fullName: localStorage.getItem('userFullName'),
         email: localStorage.getItem('userEmail'),
         roles: JSON.parse(localStorage.getItem('userRoles') || '[]')
       }
     }
-    return { userId: null, email: null, roles: [] }
+    return { userId: null, fullName : null , email: null, roles: [] }
   }
 
   isAuthenticated(): boolean {

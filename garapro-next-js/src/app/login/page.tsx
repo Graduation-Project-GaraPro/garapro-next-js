@@ -106,6 +106,7 @@ export default function LoginPage() {
       // Store user info in localStorage
       localStorage.setItem("authToken", result.token);
       localStorage.setItem("userId", result.userId);
+      localStorage.setItem("userFullName", result.fullName);
       localStorage.setItem("userEmail", result.email);
       localStorage.setItem("userRoles", JSON.stringify(result.roles));
       
@@ -168,6 +169,7 @@ export default function LoginPage() {
       localStorage.setItem("authToken", result.token);
       // Store user info in localStorage
       localStorage.setItem("userId", result.userId);
+      localStorage.setItem("userFullName", result.fullName);
       localStorage.setItem("userEmail", result.email);
       localStorage.setItem("userRoles", JSON.stringify(result.roles));
       

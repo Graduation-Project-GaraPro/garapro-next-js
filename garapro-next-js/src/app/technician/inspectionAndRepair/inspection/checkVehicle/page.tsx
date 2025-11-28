@@ -332,14 +332,21 @@ function PartCategorySelection({
                   return partData ? (
                     <div key={part.partId} className="flex items-center gap-1 bg-green-100 text-green-700 px-2 py-1 rounded text-xs">
                       <span>{partData.partName} (x{part.quantity})</span>
-                      {!isCompleted && ( // Chỉ hiển thị nút xóa khi chưa completed
-                        <button
-                          onClick={() => onRemovePart(category.partCategoryId, part.partId)}
-                          disabled={isCompleted}
-                          className="p-0.5 bg-green-200 rounded-full hover:bg-green-300"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
+                      {!isCompleted && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onRemovePart(category.partCategoryId, part.partId);
+                              const remainingParts = selectedPartsInCategory.filter((p: any) => p.partId !== part.partId);
+                              if (remainingParts.length === 0 && !service.isAdvanced) {
+                                onCategoryToggle(category.partCategoryId, false);
+                              }
+                            }}
+                            disabled={isCompleted}
+                            className="p-0.5 bg-green-200 rounded-full hover:bg-green-300"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
                       )}
                     </div>
                   ) : null;
@@ -352,7 +359,11 @@ function PartCategorySelection({
         <div className="flex items-center gap-2">
           {isCategorySelected && selectedPartsInCategory.length > 0 && !isCompleted && (
             <button
-              onClick={() => onRemoveCategory(category.partCategoryId)}
+              onClick={(e) => {
+                e.stopPropagation(); 
+                onRemoveCategory(category.partCategoryId);
+                onCategoryToggle(category.partCategoryId, false);
+              }}
               disabled={isCompleted}
               className="p-1 bg-red-500 hover:bg-red-600 rounded text-white transition-colors"
               title="Remove entire category"
@@ -361,10 +372,12 @@ function PartCategorySelection({
             </button>
           )}
           
-          {/* Luôn cho phép mở rộng để xem, ngay cả khi completed */}
           <button
-            onClick={() => setExpanded(!expanded)}
-            disabled={!isCategorySelected} // Chỉ disable khi category không được chọn
+            onClick={(e) => {
+              e.stopPropagation(); 
+              setExpanded(!expanded);
+            }}
+            disabled={!isCategorySelected} 
             className="p-1 bg-gray-200 hover:bg-gray-300 rounded transition-colors disabled:opacity-50"
           >
             {expanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
@@ -387,12 +400,17 @@ function PartCategorySelection({
                       ? 'border-green-300 bg-green-50'
                       : 'border-gray-200 bg-gray-50'
                   } ${isCompleted ? 'cursor-default' : 'cursor-pointer hover:border-gray-300'}`}
-                  onClick={() => !isCompleted && onPartToggle( // Chỉ cho phép toggle khi chưa completed
-                    category.partCategoryId, 
-                    part.partId, 
-                    !isSelected,
-                    quantity
-                  )}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!isCompleted) {
+                      onPartToggle( 
+                        category.partCategoryId, 
+                        part.partId, 
+                        !isSelected,
+                        quantity
+                      );
+                    }
+                  }}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
@@ -1123,14 +1141,21 @@ export default function CheckConditionPage() {
       if (prevItem.serviceId === serviceId) {
         const currentParts = prevItem.selectedPartsByCategory[categoryId] || [];
         const newParts = currentParts.filter((p: any) => p.partId !== partId);
-        
-        return {
-          ...prevItem,
-          selectedPartsByCategory: {
-            ...prevItem.selectedPartsByCategory,
-            [categoryId]: newParts
-          }
-        };
+         const updatedSelectedPartsByCategory = {
+        ...prevItem.selectedPartsByCategory,
+        [categoryId]: newParts
+      };
+
+      let updatedSelectedPartCategories = [...prevItem.selectedPartCategories];
+      
+      if (newParts.length === 0 && !prevItem.isAdvanced) {
+        updatedSelectedPartCategories = updatedSelectedPartCategories.filter(id => id !== categoryId);
+      }
+         return {
+        ...prevItem,
+        selectedPartCategories: updatedSelectedPartCategories,
+        selectedPartsByCategory: updatedSelectedPartsByCategory
+      };
       }
       return prevItem;
     }));
@@ -1242,20 +1267,9 @@ export default function CheckConditionPage() {
 
   const handleModalClose = () => {
     setShowSuccessModal(false);
-  };
-
-  const renderImageButton = () => {
-    if (vehicleImages.length === 0) return null;
-    
-    return (
-      <button
-        onClick={() => setShowImageModal(true)}
-        className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-semibold rounded-xl transition-all duration-200 flex items-center gap-2 shadow-lg"
-      >
-        <Image className="w-5 h-5" />
-        <span>View Images ({vehicleImages.length})</span>
-      </button>
-    );
+    if (successMessage === "Inspection completed and sent to Manager!") {
+    router.push("/technician/inspectionAndRepair/inspection");
+  }
   };
 
   if (loading) {
