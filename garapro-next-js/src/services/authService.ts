@@ -37,7 +37,7 @@ class AuthService {
     }
     
     if (typeof window !== 'undefined') {
-      const storedToken = sessionStorage.getItem('authToken');
+      const storedToken = localStorage.getItem('authToken');
       console.log(' sessionStorage token:', storedToken);
       if (storedToken) {
         globalToken = storedToken;
