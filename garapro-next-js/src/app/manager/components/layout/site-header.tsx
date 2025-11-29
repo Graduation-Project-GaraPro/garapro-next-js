@@ -3,7 +3,7 @@
 import { Bell, PanelLeft, Settings, User } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
-
+import { authService } from "@/services/authService"
 import { SearchForm } from "@/app/manager/components/layout/search-form"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
@@ -103,7 +103,7 @@ export function SiteHeader() {
                 Settings
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-red-600">Log out</DropdownMenuItem>
+              <DropdownMenuItem onClick={() =>authService.logout()} className="text-red-600">Log out</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

@@ -10,6 +10,7 @@ export interface AuthResponseDto {
   expiresIn: number;
   userId: string;
   email: string;
+  branchId?: string ;
   roles: string[];
 }
 
@@ -22,6 +23,8 @@ export interface LoginDto {
 let globalToken: string | null = null;
 let globalUserId: string | null = null;
 let globalUserEmail: string | null = null;
+let globalBranchId: string | null = null;
+
 let globalUserRoles: string[] = [];
 class AuthService {
   private isRefreshing = false;
@@ -39,7 +42,7 @@ class AuthService {
     }
     
     if (typeof window !== 'undefined') {
-      const storedToken = sessionStorage.getItem('authToken');
+      const storedToken = localStorage.getItem('authToken');
       console.log(' sessionStorage token:', storedToken);
       if (storedToken) {
         globalToken = storedToken;
@@ -50,16 +53,18 @@ class AuthService {
     return null;
   }
 
-  private setStoredUserData(token: string, userId: string, email: string, roles: string[] = []): void {
+  private setStoredUserData(token: string, userId: string,branchId : string ,email: string, roles: string[] = []): void {
     globalToken = token;
     globalUserId = userId;
     globalUserEmail = email;
     globalUserRoles = roles;
+    globalBranchId = branchId
     
     if (typeof window !== 'undefined') {
       localStorage.setItem('authToken', token);
       sessionStorage.setItem('userId', userId);
       sessionStorage.setItem('userEmail', email);
+      sessionStorage.setItem('branchId', branchId);
       sessionStorage.setItem('userRoles', JSON.stringify(roles));
     }
   }
@@ -69,12 +74,15 @@ class AuthService {
     globalUserId = null;
     globalUserEmail = null;
     globalUserRoles = [];
+    globalBranchId = null;
     
     if (typeof window !== 'undefined') {
       localStorage.removeItem('authToken');
       sessionStorage.removeItem('userId');
       sessionStorage.removeItem('userEmail');
       sessionStorage.removeItem('userRoles');
+      sessionStorage.removeItem('branchId');
+
     }
   }
 
@@ -94,7 +102,7 @@ class AuthService {
     }
 
     const authData = await response.json();
-    this.setStoredUserData(authData.token, authData.userId, authData.email, authData.roles);
+    this.setStoredUserData(authData.token, authData.userId, authData.branchId ,authData.email, authData.roles);
     
     return authData;
   }
@@ -134,7 +142,8 @@ class AuthService {
     this.setStoredUserData(
       authData.token,
       currentUserId || authData.userId || "",
-      currentUserEmail || authData.email || ""
+      currentUserEmail || authData.email || "",
+      authData.branchId
     );
 
     return authData.token;
@@ -159,6 +168,20 @@ class AuthService {
       if (storedUserId) {
         globalUserId = storedUserId;
         return storedUserId;
+      }
+    }
+    return null;
+  }
+  getCurrentbranchId(): string | null {
+    if (globalBranchId) {
+      return globalBranchId;
+    }
+
+    if (typeof window !== "undefined") {
+      const storedBranchId = sessionStorage.getItem("branchId");
+      if (storedBranchId) {
+        globalBranchId = storedBranchId;
+        return storedBranchId;
       }
     }
     return null;

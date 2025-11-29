@@ -8,8 +8,10 @@ import type { RepairRequestFilter } from "@/types/manager/appointment";
 export type { RepairRequestFilter }
 
 // Helper function to add display properties to repair request
-const enrichRepairRequest = (request: ManagerRepairRequestDto): ManagerRepairRequest => {
-  // Always use requestDate for display
+export const enrichRepairRequest = (request: ManagerRepairRequestDto): ManagerRepairRequest => {
+  
+
+  console.log("request", request)
   const timeSource = request.requestDate
   const dateSource = request.requestDate
   
@@ -115,11 +117,10 @@ const enrichRepairRequest = (request: ManagerRepairRequestDto): ManagerRepairReq
       ? request.services.map(s => s.serviceName).join(", ")
       : request.description || "Repair Service"
     
-    const estimatedCost = request.services?.reduce((total, service) => {
-      const partsCost = service.requestParts?.reduce((sum, part) => sum + part.unitPrice, 0) || 0
-      return total + service.serviceFee + partsCost
+    const estimatedCost = request.services?.reduce((total, service) => {     
+      return total + service.price 
     }, 0) || 0
-    
+    console.log("ess",estimatedCost)
     return {
       ...request,
       time: fallbackTimeString,
@@ -180,10 +181,10 @@ const enrichRepairRequest = (request: ManagerRepairRequestDto): ManagerRepairReq
     : request.description || "Repair Service"
   
   // Calculate estimated cost from services
-  const estimatedCost = request.services?.reduce((total, service) => {
-    const partsCost = service.requestParts?.reduce((sum, part) => sum + part.unitPrice, 0) || 0
-    return total + service.serviceFee + partsCost
-  }, 0) || 0
+  const estimatedCost = request.services?.reduce((total, service) => {     
+      return total + service.price 
+    }, 0) || 0
+    console.log("ess",estimatedCost)
 
   return {
     ...request,
@@ -319,6 +320,40 @@ class RepairRequestService {
     }
   }
 
+   async getArrivalTimeSlotsByBranch(
+    branchId: string,
+    date?: string, 
+  ): Promise<string[]> {
+    try {
+      let endpoint = `${this.baseUrl}/branches/${branchId}/arrival-time-slots`
+
+      if (date) {
+        const query = `?date=${encodeURIComponent(date)}`
+        endpoint += query
+      }
+
+      console.log("[RepairRequestService] Calling arrival time slots endpoint:", endpoint)
+
+      const response = await apiClient.get<string[]>(endpoint)
+
+      // apiClient đang trả về { data: ... }
+      if (Array.isArray(response.data)) {
+        return response.data
+      }
+
+      
+      if (Array.isArray(response)) {
+        return response as unknown as string[]
+      }
+
+      console.warn("[RepairRequestService] No valid array found in arrival time slots response")
+      return []
+    } catch (error) {
+      console.error("[RepairRequestService] Failed to fetch arrival time slots:", error)
+      return []
+    }
+  }
+
   // Get repair requests for a specific date
   async getRepairRequestsByDate(date: string): Promise<ManagerRepairRequest[]> {
     const allRequests = await this.getRepairRequests()
@@ -330,6 +365,9 @@ class RepairRequestService {
     try {
       const response = await apiClient.get<ManagerRepairRequestDto>(`${this.baseUrl}/${id}`)
       if (response.data) {
+        console.log(this.baseUrl)
+        console.log("request-dataa", response.data)
+
         return enrichRepairRequest(response.data)
       }
       return null
@@ -352,19 +390,16 @@ class RepairRequestService {
   }
 
   // Convert repair request to repair order
-  async convertToRepairOrder(requestId: string, data: {
-    note: string;
-    selectedServiceIds: string[];
-  }): Promise<boolean> {
-    try {
-      const endpoint = `${this.baseUrl}/${requestId}/convert-to-ro`;
-      const response = await apiClient.post(endpoint, data);
-      return response.success;
-    } catch (error) {
-      console.error(`Failed to convert repair request ${requestId} to repair order:`, error);
-      return false;
-    }
-  }
+  async convertToRepairOrder(
+  requestId: string,
+  data: { note: string; selectedServiceIds: string[] }
+) {
+  const endpoint = `${this.baseUrl}/${requestId}/convert-to-ro`;
+
+  
+  return apiClient.post(endpoint, data);
+}
+
 }
 
 export const repairRequestService = new RepairRequestService()

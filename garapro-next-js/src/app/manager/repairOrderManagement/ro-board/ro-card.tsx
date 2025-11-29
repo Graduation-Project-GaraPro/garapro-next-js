@@ -248,7 +248,7 @@ export default function RepairOrderCard({
             </div>
           </div>
           <div className="flex items-center gap-0.5">
-            <DollarSign className="w-2.5 h-2.5 text-green-600" />
+            
             <span className="font-semibold text-green-600">{formatCurrency(repairOrder.estimatedAmount)}</span>
           </div>
         </div>

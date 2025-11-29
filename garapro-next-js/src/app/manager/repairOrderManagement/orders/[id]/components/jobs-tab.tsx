@@ -243,8 +243,12 @@ export default function JobsTab({ orderId, branchId }: JobsTabProps) {
         <Card>
           <CardContent className="py-8 text-center">
             <Wrench className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-1">No jobs found</h3>
-            <p className="text-gray-500">Jobs will appear here once created from approved quotations.</p>
+            <h3 className="text-lg font-medium text-gray-900 mb-1">
+              No jobs found
+            </h3>
+            <p className="text-gray-500">
+              Jobs will appear here once created from approved quotations.
+            </p>
           </CardContent>
         </Card>
       ) : (
@@ -260,9 +264,9 @@ export default function JobsTab({ orderId, branchId }: JobsTabProps) {
                   <div className="flex items-center gap-2">
                     {/* Edit Job Button - Hide for completed jobs */}
                     {job.status !== 3 && ( // 3 = Completed
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
+                      <Button
+                        variant="outline"
+                        size="sm"
                         onClick={() => handleEditJob(job)}
                         className="flex items-center gap-2"
                       >
@@ -270,12 +274,12 @@ export default function JobsTab({ orderId, branchId }: JobsTabProps) {
                         <span>Edit</span>
                       </Button>
                     )}
-                    
+
                     {/* Assign Tech Button - Show for all non-completed jobs */}
                     {job.status !== 3 && ( // 3 = Completed
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
+                      <Button
+                        variant="outline"
+                        size="sm"
                         onClick={() => handleAssignTech(job.jobId)}
                         className="flex items-center gap-2"
                       >
@@ -304,11 +308,15 @@ export default function JobsTab({ orderId, branchId }: JobsTabProps) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="flex items-center text-sm">
                     <Calendar className="w-4 h-4 text-gray-500 mr-2" />
-                    <span>Created: {new Date(job.createdAt).toLocaleDateString()}</span>
+                    <span>
+                      Created: {new Date(job.createdAt).toLocaleDateString()}
+                    </span>
                   </div>
                   <div className="flex items-center text-sm">
                     <Clock className="w-4 h-4 text-gray-500 mr-2" />
-                    <span>Updated: {new Date(job.updatedAt).toLocaleDateString()}</span>
+                    <span>
+                      Updated: {new Date(job.updatedAt).toLocaleDateString()}
+                    </span>
                   </div>
                 </div>
 
@@ -320,14 +328,32 @@ export default function JobsTab({ orderId, branchId }: JobsTabProps) {
                     </h4>
                     <div className="border rounded-md divide-y">
                       {job.parts.map((part) => (
-                        <div key={part.jobPartId} className="p-3 flex justify-between items-center">
+                        <div
+                          key={part.jobPartId}
+                          className="p-3 flex justify-between items-center"
+                        >
                           <div>
-                            <p className="text-sm font-medium">{part.partName}</p>
-                            <p className="text-xs text-gray-500">ID: {part.partId}</p>
+                            <p className="text-sm font-medium">
+                              {part.partName}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              ID: {part.partId}
+                            </p>
                           </div>
                           <div className="text-right">
-                            <p className="text-sm">${part.unitPrice.toLocaleString()} × {part.quantity}</p>
-                            <p className="text-sm font-medium">${part.totalPrice.toLocaleString()}</p>
+                            <p className="text-sm">
+                              {part.unitPrice.toLocaleString("vi-VN", {
+                                style: "currency",
+                                currency: "VND",
+                              })}{" "}
+                              × {part.quantity}
+                            </p>
+                            <p className="text-sm font-medium">
+                              {part.totalPrice.toLocaleString("vi-VN", {
+                                style: "currency",
+                                currency: "VND",
+                              })}
+                            </p>
                           </div>
                         </div>
                       ))}
@@ -367,5 +393,5 @@ export default function JobsTab({ orderId, branchId }: JobsTabProps) {
         />
       )}
     </div>
-  )
+  );
 }
