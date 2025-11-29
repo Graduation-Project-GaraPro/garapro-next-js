@@ -452,32 +452,8 @@ export default function VehicleInformation({ orderId }: VehicleInformationProps)
         </Card>
       </div>
 
-      {/* Quick Actions */}
-      <Card className="p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
-        <div className="flex flex-wrap gap-3">
-          <Button variant="outline" className="flex items-center">
-            <FileText className="w-4 h-4 mr-2" />
-            Print Vehicle Summary
-          </Button>
-          <Button variant="outline" className="flex items-center">
-            <Car className="w-4 h-4 mr-2" />
-            View Service History
-          </Button>
-          <Button variant="outline" className="flex items-center">
-            <Calendar className="w-4 h-4 mr-2" />
-            Schedule Next Service
-          </Button>
-          <Button 
-            variant="outline" 
-            className="flex items-center"
-            style={{ borderColor: "#154c79", color: "#154c79" }}
-          >
-            <User className="w-4 h-4 mr-2" />
-            Contact Customer
-          </Button>
-        </div>
-      </Card>
+     
+      
     </div>
   )
 }

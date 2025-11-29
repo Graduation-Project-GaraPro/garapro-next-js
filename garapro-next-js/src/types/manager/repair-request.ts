@@ -6,11 +6,11 @@ export interface RequestPart {
 }
 
 export interface RequestService {
-  requestServiceId: string;
+  
   serviceId: string;
   serviceName: string;
-  serviceFee: number;
-  requestParts: RequestPart[];
+  price: number;
+  
 }
 
 export interface ManagerRepairRequestDto {
