@@ -11,7 +11,7 @@ import {
   Loader2
 } from "lucide-react"
 import { toast } from "sonner"
-import { CreateQuotationDialog } from "@/app/manager/components/Quote"
+import { CreateQuotationDialogV2 } from "@/app/manager/components/Quote"
 import QuotePreviewDialog from "@/app/manager/components/Quote/QuotePreviewDialog"
 import { quotationService } from "@/services/manager/quotation-service"
 import { QuotationDto } from "@/types/manager/quotation"
@@ -263,14 +263,11 @@ export default function QuotationTab({ orderId }: QuotationTabProps) {
       </Card>
 
       {/* Create Quotation Dialog */}
-      <CreateQuotationDialog
+      <CreateQuotationDialogV2
         open={isCreateFormOpen}
         onOpenChange={setIsCreateFormOpen}
-        onSubmit={() => {
-          // The quotation has already been created by the CreateQuotationDialog component
-          // Just handle the UI updates here
+        onSuccess={() => {
           handleQuotationCreated();
-          setIsCreateFormOpen(false);
         }}
         roData={{
           roNumber: orderId,
