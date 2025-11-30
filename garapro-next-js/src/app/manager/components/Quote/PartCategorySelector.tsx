@@ -11,6 +11,7 @@ import {
   type PartCategory,
   type PartItem 
 } from "@/services/manager/quotation-tree-service"
+import { formatVND } from "@/lib/currency"
 
 interface PartCategorySelectorProps {
   serviceId: string
@@ -99,7 +100,7 @@ export function PartCategorySelector({
             <div>
               <CardTitle className="text-xl">{serviceName}</CardTitle>
               <p className="text-sm text-gray-600 mt-1">
-                Service Price: ${servicePrice.toFixed(2)}
+                Service Price: {formatVND(servicePrice)}
               </p>
             </div>
             <Button variant="ghost" size="icon" onClick={onCancel}>
@@ -150,7 +151,7 @@ export function PartCategorySelector({
                             className="text-sm text-gray-600 flex justify-between items-center py-1 px-2 bg-gray-50 rounded"
                           >
                             <span>{part.partName}</span>
-                            <span className="font-medium">${part.price.toFixed(2)}</span>
+                            <span className="font-medium">{formatVND(part.price)}</span>
                           </div>
                         ))}
                       </div>
@@ -172,7 +173,7 @@ export function PartCategorySelector({
                 Selected: {selectedCategories.size} categor{selectedCategories.size !== 1 ? 'ies' : 'y'}, {getTotalParts()} part{getTotalParts() !== 1 ? 's' : ''}
               </div>
               <div className="text-lg font-bold mt-1">
-                Total: ${getTotalPrice().toFixed(2)}
+                Total: {formatVND(getTotalPrice())}
               </div>
             </div>
             <div className="flex gap-2">

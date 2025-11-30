@@ -1,4 +1,5 @@
 import { Lock } from "lucide-react"
+import { formatVND } from "@/lib/currency"
 
 interface Part {
   id: number
@@ -77,10 +78,10 @@ export default function ServicesTable({ services }: ServicesTableProps) {
                       {service.parts[0].quantity}
                     </td>
                     <td className="border-b border-border px-6 py-3 text-right text-sm text-card-foreground">
-                      ${service.parts[0].unitPrice.toLocaleString()}
+                      {formatVND(service.parts[0].unitPrice)}
                     </td>
                     <td className="border-b border-border px-6 py-3 text-right text-sm font-medium text-card-foreground">
-                      ${(service.parts[0].quantity * service.parts[0].unitPrice).toLocaleString()}
+                      {formatVND(service.parts[0].quantity * service.parts[0].unitPrice)}
                     </td>
                   </>
                 ) : (
@@ -92,10 +93,10 @@ export default function ServicesTable({ services }: ServicesTableProps) {
                       0
                     </td>
                     <td className="border-b border-border px-6 py-3 text-right text-sm text-card-foreground">
-                      $0
+                      {formatVND(0)}
                     </td>
                     <td className="border-b border-border px-6 py-3 text-right text-sm font-medium text-card-foreground">
-                      $0
+                      {formatVND(0)}
                     </td>
                   </>
                 )}
@@ -149,9 +150,9 @@ export default function ServicesTable({ services }: ServicesTableProps) {
                       <span className="text-card-foreground">{part.name}</span>
                       <div className="flex gap-4">
                         <span className="text-muted-foreground">Qty: {part.quantity}</span>
-                        <span className="text-muted-foreground">${part.unitPrice.toLocaleString()}</span>
+                        <span className="text-muted-foreground">{formatVND(part.unitPrice)}</span>
                         <span className="font-medium text-card-foreground">
-                          ${(part.quantity * part.unitPrice).toLocaleString()}
+                          {formatVND(part.quantity * part.unitPrice)}
                         </span>
                       </div>
                     </div>
@@ -164,7 +165,7 @@ export default function ServicesTable({ services }: ServicesTableProps) {
                 <div className="flex justify-between font-semibold text-card-foreground">
                   <span>Service Total:</span>
                   <span className={service.isGood ? 'text-green-600' : 'text-primary'}>
-                    {service.isGood ? '$0 (No repair needed)' : `$${service.price.toLocaleString()}`}
+                    {service.isGood ? `${formatVND(0)} (No repair needed)` : formatVND(service.price)}
                   </span>
                 </div>
               </div>

@@ -27,6 +27,7 @@ import {
 } from "lucide-react"
 import { inspectionService, InspectionDto } from "@/services/manager/inspection-service"
 import { serviceCatalog, GarageServiceCatalogItem, Part } from "@/services/service-catalog"
+import { formatVND } from "@/lib/currency"
 
 interface InspectionDetailDialogProps {
   inspectionId: string | null
@@ -380,7 +381,7 @@ export function InspectionDetailDialog({
                             <p className="text-sm text-gray-500 mt-1">{service.description}</p>
                           </div>
                           <div className="text-right">
-                            <p className="font-medium">${service.price.toLocaleString()}</p>
+                            <p className="font-medium">{formatVND(service.price || 0)}</p>
                             <p className="text-sm text-gray-500">
                               Est. {service.estimatedDuration} min
                             </p>
@@ -404,14 +405,14 @@ export function InspectionDetailDialog({
                                 <div className="text-right">
                                   {/* Display total price if available, otherwise show unit price */}
                                   {isInspectionPartWithDetails(part) && part.totalPrice ? (
-                                    <span>${part.totalPrice.toLocaleString()}</span>
+                                    <span>{formatVND(part.totalPrice)}</span>
                                   ) : (
-                                    <span>${part.price.toLocaleString()}</span>
+                                    <span>{formatVND(part.price || 0)}</span>
                                   )}
                                   {/* Show unit price breakdown if total price differs from unit price */}
                                   {isInspectionPartWithDetails(part) && part.totalPrice && part.price !== part.totalPrice && (
                                     <div className="text-gray-500 text-xs">
-                                      (${part.price.toLocaleString()} each)
+                                      ({formatVND(part.price || 0)} each)
                                     </div>
                                   )}
                                 </div>

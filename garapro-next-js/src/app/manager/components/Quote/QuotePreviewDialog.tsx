@@ -18,6 +18,7 @@ import { quotationService } from "@/services/manager/quotation-service"
 import { QuotationDto } from "@/types/manager/quotation"
 import { Button } from "@/components/ui/button"
 import { FileSearch } from "lucide-react"
+import { formatVND } from "@/lib/currency"
 
 // Helper function to convert string ID to number
 const stringIdToNumber = (id: string): number => {
@@ -313,7 +314,7 @@ export default function QuotePreviewDialog({ open, onOpenChange, quotationId }: 
                 <div className="border-t border-border pt-3">
                   <div className="flex justify-between">
                     <span className="text-lg font-semibold text-card-foreground">Total Amount:</span>
-                    <span className="text-2xl font-bold text-primary">${totalPrice.toLocaleString()}</span>
+                    <span className="text-2xl font-bold text-primary">{formatVND(totalPrice)}</span>
                   </div>
                 </div>
               </div>

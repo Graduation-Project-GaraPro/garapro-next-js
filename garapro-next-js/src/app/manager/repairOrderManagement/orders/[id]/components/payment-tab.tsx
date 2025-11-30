@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { paymentService } from "@/services/manager/payment-service"
 import { useToast } from "@/hooks/use-toast"
 import type { PaymentSummaryResponse, PaymentPreviewResponse } from "@/types/manager/payment"
+import { formatVND } from "@/lib/currency"
 
 interface PaymentTabProps {
   orderId: string
@@ -351,7 +352,7 @@ export default function PaymentTab({ orderId, repairOrderStatus, onPaymentSucces
                       {paymentSummary.paymentHistory.map((payment) => (
                         <tr key={payment.paymentId} className="border-b">
                           <td className="py-3 text-sm">{new Date(payment.createdAt).toLocaleDateString()}</td>
-                          <td className="py-3 text-sm font-medium">${payment.amount.toFixed(2)}</td>
+                          <td className="py-3 text-sm font-medium">{formatVND(payment.amount)}</td>
                           <td className="py-3 text-sm">{payment.method}</td>
                           <td className="py-3 text-sm">
                             <span className={`px-2 py-1 rounded-full text-xs ${
@@ -407,15 +408,15 @@ export default function PaymentTab({ orderId, repairOrderStatus, onPaymentSucces
                 <div className="space-y-3">
                   <div className="flex justify-between">
                     <span className="text-sm">Total Amount:</span>
-                    <span className="text-sm font-medium">${(paymentSummary?.totalAmount || 0).toFixed(2)}</span>
+                    <span className="text-sm font-medium">{formatVND(paymentSummary?.totalAmount || 0)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-red-600">Discount:</span>
-                    <span className="text-sm font-medium text-red-600">-${(paymentSummary?.discountAmount || 0).toFixed(2)}</span>
+                    <span className="text-sm font-medium text-red-600">-{formatVND(paymentSummary?.discountAmount || 0)}</span>
                   </div>
                   <div className="flex justify-between border-t pt-2 font-semibold">
                     <span>Amount to Pay:</span>
-                    <span>${(paymentSummary?.amountToPay || 0).toFixed(2)}</span>
+                    <span>{formatVND(paymentSummary?.amountToPay || 0)}</span>
                   </div>
                 </div>
 
@@ -424,7 +425,7 @@ export default function PaymentTab({ orderId, repairOrderStatus, onPaymentSucces
                   <div className="flex justify-between">
                     <span className="text-sm font-semibold">Balance Due:</span>
                     <span className={`text-sm font-bold ${balanceDue > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                      ${balanceDue.toFixed(2)}
+                      {formatVND(balanceDue)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center pt-2">
@@ -604,19 +605,19 @@ export default function PaymentTab({ orderId, repairOrderStatus, onPaymentSucces
                   <div className="space-y-2">
                     <div className="flex justify-between">
                       <span className="text-gray-600">Total Amount:</span>
-                      <span className="font-medium">${paymentSummary?.totalAmount.toFixed(2) || '0.00'}</span>
+                      <span className="font-medium">{formatVND(paymentSummary?.totalAmount || 0)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Discount:</span>
-                      <span className="font-medium text-red-600">-${paymentSummary?.discountAmount.toFixed(2) || '0.00'}</span>
+                      <span className="font-medium text-red-600">-{formatVND(paymentSummary?.discountAmount || 0)}</span>
                     </div>
                     <div className="flex justify-between text-lg font-semibold border-t pt-2">
                       <span>Amount to Pay:</span>
-                      <span>${paymentSummary?.amountToPay.toFixed(2) || '0.00'}</span>
+                      <span>{formatVND(paymentSummary?.amountToPay || 0)}</span>
                     </div>
                     <div className="flex justify-between text-lg font-bold text-red-600 border-t pt-2">
                       <span>Balance Due:</span>
-                      <span>${balanceDue.toFixed(2)}</span>
+                      <span>{formatVND(balanceDue)}</span>
                     </div>
                   </div>
                 </div>
@@ -679,7 +680,7 @@ export default function PaymentTab({ orderId, repairOrderStatus, onPaymentSucces
                             <p className="font-medium">{service.serviceName}</p>
                             <p className="text-xs text-gray-600">Duration: {service.estimatedDuration}h</p>
                           </div>
-                          <span className="font-medium">${service.price.toFixed(2)}</span>
+                          <span className="font-medium">{formatVND(service.price)}</span>
                         </div>
                       ))}
                     </div>
@@ -695,9 +696,9 @@ export default function PaymentTab({ orderId, repairOrderStatus, onPaymentSucces
                         <div key={part.partId} className="flex justify-between text-sm">
                           <div className="flex-1">
                             <p className="font-medium">{part.partName}</p>
-                            <p className="text-xs text-gray-600">Qty: {part.quantity} × ${part.unitPrice.toFixed(2)}</p>
+                            <p className="text-xs text-gray-600">Qty: {part.quantity} × {formatVND(part.unitPrice)}</p>
                           </div>
-                          <span className="font-medium">${part.totalPrice.toFixed(2)}</span>
+                          <span className="font-medium">{formatVND(part.totalPrice)}</span>
                         </div>
                       ))}
                     </div>
@@ -710,19 +711,19 @@ export default function PaymentTab({ orderId, repairOrderStatus, onPaymentSucces
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span>Estimated Amount:</span>
-                      <span className="font-medium">${paymentPreview.estimatedAmount.toFixed(2)}</span>
+                      <span className="font-medium">{formatVND(paymentPreview.estimatedAmount)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Repair Order Cost:</span>
-                      <span className="font-medium">${paymentPreview.repairOrderCost.toFixed(2)}</span>
+                      <span className="font-medium">{formatVND(paymentPreview.repairOrderCost)}</span>
                     </div>
                     <div className="flex justify-between text-red-600">
                       <span>Discount:</span>
-                      <span className="font-medium">-${paymentPreview.discountAmount.toFixed(2)}</span>
+                      <span className="font-medium">-{formatVND(paymentPreview.discountAmount)}</span>
                     </div>
                     <div className="flex justify-between border-t border-green-300 pt-2 font-bold text-lg">
                       <span>Total Amount:</span>
-                      <span className="text-red-600">${paymentPreview.totalAmount.toFixed(2)}</span>
+                      <span className="text-red-600">{formatVND(paymentPreview.totalAmount)}</span>
                     </div>
                   </div>
                 </div>
@@ -788,7 +789,7 @@ export default function PaymentTab({ orderId, repairOrderStatus, onPaymentSucces
                   ) : (
                     <>
                       <Check className="w-4 h-4 mr-2" />
-                      Confirm Payment (${paymentPreview.totalAmount.toFixed(2)})
+                      Confirm Payment ({formatVND(paymentPreview.totalAmount)})
                     </>
                   )}
                 </Button>
@@ -841,7 +842,7 @@ export default function PaymentTab({ orderId, repairOrderStatus, onPaymentSucces
                   <div className="mt-4 p-4 bg-blue-50 rounded-lg">
                     <p className="text-sm text-gray-600">Amount to Pay</p>
                     <p className="text-2xl font-bold text-[#154c79]">
-                      ${balanceDue.toFixed(2)}
+                      {formatVND(balanceDue)}
                     </p>
                   </div>
                 )}

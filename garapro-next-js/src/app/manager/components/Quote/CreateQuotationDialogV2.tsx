@@ -20,6 +20,7 @@ import {
 import type { RepairOrder } from "@/types/manager/repair-order"
 import type { PartItem } from "@/services/manager/quotation-tree-service"
 import { toast } from "sonner"
+import { formatVND } from "@/lib/currency"
 
 interface SelectedService {
   serviceId: string
@@ -205,7 +206,7 @@ export function CreateQuotationDialogV2({
                             <div className="flex-1">
                               <div className="font-medium">{service.serviceName}</div>
                               <div className="text-sm text-gray-600">
-                                ${service.servicePrice.toFixed(2)}
+                                {formatVND(service.servicePrice)}
                               </div>
                             </div>
                             <Button
@@ -230,7 +231,7 @@ export function CreateQuotationDialogV2({
                                     className="text-xs text-gray-600 flex justify-between bg-gray-50 p-2 rounded"
                                   >
                                     <span>{part.partName}</span>
-                                    <span>${part.price.toFixed(2)}</span>
+                                    <span>{formatVND(part.price)}</span>
                                   </div>
                                 ))}
                               </div>
@@ -246,7 +247,7 @@ export function CreateQuotationDialogV2({
                     <div className="border-t pt-4 mt-4">
                       <div className="flex justify-between items-center text-lg font-bold">
                         <span>Total:</span>
-                        <span>${calculateTotal().toFixed(2)}</span>
+                        <span>{formatVND(calculateTotal())}</span>
                       </div>
                     </div>
                   )}

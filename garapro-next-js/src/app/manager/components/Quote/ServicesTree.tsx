@@ -120,7 +120,7 @@ export function ServicesTree({ onServiceSelect }: ServicesTreeProps) {
               <Wrench className="w-5 h-5 text-green-600 flex-shrink-0" />
               <div className="flex-1">
                 <div className="font-medium text-sm">{service.serviceName}</div>
-                <div className="text-xs text-gray-600">${service.price.toFixed(2)}</div>
+                <div className="text-xs text-gray-600">{new Intl.NumberFormat('vi-VN').format(service.price)}₫</div>
               </div>
             </button>
           ))}

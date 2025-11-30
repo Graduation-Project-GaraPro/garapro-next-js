@@ -28,6 +28,7 @@ import QuotePreviewDialog from "@/app/manager/components/Quote/QuotePreviewDialo
 import { quotationService } from "@/services/manager/quotation-service"
 import { QuotationDto } from "@/types/manager/quotation"
 import { useEffect } from "react"
+import { formatVND } from "@/lib/currency"
 
 interface QuotationTabProps {
   orderId: string
@@ -242,7 +243,7 @@ export default function QuotationTab({ orderId }: QuotationTabProps) {
                       <td className="py-3 px-4">
                         {getStatusBadge(q.status)}
                       </td>
-                      <td className="py-3 px-4 text-right">${q.totalAmount.toFixed(2)}</td>
+                      <td className="py-3 px-4 text-right">{formatVND(q.totalAmount)}</td>
                       <td className="py-3 px-4">{new Date(q.createdAt).toLocaleDateString()}</td>
                       <td className="py-3 px-4">
                         <div className="flex justify-end gap-2">
