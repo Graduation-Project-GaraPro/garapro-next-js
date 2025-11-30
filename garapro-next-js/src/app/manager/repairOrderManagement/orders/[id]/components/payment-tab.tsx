@@ -115,6 +115,26 @@ export default function PaymentTab({ orderId, repairOrderStatus, onPaymentSucces
       return
     }
 
+    // Validate: Cannot pay if already fully paid
+    if (paymentSummary?.paymentStatus === 'Paid') {
+      toast({
+        title: "Payment Not Allowed",
+        description: "This repair order is already fully paid. No additional payment is needed.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Validate: Cannot pay if balance due is 0 or negative
+    if (balanceDue <= 0) {
+      toast({
+        title: "Payment Not Allowed",
+        description: "There is no outstanding balance for this repair order.",
+        variant: "destructive",
+      })
+      return
+    }
+
     setSelectedPaymentMethod(methodId)
     
     if (methodId === "cash") {
@@ -144,6 +164,26 @@ export default function PaymentTab({ orderId, repairOrderStatus, onPaymentSucces
   }
 
   const handleConfirmPayment = async () => {
+    // Validate: Cannot pay if already fully paid
+    if (paymentSummary?.paymentStatus === 'Paid') {
+      toast({
+        title: "Payment Not Allowed",
+        description: "This repair order is already fully paid. No additional payment is needed.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Validate: Cannot pay if balance due is 0 or negative
+    if (balanceDue <= 0) {
+      toast({
+        title: "Payment Not Allowed",
+        description: "There is no outstanding balance for this repair order.",
+        variant: "destructive",
+      })
+      return
+    }
+
     try {
       setProcessingPayment(true)
       
@@ -302,30 +342,42 @@ export default function PaymentTab({ orderId, repairOrderStatus, onPaymentSucces
             <CardTitle>Select payment method</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 gap-4">
-              {paymentMethods.map((method) => (
-                <div
-                  key={method.id}
-                  className={`p-6 border-2 rounded-lg cursor-pointer transition-all hover:shadow-md ${
-                    selectedPaymentMethod === method.id
-                      ? "border-[#154c79] bg-blue-50"
-                      : "border-gray-200 hover:border-gray-300"
-                  }`}
-                  onClick={() => handlePaymentMethodSelect(method.id)}
-                >
-                  <div className="flex flex-col items-center gap-3">
-                    <div className={`p-3 rounded-full ${
-                      selectedPaymentMethod === method.id
-                        ? "bg-[#154c79] text-white"
-                        : "bg-gray-100 text-gray-600"
-                    }`}>
-                      {method.icon}
-                    </div>
-                    <h3 className="font-semibold text-center">{method.name}</h3>
-                  </div>
+            {paymentSummary?.paymentStatus === 'Paid' ? (
+              <div className="text-center py-8">
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Check className="w-8 h-8 text-green-600" />
                 </div>
-              ))}
-            </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Fully Paid</h3>
+                <p className="text-gray-600">
+                  This repair order has been fully paid. No additional payment is needed.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-4">
+                {paymentMethods.map((method) => (
+                  <div
+                    key={method.id}
+                    className={`p-6 border-2 rounded-lg cursor-pointer transition-all hover:shadow-md ${
+                      selectedPaymentMethod === method.id
+                        ? "border-[#154c79] bg-blue-50"
+                        : "border-gray-200 hover:border-gray-300"
+                    }`}
+                    onClick={() => handlePaymentMethodSelect(method.id)}
+                  >
+                    <div className="flex flex-col items-center gap-3">
+                      <div className={`p-3 rounded-full ${
+                        selectedPaymentMethod === method.id
+                          ? "bg-[#154c79] text-white"
+                          : "bg-gray-100 text-gray-600"
+                      }`}>
+                        {method.icon}
+                      </div>
+                      <h3 className="font-semibold text-center">{method.name}</h3>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 

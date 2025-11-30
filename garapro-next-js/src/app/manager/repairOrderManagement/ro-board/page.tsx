@@ -13,12 +13,15 @@ import { useRouter } from "next/navigation"
 import { repairOrderService } from "@/services/manager/repair-order-service"
 import { repairOrderHubService, type RoBoardCardDto } from "@/services/manager/repair-order-hub"
 import { labelService } from "@/services/manager/label-service"
+import { jobService } from "@/services/manager/job-service"
+import { quotationService } from "@/services/manager/quotation-service"
 import type { RepairOrder, CreateRepairOrderRequest } from "@/types/manager/repair-order"
 import type { OrderStatus } from "@/types/manager/order-status"
 import type { Job } from "@/types/job"
 import { toast } from "sonner"
 import { SearchForm } from "@/app/manager/components/layout/search-form"
 import { authService } from "@/services/authService"
+import { validateStatusTransition, canArchiveRepairOrder } from "@/utils/repair-order-status-validation"
 
 type ViewMode = "board" | "list"
 
@@ -264,6 +267,24 @@ export default function BoardPage() {
         return
       }
       
+      // Find the repair order to validate
+      const repairOrder = repairOrders.find(ro => ro.repairOrderId === archivingRepairOrderId)
+      
+      if (!repairOrder) {
+        toast.error("Repair order not found")
+        return
+      }
+      
+      // Validate archive requirements
+      const archiveValidation = canArchiveRepairOrder(repairOrder)
+      
+      if (!archiveValidation.canArchive) {
+        toast.error(`Cannot archive repair order. ${archiveValidation.reason}`)
+        setArchivingRepairOrderId(null)
+        setIsArchiving(false)
+        return
+      }
+      
       await repairOrderService.archiveRepairOrder({
         repairOrderId: archivingRepairOrderId,
         archiveReason,
@@ -286,6 +307,36 @@ export default function BoardPage() {
   // Handle drag and drop - this is the main function for moving repair orders
   const handleMoveRepairOrder = async (repairOrderId: string, newStatusId: string) => {
     try {
+      // Find the repair order
+      const repairOrder = repairOrders.find(ro => ro.repairOrderId === repairOrderId)
+      
+      if (!repairOrder) {
+        toast.error("Repair order not found")
+        return
+      }
+      
+      const fromStatusId = repairOrder.statusId
+      
+      // Fetch jobs and quotations for validation
+      const [jobs, quotations] = await Promise.all([
+        jobService.getJobsByRepairOrderId(repairOrderId).catch(() => []),
+        quotationService.getQuotationsByRepairOrderId(repairOrderId).catch(() => [])
+      ])
+      
+      // Validate the status transition
+      const validation = validateStatusTransition(
+        repairOrder,
+        fromStatusId,
+        newStatusId,
+        jobs,
+        quotations
+      )
+      
+      if (!validation.isValid) {
+        toast.error(validation.message || "This status transition is not allowed")
+        return
+      }
+      
       // Call the API to update the status
       const result = await repairOrderHubService.updateRepairOrderStatus(repairOrderId, newStatusId);
       

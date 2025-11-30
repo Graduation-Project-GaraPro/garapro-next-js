@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -13,6 +13,7 @@ import { quotationService } from "@/services/manager/quotation-service"
 import { CreateInspectionDialog } from "./create-inspection-dialog"
 import { TechnicianSelectionDialog } from "@/components/manager/technician-selection-dialog"
 import { InspectionDetailDialog } from "./inspection-detail-dialog"
+import { useInspectionHub } from "@/hooks/use-inspection-hub"
 
 interface InspectionsTabProps {
   orderId: string
@@ -34,6 +35,242 @@ export default function InspectionsTab({ orderId, highlightInspectionId }: Inspe
   const [convertingInspectionId, setConvertingInspectionId] = useState<string | null>(null)
   const [inspectionQuotations, setInspectionQuotations] = useState<Record<string, boolean>>({})
   const inspectionRefs = useRef<Record<string, HTMLDivElement | null>>({})
+  const [, forceUpdate] = useState({})
+
+  // Debug: Log whenever inspectionTasks changes
+  useEffect(() => {
+    console.log("🔄 InspectionTasks state changed:", inspectionTasks.map(t => ({ 
+      id: t.inspectionId.slice(0, 8), 
+      status: t.status 
+    })))
+  }, [inspectionTasks])
+
+  // Helper function to highlight an inspection
+  const highlightInspection = useCallback((inspectionId: string) => {
+    setHighlightedInspectionId(inspectionId)
+    setTimeout(() => {
+      const element = inspectionRefs.current[inspectionId]
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth", block: "center" })
+      }
+    }, 300)
+    setTimeout(() => setHighlightedInspectionId(null), 3000)
+  }, [])
+
+  // ✅ FIXED: Real-time SignalR callbacks with functional state updates
+  const handleInspectionStatusUpdated = useCallback((notification: any) => {
+    console.log("🔔 Received InspectionStatusUpdated:", notification)
+    console.log("🔍 Notification structure:", {
+      inspectionId: notification.inspectionId,
+      repairOrderId: notification.repairOrderId,
+      newStatus: notification.newStatus,
+      hasInspectionObject: !!notification.inspection,
+      inspectionObject: notification.inspection
+    })
+    
+    // Only update if this notification is for the current repair order
+    if (notification.repairOrderId === orderId) {
+      console.log("✅ Updating inspection status in UI")
+      
+      // ✅ Use functional update to avoid stale closure
+      setInspectionTasks(prev => {
+        const updated = prev.map(task => {
+          if (task.inspectionId === notification.inspectionId) {
+            // Merge the notification data properly
+            const updatedTask = {
+              ...task,
+              status: notification.newStatus || task.status,
+              technicianId: notification.technicianId || task.technicianId,
+              technicianName: notification.technicianName || task.technicianName,
+              updatedAt: notification.updatedAt || new Date().toISOString(),
+              // Merge inspection object if provided
+              ...(notification.inspection || {})
+            }
+            console.log("🔄 Updated task:", { old: task, new: updatedTask })
+            return updatedTask
+          }
+          return task
+        })
+        console.log("📊 All inspections after update:", updated)
+        return updated
+      })
+      
+      // Show toast notification
+      toast.info(`Inspection status changed to ${notification.newStatus}`, {
+        description: `By ${notification.technicianName}`
+      })
+    } else {
+      console.log("⏭️ Skipping update - different repair order", {
+        notificationOrderId: notification.repairOrderId,
+        currentOrderId: orderId
+      })
+    }
+  }, [orderId])
+
+  const handleInspectionCompleted = useCallback((notification: any) => {
+    console.log("🎉 Received InspectionCompleted:", notification)
+    console.log("🔍 Completion notification structure:", {
+      inspectionId: notification.inspectionId,
+      repairOrderId: notification.repairOrderId,
+      hasInspectionDetails: !!notification.inspectionDetails,
+      inspectionDetails: notification.inspectionDetails
+    })
+    
+    // Only update if this notification is for the current repair order
+    if (notification.repairOrderId === orderId) {
+      console.log("✅ Updating completed inspection in UI")
+      
+      // ✅ Use functional update to avoid stale closure
+      setInspectionTasks(prev => {
+        const updated = prev.map(task => {
+          if (task.inspectionId === notification.inspectionId) {
+            const updatedTask = {
+              ...task,
+              status: "Completed",
+              finding: notification.finding || task.finding,
+              issueRating: notification.issueRating ?? task.issueRating,
+              updatedAt: notification.completedAt || new Date().toISOString(),
+              // Merge inspectionDetails if provided
+              ...(notification.inspectionDetails || {})
+            }
+            console.log("🔄 Completed task:", { old: task, new: updatedTask })
+            return updatedTask
+          }
+          return task
+        })
+        console.log("📊 All inspections after completion:", updated)
+        return updated
+      })
+      
+      // Show success toast with action button
+      toast.success(notification.message || "Inspection completed successfully", {
+        description: `${notification.serviceCount || 0} services, ${notification.partCount || 0} parts identified`,
+        action: {
+          label: "Convert to Quotation",
+          onClick: () => handleConvertToQuotation(notification.inspectionId)
+        },
+        duration: 10000
+      })
+      
+      // Highlight the completed inspection
+      highlightInspection(notification.inspectionId)
+    } else {
+      console.log("⏭️ Skipping update - different repair order", {
+        notificationOrderId: notification.repairOrderId,
+        currentOrderId: orderId
+      })
+    }
+  }, [orderId, highlightInspection])
+
+  const handleInspectionRetrieved = useCallback((notification: any) => {
+    console.log("📥 Received InspectionRetrieved:", notification)
+    
+    // ✅ Use functional update to check if inspection belongs to current order
+    setInspectionTasks(prev => {
+      const inspection = prev.find(t => t.inspectionId === notification.inspectionId)
+      
+      if (inspection) {
+        console.log("✅ Updating retrieved inspection in UI")
+        
+        toast.info("Inspection retrieved by technician", {
+          description: `Technician is now working on this inspection`
+        })
+        
+        return prev.map(task => 
+          task.inspectionId === notification.inspectionId 
+            ? { ...task, ...notification.inspection }
+            : task
+        )
+      }
+      
+      console.log("⏭️ Skipping update - inspection not in current list")
+      return prev
+    })
+  }, [])
+
+  const handleInspectionStarted = useCallback((notification: any) => {
+    console.log("🚀 Received InspectionStarted:", notification)
+    console.log("🔍 Started notification structure:", {
+      inspectionId: notification.inspectionId,
+      repairOrderId: notification.repairOrderId,
+      technicianName: notification.technicianName,
+      startedAt: notification.startedAt
+    })
+    
+    // Only update if this notification is for the current repair order
+    if (notification.repairOrderId === orderId) {
+      console.log("✅ Updating inspection to In Progress")
+      
+      // ✅ Use functional update to avoid stale closure
+      setInspectionTasks(prev => {
+        console.log("📋 Current inspections before update:", prev.map(t => ({ 
+          id: t.inspectionId.slice(0, 8), 
+          status: t.status 
+        })))
+        
+        const updated = prev.map(task => {
+          if (task.inspectionId === notification.inspectionId) {
+            const updatedTask = {
+              ...task,
+              status: "InProgress", // Make sure this matches the status in getStatusDisplayName
+              technicianId: notification.technicianId || task.technicianId,
+              technicianName: notification.technicianName || task.technicianName,
+              updatedAt: notification.startedAt || new Date().toISOString()
+            }
+            console.log("🔄 Started task update:", { 
+              inspectionId: task.inspectionId.slice(0, 8),
+              oldStatus: task.status, 
+              newStatus: updatedTask.status,
+              technicianName: updatedTask.technicianName
+            })
+            return updatedTask
+          }
+          return task
+        })
+        
+        console.log("📊 All inspections after start:", updated.map(t => ({ 
+          id: t.inspectionId.slice(0, 8), 
+          status: t.status 
+        })))
+        
+        // Verify the update happened
+        const updatedInspection = updated.find(t => t.inspectionId === notification.inspectionId)
+        console.log("🔍 Verification - Updated inspection:", {
+          id: updatedInspection?.inspectionId.slice(0, 8),
+          status: updatedInspection?.status,
+          technicianName: updatedInspection?.technicianName
+        })
+        
+        return updated
+      })
+      
+      // Show toast notification
+      toast.info(`Inspection started`, {
+        description: `${notification.technicianName} is now working on this inspection`
+      })
+      
+      // Highlight the inspection that was started
+      highlightInspection(notification.inspectionId)
+      
+      // Force a re-render to ensure UI updates
+      forceUpdate({})
+    } else {
+      console.log("⏭️ Skipping update - different repair order", {
+        notificationOrderId: notification.repairOrderId,
+        currentOrderId: orderId
+      })
+    }
+  }, [orderId, highlightInspection])
+
+  // Real-time SignalR updates for inspections
+  useInspectionHub({
+    isManager: true,
+    autoConnect: true,
+    onInspectionStatusUpdated: handleInspectionStatusUpdated,
+    onInspectionStarted: handleInspectionStarted,
+    onInspectionCompleted: handleInspectionCompleted,
+    onInspectionRetrieved: handleInspectionRetrieved
+  })
 
   useEffect(() => {
     const fetchData = async () => {
@@ -49,6 +286,8 @@ export default function InspectionsTab({ orderId, highlightInspectionId }: Inspe
         
         // Fetch inspections
         const inspections = await inspectionService.getInspectionsByRepairOrderId(orderId)
+        console.log("📋 Loaded inspections:", inspections)
+        console.log("📋 Inspection statuses:", inspections.map(i => ({ id: i.inspectionId.slice(0, 8), status: i.status })))
         setInspectionTasks(inspections)
         
         // Check which inspections have quotations
@@ -80,22 +319,9 @@ export default function InspectionsTab({ orderId, highlightInspectionId }: Inspe
     const inspectionIdToHighlight = highlightInspectionId || searchParams?.get("highlightInspection")
     
     if (inspectionIdToHighlight && inspectionTasks.length > 0) {
-      setHighlightedInspectionId(inspectionIdToHighlight)
-      
-      // Scroll to the highlighted inspection after a short delay
-      setTimeout(() => {
-        const element = inspectionRefs.current[inspectionIdToHighlight]
-        if (element) {
-          element.scrollIntoView({ behavior: "smooth", block: "center" })
-        }
-      }, 300)
-      
-      // Remove highlight after 3 seconds
-      setTimeout(() => {
-        setHighlightedInspectionId(null)
-      }, 3000)
+      highlightInspection(inspectionIdToHighlight)
     }
-  }, [highlightInspectionId, searchParams, inspectionTasks])
+  }, [highlightInspectionId, searchParams, inspectionTasks.length, highlightInspection])
 
   const getStatusDisplayName = (status: string): string => {
     switch (status.toLowerCase()) {
@@ -132,6 +358,7 @@ export default function InspectionsTab({ orderId, highlightInspectionId }: Inspe
     const fetchInspections = async () => {
       try {
         const inspections = await inspectionService.getInspectionsByRepairOrderId(orderId)
+        console.log("🔄 Refreshed inspections after creation:", inspections)
         setInspectionTasks(inspections)
         
         // Refresh quotation checks
@@ -176,6 +403,15 @@ export default function InspectionsTab({ orderId, highlightInspectionId }: Inspe
   }
 
   const handleAssignTech = (inspectionId: string) => {
+    // Check if inspection is in progress
+    const inspection = inspectionTasks.find(t => t.inspectionId === inspectionId)
+    if (inspection && inspection.status.toLowerCase() === "inprogress") {
+      toast.error("Cannot reassign technician", {
+        description: "This inspection is currently in progress. Please wait until it's completed or ask the technician to pause it."
+      })
+      return
+    }
+    
     setSelectedInspectionId(inspectionId)
     setIsAssignDialogOpen(true)
   }
@@ -194,13 +430,22 @@ export default function InspectionsTab({ orderId, highlightInspectionId }: Inspe
       
       // Refresh the inspections list to show the change
       const inspections = await inspectionService.getInspectionsByRepairOrderId(orderId)
+      console.log("🔄 Refreshed inspections after assignment:", inspections)
       setInspectionTasks(inspections)
+      
+      toast.success("Technician assigned successfully")
       
       setIsAssignDialogOpen(false)
       setSelectedInspectionId(null)
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to assign technician:", err)
-      // Handle error appropriately
+      
+      // Check if it's a validation error from backend
+      const errorMessage = err?.response?.data?.message || err?.message || "Failed to assign technician"
+      
+      toast.error("Assignment Failed", {
+        description: errorMessage
+      })
     }
   }
 
@@ -313,7 +558,9 @@ export default function InspectionsTab({ orderId, highlightInspectionId }: Inspe
                           variant="outline" 
                           size="sm" 
                           onClick={() => handleAssignTech(task.inspectionId)}
+                          disabled={task.status.toLowerCase() === "inprogress"}
                           className="flex items-center gap-2"
+                          title={task.status.toLowerCase() === "inprogress" ? "Cannot reassign while in progress" : ""}
                         >
                           {task.technicianName ? (
                             <>

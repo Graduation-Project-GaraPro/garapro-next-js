@@ -82,8 +82,10 @@ export default function RepairOrderCard({
     ? [defaultLabel]
     : []
 
-  // Show archive icon only for cancelled or completed ROs
-  const canArchive = repairOrder.isCancelled || isCompleted
+  // Show archive icon only for:
+  // 1. Cancelled ROs, OR
+  // 2. Completed ROs that are fully paid
+  const canArchive = repairOrder.isCancelled || (isCompleted && repairOrder.paidStatus === PaidStatus.Paid)
 
   const getPaidStatusColor = (status: PaidStatus) => {
     switch (status) {
@@ -248,8 +250,12 @@ export default function RepairOrderCard({
             </div>
           </div>
           <div className="flex items-center gap-0.5">
-            
-            <span className="font-semibold text-green-600">{formatCurrency(repairOrder.estimatedAmount)}</span>
+            <span className="font-semibold text-green-600">
+              {repairOrder.cost > 0 
+                ? formatCurrency(repairOrder.cost)
+                : formatCurrency(repairOrder.estimatedAmount)
+              }
+            </span>
           </div>
         </div>
 

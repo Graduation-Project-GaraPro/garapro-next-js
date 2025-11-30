@@ -25,9 +25,10 @@ import {
   Image as ImageIcon,
   AlertCircle
 } from "lucide-react"
-import { inspectionService, InspectionDto } from "@/services/manager/inspection-service"
+import { inspectionService, InspectionDto, InspectionServiceDto } from "@/services/manager/inspection-service"
 import { serviceCatalog, GarageServiceCatalogItem, Part } from "@/services/service-catalog"
 import { formatVND } from "@/lib/currency"
+import { ConditionStatus } from "@/types/manager/inspection"
 
 interface InspectionDetailDialogProps {
   inspectionId: string | null
@@ -51,8 +52,8 @@ export function InspectionDetailDialog({
   onOpenChange 
 }: InspectionDetailDialogProps) {
   const [inspection, setInspection] = useState<InspectionDto | null>(null)
-  const [services, setServices] = useState<GarageServiceCatalogItem[]>([])
-  const [parts, setParts] = useState<Record<string, Part[]>>({})
+  const [services, setServices] = useState<InspectionServiceDto[]>([])
+  const [parts, setParts] = useState<Record<string, Array<{ partId: string; name: string; quantity: number; status?: string | null }>>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [converting, setConverting] = useState(false)
@@ -73,44 +74,57 @@ export function InspectionDetailDialog({
       const inspectionData = await inspectionService.getInspectionById(inspectionId!)
       setInspection(inspectionData)
       
-      // Use services from the inspection data
-      if (inspectionData.services) {
-        // Convert inspection services to the format expected by the UI
-        const inspectionServices = inspectionData.services.map(service => ({
-          serviceId: service.serviceId,
-          serviceCategoryId: '', // This might need to be fetched separately if needed
-          serviceName: service.serviceName,
-          description: service.description,
-          price: service.price,
-          estimatedDuration: service.estimatedDuration,
-          isActive: true,
-          isAdvanced: false,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        }));
-        setServices(inspectionServices);
+      // Use services from the inspection data directly
+      if (inspectionData.services && inspectionData.services.length > 0) {
+        // Log the services data to debug conditionStatus
+        console.log('Inspection services data:', inspectionData.services);
+        
+        // Store services as-is with their inspection-specific fields
+        setServices(inspectionData.services);
         
         // Convert parts data to the format expected by the UI
-        const partsData: Record<string, Part[]> = {};
+        const partsData: Record<string, any[]> = {};
         inspectionData.services.forEach(service => {
-          partsData[service.serviceId] = service.parts.map(part => ({
-            partId: part.partId,
-            name: part.name,
-            price: part.price,
-            stock: 0 // This might need to be fetched separately if needed
-          }));
+          console.log(`Service ${service.serviceId} conditionStatus:`, service.conditionStatus);
+          if (service.parts && service.parts.length > 0) {
+            partsData[service.serviceId] = service.parts.map(part => ({
+              partId: part.partId,
+              name: part.partName,
+              quantity: part.quantity,
+              status: part.status
+            }));
+          }
         });
         setParts(partsData);
       } else {
         // Fallback to generic inspection services if none are provided
         const inspectionServices = await inspectionService.getInspectionServices();
-        setServices(inspectionServices);
+        
+        // Convert to InspectionServiceDto format with default conditionStatus
+        const convertedServices: InspectionServiceDto[] = inspectionServices.map(service => ({
+          serviceInspectionId: service.serviceId,
+          serviceId: service.serviceId,
+          serviceName: service.serviceName,
+          conditionStatus: 0, // Default to Good
+          createdAt: new Date().toISOString(),
+          description: service.description,
+          price: service.price,
+          estimatedDuration: service.estimatedDuration,
+          parts: []
+        }));
+        
+        setServices(convertedServices);
         
         // Load parts for each service
-        const partsData: Record<string, Part[]> = {};
+        const partsData: Record<string, Array<{ partId: string; name: string; quantity: number; status?: string | null }>> = {};
         for (const service of inspectionServices) {
           const serviceParts = await serviceCatalog.getPartsByServiceId(service.serviceId);
-          partsData[service.serviceId] = serviceParts;
+          partsData[service.serviceId] = serviceParts.map(part => ({
+            partId: part.partId,
+            name: part.name,
+            quantity: 1, // Default quantity
+            status: null
+          }));
         }
         setParts(partsData);
       }
@@ -147,6 +161,36 @@ export function InspectionDetailDialog({
         return "bg-purple-100 text-purple-800"
       case "completed":
         return "bg-green-100 text-green-800"
+      default:
+        return "bg-gray-100 text-gray-800"
+    }
+  }
+
+  const getConditionStatusName = (status: number | undefined | null): string => {
+    if (status === undefined || status === null) return "Not Assessed"
+    
+    switch (status) {
+      case ConditionStatus.Good:
+        return "Good"
+      case ConditionStatus.Needs_Attention:
+        return "Needs Attention"
+      case ConditionStatus.Replace:
+        return "Replace"
+      default:
+        return "Unknown"
+    }
+  }
+
+  const getConditionStatusBadge = (status: number | undefined | null): string => {
+    if (status === undefined || status === null) return "bg-gray-100 text-gray-800"
+    
+    switch (status) {
+      case ConditionStatus.Good:
+        return "bg-green-100 text-green-800"
+      case ConditionStatus.Needs_Attention:
+        return "bg-yellow-100 text-yellow-800"
+      case ConditionStatus.Replace:
+        return "bg-red-100 text-red-800"
       default:
         return "bg-gray-100 text-gray-800"
     }
@@ -376,15 +420,16 @@ export function InspectionDetailDialog({
                     <div key={service.serviceId} className="border rounded-lg">
                       <div className="p-4 border-b">
                         <div className="flex justify-between items-start">
-                          <div>
+                          <div className="flex-1">
                             <h3 className="font-medium">{service.serviceName}</h3>
-                            <p className="text-sm text-gray-500 mt-1">{service.description}</p>
+                            {service.description && (
+                              <p className="text-sm text-gray-500 mt-1">{service.description}</p>
+                            )}
                           </div>
                           <div className="text-right">
-                            <p className="font-medium">{formatVND(service.price || 0)}</p>
-                            <p className="text-sm text-gray-500">
-                              Est. {service.estimatedDuration} min
-                            </p>
+                            <Badge className={getConditionStatusBadge(service.conditionStatus)}>
+                              {getConditionStatusName(service.conditionStatus)}
+                            </Badge>
                           </div>
                         </div>
                       </div>
@@ -395,26 +440,9 @@ export function InspectionDetailDialog({
                           <div className="space-y-2">
                             {parts[service.serviceId].map((part) => (
                               <div key={part.partId} className="flex justify-between text-sm">
-                                <div>
+                                <div className="flex-1">
                                   <span>{part.name}</span>
-                                  {/* Display quantity if available and greater than 1 */}
-                                  {isInspectionPartWithDetails(part) && part.quantity > 1 && (
-                                    <span className="text-gray-500 ml-2">(x{part.quantity})</span>
-                                  )}
-                                </div>
-                                <div className="text-right">
-                                  {/* Display total price if available, otherwise show unit price */}
-                                  {isInspectionPartWithDetails(part) && part.totalPrice ? (
-                                    <span>{formatVND(part.totalPrice)}</span>
-                                  ) : (
-                                    <span>{formatVND(part.price || 0)}</span>
-                                  )}
-                                  {/* Show unit price breakdown if total price differs from unit price */}
-                                  {isInspectionPartWithDetails(part) && part.totalPrice && part.price !== part.totalPrice && (
-                                    <div className="text-gray-500 text-xs">
-                                      ({formatVND(part.price || 0)} each)
-                                    </div>
-                                  )}
+                                  <span className="text-gray-500 ml-2">Qty: {part.quantity}</span>
                                 </div>
                               </div>
                             ))}

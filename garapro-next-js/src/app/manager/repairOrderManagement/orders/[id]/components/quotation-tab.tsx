@@ -20,7 +20,9 @@ import {
   Briefcase,
   Loader2,
   Trash2,
-  AlertTriangle
+  AlertTriangle,
+  Wifi,
+  WifiOff
 } from "lucide-react"
 import { toast } from "sonner"
 import { CreateQuotationDialog } from "@/app/manager/components/Quote"
@@ -29,6 +31,8 @@ import { quotationService } from "@/services/manager/quotation-service"
 import { QuotationDto } from "@/types/manager/quotation"
 import { useEffect } from "react"
 import { formatVND } from "@/lib/currency"
+import { useQuotationHub } from "@/hooks/use-quotation-hub"
+import { authService } from "@/services/authService"
 
 interface QuotationTabProps {
   orderId: string
@@ -45,14 +49,38 @@ export default function QuotationTab({ orderId }: QuotationTabProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [quotationToDelete, setQuotationToDelete] = useState<string | null>(null)
 
+  // Get current user for SignalR
+  const currentUser = authService.getCurrentUser();
+  const userId = currentUser?.userId || undefined;
+
+  // ✨ Initialize SignalR connection for real-time customer response updates
+  const { isConnected, connectionId } = useQuotationHub({
+    userId: userId,
+    onCustomerResponse: (event) => {
+      console.log("Customer response received in quotation tab:", event);
+      // Reload quotations to show updated status
+      loadQuotations();
+    },
+    onQuotationUpdate: (quotation) => {
+      console.log("Quotation updated in quotation tab:", quotation);
+      // Update the specific quotation in the list
+      setQuotations(prev => 
+        prev.map(q => q.quotationId === quotation.quotationId ? quotation : q)
+      );
+    },
+    autoConnect: true
+  });
+
   useEffect(() => {
     let pollingInterval: NodeJS.Timeout | null = null;
     
     // Load initial quotations
     loadQuotations();
     
-    // Set up polling for updates
-    pollingInterval = setInterval(loadQuotations, 30000); // Poll every 30 seconds
+    // Set up polling for updates (as fallback if SignalR is not connected)
+    // Reduce polling frequency when SignalR is connected
+    const pollingFrequency = isConnected ? 60000 : 30000; // 60s if connected, 30s if not
+    pollingInterval = setInterval(loadQuotations, pollingFrequency);
 
     // Cleanup function
     return () => {
@@ -61,7 +89,7 @@ export default function QuotationTab({ orderId }: QuotationTabProps) {
         clearInterval(pollingInterval);
       }
     };
-  }, [orderId]);
+  }, [orderId, isConnected]);
 
   const loadQuotations = async () => {
     try {
@@ -190,7 +218,20 @@ export default function QuotationTab({ orderId }: QuotationTabProps) {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Quotations</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-gray-900">Quotations</h1>
+            <div className="flex items-center gap-1.5">
+              {isConnected ? (
+                <>
+                  <Wifi className="w-4 h-4 text-green-600" />
+                </>
+              ) : (
+                <>
+                  <WifiOff className="w-4 h-4 text-gray-400" />
+                </>
+              )}
+            </div>
+          </div>
           <p className="text-sm text-gray-600 mt-1">
             Create quotations manually or convert from completed inspections
           </p>
