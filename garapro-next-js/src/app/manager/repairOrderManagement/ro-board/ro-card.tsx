@@ -1,11 +1,14 @@
 "use client"
 
-import { MoreHorizontal, Edit, Trash2, Clock, DollarSign, User, ExternalLink, Calendar } from "lucide-react"
+import { useState } from "react"
+import { MoreHorizontal, Edit, Trash2, Clock, DollarSign, User, ExternalLink, Calendar, XCircle, Archive, Tag } from "lucide-react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { useRouter } from "next/navigation"
+import LabelSelectionDialog from "./label-selection-dialog"
 import type { RepairOrder } from "@/types/manager/repair-order"
 import { PaidStatus } from "@/types/manager/repair-order"
 
@@ -15,18 +18,72 @@ interface RepairOrderCardProps {
   onDragEnd: () => void
   onEdit: () => void
   onDelete: () => void
+  onCancel?: () => void
+  onArchive?: () => void
+  onLabelsUpdated?: (repairOrderId: string, labels: Array<{
+    labelId: string
+    labelName: string
+    colorName: string
+    hexCode: string
+    orderStatusId: number
+  }>) => void
+  isPending?: boolean
+  isCompleted?: boolean
+  defaultLabel?: { labelName: string; hexCode: string } | null
 }
 
-export default function RepairOrderCard({ repairOrder, onDragStart, onDragEnd, onEdit, onDelete }: RepairOrderCardProps) {
+export default function RepairOrderCard({ 
+  repairOrder, 
+  onDragStart, 
+  onDragEnd, 
+  onEdit, 
+  onDelete, 
+  onCancel,
+  onArchive,
+  onLabelsUpdated,
+  isPending = false,
+  isCompleted = false,
+  defaultLabel = null
+}: RepairOrderCardProps) {
   const router = useRouter()
+  const [showLabelDialog, setShowLabelDialog] = useState(false)
 
   const handleCardClick = (e: React.MouseEvent) => {
-    // Prevent navigation when clicking on dropdown or other interactive elements
-    if ((e.target as HTMLElement).closest('[role="menuitem"], button')) {
+    // Don't navigate if dialog is open
+    if (showLabelDialog) {
       return
     }
+    
+    // Prevent navigation when clicking on dropdown or other interactive elements
+    const target = e.target as HTMLElement
+    if (target.closest('[role="menuitem"], button, [data-label-area], [role="dialog"]')) {
+      return
+    }
+    
     router.push(`/manager/repairOrderManagement/orders/${repairOrder.repairOrderId}`)
   }
+
+  const handleLabelsUpdated = (labels: Array<{
+    labelId: string
+    labelName: string
+    colorName: string
+    hexCode: string
+    orderStatusId: number
+  }>) => {
+    if (onLabelsUpdated) {
+      onLabelsUpdated(repairOrder.repairOrderId, labels)
+    }
+  }
+
+  // Determine which labels to display
+  const displayLabels = repairOrder.assignedLabels && repairOrder.assignedLabels.length > 0
+    ? repairOrder.assignedLabels
+    : defaultLabel
+    ? [defaultLabel]
+    : []
+
+  // Show archive icon only for cancelled or completed ROs
+  const canArchive = repairOrder.isCancelled || isCompleted
 
   const getPaidStatusColor = (status: PaidStatus) => {
     switch (status) {
@@ -66,7 +123,11 @@ export default function RepairOrderCard({ repairOrder, onDragStart, onDragEnd, o
 
   return (
     <Card
-      className="group rounded-sm border border-gray-200 cursor-move hover:shadow-md transition-shadow hover:border-blue-300"
+      className={`group rounded-sm border cursor-move hover:shadow-md transition-shadow ${
+        repairOrder.isCancelled 
+          ? 'border-red-300 bg-red-50/30 opacity-75' 
+          : 'border-gray-200 hover:border-blue-300'
+      }`}
       draggable
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
@@ -74,7 +135,15 @@ export default function RepairOrderCard({ repairOrder, onDragStart, onDragEnd, o
     >
       <CardHeader className="px-2">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {repairOrder.isCancelled && (
+              <Badge
+                variant="outline"
+                className="text-xs font-medium px-1 py-0 h-4 bg-red-100 text-red-700 border-red-300"
+              >
+                CANCELLED
+              </Badge>
+            )}
             <Badge
               variant="outline"
               className={`text-xs font-medium px-1 py-0 h-4 ${getPaidStatusColor(repairOrder.paidStatus)}`}
@@ -95,6 +164,12 @@ export default function RepairOrderCard({ repairOrder, onDragStart, onDragEnd, o
                 <Edit className="w-4 h-4 mr-2" />
                 Edit
               </DropdownMenuItem>
+              {isPending && onCancel && (
+                <DropdownMenuItem onClick={onCancel} className="text-orange-600">
+                  <XCircle className="w-4 h-4 mr-2" />
+                  Cancel
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem onClick={onDelete} className="text-red-600">
                 <Trash2 className="w-4 h-4 mr-2" />
                 Delete
@@ -105,6 +180,49 @@ export default function RepairOrderCard({ repairOrder, onDragStart, onDragEnd, o
         <div className="mt-0.5">
           <div className="text-xs text-gray-900 font-medium leading-tight">
             {repairOrder.note || "No description"} • {repairOrder.roTypeName}
+          </div>
+          {repairOrder.isCancelled && repairOrder.cancelReason && (
+            <div className="text-xs text-red-600 italic mt-0.5">
+              Reason: {repairOrder.cancelReason}
+            </div>
+          )}
+          {/* Display labels - clickable to open selection dialog */}
+          <div 
+            className="flex flex-wrap gap-1 mt-1 cursor-pointer hover:opacity-80 transition-opacity"
+            data-label-area
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              setShowLabelDialog(true)
+            }}
+            onMouseDown={(e) => {
+              e.stopPropagation()
+            }}
+          >
+            {displayLabels.length > 0 ? (
+              displayLabels.map((label, index) => (
+                <Badge
+                  key={index}
+                  variant="outline"
+                  className="text-xs font-medium px-1.5 py-0 h-4"
+                  style={{
+                    backgroundColor: `${label.hexCode}20`,
+                    borderColor: label.hexCode,
+                    color: label.hexCode
+                  }}
+                >
+                  {label.labelName}
+                </Badge>
+              ))
+            ) : (
+              <Badge
+                variant="outline"
+                className="text-xs font-medium px-1.5 py-0 h-4 bg-gray-100 text-gray-500 border-gray-300"
+              >
+                <Tag className="w-2.5 h-2.5 mr-1" />
+                Add Label
+              </Badge>
+            )}
           </div>
         </div>
       </CardHeader>
@@ -130,7 +248,7 @@ export default function RepairOrderCard({ repairOrder, onDragStart, onDragEnd, o
             </div>
           </div>
           <div className="flex items-center gap-0.5">
-            <DollarSign className="w-2.5 h-2.5 text-green-600" />
+            
             <span className="font-semibold text-green-600">{formatCurrency(repairOrder.estimatedAmount)}</span>
           </div>
         </div>
@@ -146,7 +264,31 @@ export default function RepairOrderCard({ repairOrder, onDragStart, onDragEnd, o
         </div>
 
         <div className="flex items-center justify-between text-xs text-gray-500 pt-0.5">
-          <span>Est. completion: {formatDate(repairOrder.estimatedCompletionDate)}</span>
+          <div className="flex items-center gap-1">
+            <span>Est. completion: {formatDate(repairOrder.estimatedCompletionDate)}</span>
+            {canArchive && onArchive && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-4 w-4 p-0 hover:bg-blue-100"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onArchive()
+                      }}
+                    >
+                      <Archive className="w-3 h-3 text-blue-600" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Archive this repair order</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+          </div>
           <Badge
             variant="outline"
             className={`text-xs font-medium px-1 py-0 h-4 ${getTypeColor(repairOrder.roTypeName)}`}
@@ -155,6 +297,16 @@ export default function RepairOrderCard({ repairOrder, onDragStart, onDragEnd, o
           </Badge>
         </div>
       </CardContent>
+
+      {/* Label Selection Dialog */}
+      <LabelSelectionDialog
+        open={showLabelDialog}
+        onOpenChange={setShowLabelDialog}
+        repairOrderId={repairOrder.repairOrderId}
+        currentStatusId={Number(repairOrder.statusId)}
+        currentLabels={repairOrder.assignedLabels?.map((l) => l.labelId) || []}
+        onLabelsUpdated={handleLabelsUpdated}
+      />
     </Card>
   )
 }

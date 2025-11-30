@@ -27,6 +27,11 @@ export interface RepairOrder {
   totalJobs: number
   completedJobs: number
   progressPercentage: number
+  serviceIds?: string[] // Optional array of service IDs
+  isCancelled?: boolean // Flag to indicate if the RO is cancelled
+  cancelReason?: string // Reason for cancellation
+  cancelledAt?: string | null // When the RO was cancelled
+  assignedLabels?: AssignedLabel[] // Labels assigned to this repair order
 }
 
 // Add the PaidStatus enum
@@ -37,11 +42,12 @@ export enum PaidStatus {
 }
 
 // Interface for assigned labels
-interface AssignedLabel {
-  id?: string
-  name?: string
-  color?: string
-  // Add other potential properties as needed
+export interface AssignedLabel {
+  labelId: string
+  labelName: string
+  colorName: string
+  hexCode: string
+  orderStatusId: number
 }
 
 // API Response structure for repair orders
@@ -99,6 +105,9 @@ export interface RepairOrderApiResponse {
   fullPaymentDate: string | null
   canBeArchived: boolean
   completionSubStatus: string
+  isCancelled?: boolean
+  cancelReason?: string
+  cancelledAt?: string | null
 }
 
 // Function to map API response to RepairOrder interface
@@ -134,7 +143,11 @@ export function mapApiToRepairOrder(apiResponse: RepairOrderApiResponse): Repair
     technicianNames: [], // Default value as API doesn't provide this
     totalJobs: 0, // Default value as API doesn't provide this
     completedJobs: 0, // Default value as API doesn't provide this
-    progressPercentage: apiResponse.completionPercentage
+    progressPercentage: apiResponse.completionPercentage,
+    isCancelled: apiResponse.isCancelled || false,
+    cancelReason: apiResponse.cancelReason,
+    cancelledAt: apiResponse.cancelledAt,
+    assignedLabels: apiResponse.assignedLabels || []
   };
   
   console.log("Mapped repair order:", mappedOrder);
@@ -157,4 +170,25 @@ export interface CreateRepairOrderRequest {
 
 export interface UpdateRepairOrderRequest extends Partial<CreateRepairOrderRequest> {
   repairOrderId: string
+}
+
+// New interface for the simplified PUT endpoint
+export interface UpdateRepairOrderStatusRequest {
+  statusId: number
+  note?: string
+  selectedServiceIds: string[]
+  updatedAt?: string
+}
+
+// Interface for canceling a repair order
+export interface CancelRepairOrderDto {
+  repairOrderId: string
+  cancelReason: string
+}
+
+// Interface for archiving a repair order
+export interface ArchiveRepairOrderDto {
+  repairOrderId: string
+  archiveReason: string
+  archivedByUserId: string
 }

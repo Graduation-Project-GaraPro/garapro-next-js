@@ -63,7 +63,7 @@ class ServiceCatalogService {
   private servicesBaseUrl = '/Services'
   private categoriesBaseUrl = '/ServiceCategories'
   private partsBaseUrl = '/PartCategories'
-  private quotationsBaseUrl = '/Quotations' // Add quotations endpoint
+  private quotationsBaseUrl = '/Quotations' 
   private storageKey = 'mock.serviceCatalog'
 
   private readCache(): GarageServiceCatalogItem[] {

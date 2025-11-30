@@ -4,6 +4,7 @@ import type { ReactNode } from "react"
 import { AppSidebar } from "@/app/manager/components/layout/app-sidebar"
 import { SiteHeader } from "@/app/manager/components/layout/site-header"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
+import { Toaster } from "@/components/ui/toaster"
 
 export default function ManagerLayout({ children }: { children: ReactNode }) {
   return (
@@ -19,6 +20,7 @@ export default function ManagerLayout({ children }: { children: ReactNode }) {
           </SidebarInset>
         </div>
       </SidebarProvider>
+      <Toaster />
     </div>
   )
 }

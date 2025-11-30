@@ -29,23 +29,25 @@ import {
 import { cn } from "@/lib/utils"
 import type { ManagerRepairRequest } from "@/types/manager/repair-request"
 import { repairRequestService } from "@/services/manager/appointmentService"
+import { toast } from "sonner"
 
 interface RepairRequestDetailDialogProps {
   requestId: string | null
   open: boolean
   onOpenChange: (open: boolean) => void
+  onRequestUpdated?: (requestId: string, patch: Partial<ManagerRepairRequest>) => void // 🔹 NEW
 }
 
 export function RepairRequestDetailDialog({
   requestId,
   open,
   onOpenChange,
+  onRequestUpdated
 }: RepairRequestDetailDialogProps) {
   const [repairRequest, setRepairRequest] = useState<ManagerRepairRequest | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [isApproving, setIsApproving] = useState(false)
-  const [isRejecting, setIsRejecting] = useState(false)
+  const [isCancelling, setIsCancelling] = useState(false)
   const [isConverting, setIsConverting] = useState(false)
   const [conversionData, setConversionData] = useState({
     note: "",
@@ -83,88 +85,80 @@ export function RepairRequestDetailDialog({
     }
   }
 
-  const handleApprove = async () => {
-    if (!repairRequest) return;
-    
-    try {
-      setIsApproving(true);
-      const success = await repairRequestService.approveRepairRequest(repairRequest.requestID);
-      
-      if (success) {
-        // Update the local state to reflect the approval
-        setRepairRequest(prev => prev ? {...prev, status: "accept"} : null);
-        // You might want to show a success message here
-      } else {
-        // Handle failure (e.g., show error message)
-        console.error("Failed to approve repair request");
-      }
-    } catch (err) {
-      console.error("Failed to approve repair request:", err);
-      // Handle error appropriately (e.g., show toast notification)
-    } finally {
-      setIsApproving(false);
-    }
-  };
+  const handleCancel = async () => {
+  if (!repairRequest) return;
 
-  const handleReject = async () => {
-    if (!repairRequest) return;
-    
-    try {
-      setIsRejecting(true);
-      const success = await repairRequestService.rejectRepairRequest(repairRequest.requestID);
-      
-      if (success) {
-        // Update the local state to reflect the rejection
-        setRepairRequest(prev => prev ? {...prev, status: "cancelled"} : null);
-        // You might want to show a success message here
-      } else {
-        // Handle failure (e.g., show error message)
-        console.error("Failed to reject repair request");
-      }
-    } catch (err) {
-      console.error("Failed to reject repair request:", err);
-      // Handle error appropriately (e.g., show toast notification)
-    } finally {
-      setIsRejecting(false);
-    }
-  };
+  try {
+    setIsCancelling(true);
 
-  const handleConvertToRepairOrder = async () => {
-    if (!repairRequest) return;
-    
-    // If we haven't shown the form yet, show it to collect data
-    if (!showConversionForm) {
-      // Pre-select all services by default
-      const serviceIds = repairRequest.services?.map(s => s.serviceId) || [];
-      setConversionData(prev => ({
-        ...prev,
-        selectedServiceIds: serviceIds
-      }));
-      setShowConversionForm(true);
-      return;
+    const success = await repairRequestService.cancelRepairRequest(
+      repairRequest.requestID
+    );
+
+    if (success) {
+      onRequestUpdated?.(repairRequest.requestID, {
+        status: "cancelled",
+        isCompleted: false,
+      })
+      onOpenChange(false);
+    } else {
+      toast.error("Cancel repair request failed, please try again");
     }
-    
-    try {
-      setIsConverting(true);
-      const success = await repairRequestService.convertToRepairOrder(repairRequest.requestID, conversionData);
+  } catch (err: any) {
+    console.error("Failed to cancel repair request:", err);
+
+    const backendMessage =
+      err?.message || "Cancel repair request failed, please try again.";
+
+    toast.error(backendMessage);
+  } finally {
+    setIsCancelling(false);
+  }
+};
+
+
+ const handleConvertToRepairOrder = async () => {
+  if (!repairRequest) return
+  
+  if (!showConversionForm) {
+    const serviceIds = repairRequest.services?.map((s) => s.serviceId) || []
+    setConversionData((prev) => ({
+      ...prev,
+      selectedServiceIds: serviceIds,
+    }))
+    setShowConversionForm(true)
+    return
+  }
+
+  try {
+      setIsConverting(true)
+
+      await repairRequestService.convertToRepairOrder(
+        repairRequest.requestID,
+        conversionData
+      )
+
+      toast.success("Convert repair request to Repair Order successfully")
+
       
-      if (success) {
-        // Show success message or handle success case
-        console.log("Repair request converted to repair order:", repairRequest.requestID);
-        // You might want to show a toast notification or close the dialog
-        setShowConversionForm(false);
-        onOpenChange(false); // Close the dialog after successful conversion
-      } else {
-        // Handle failure
-        console.error("Failed to convert repair request to repair order");
-      }
-    } catch (err) {
-      console.error("Failed to convert repair request to repair order:", err);
-      // Handle error appropriately (e.g., show toast notification)
+      onRequestUpdated?.(repairRequest.requestID, {
+        status: "completed",
+        isCompleted: true,
+      })
+
+      setShowConversionForm(false)
+      onOpenChange(false)
+    } catch (err: any) {
+      const backendMessage =
+        err?.message ||
+        "Convert repair request failed, please try again."
+      toast.error(backendMessage)
     } finally {
       setIsConverting(false);
     }
-  };
+}
+
+
 
   const getStatusColor = (status?: string) => {
     switch (status) {
@@ -220,11 +214,12 @@ export function RepairRequestDetailDialog({
   }
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount)
-  }
+  return new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+  }).format(amount);
+};
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -353,32 +348,14 @@ export function RepairRequestDetailDialog({
                 </h3>
                 <div className="space-y-4">
                   {repairRequest.services.map((service, index) => (
-                    <div key={service.requestServiceId || index} className="space-y-2">
+                    <div key={service.serviceId || index} className="space-y-2">
                       <div className="flex items-center justify-between">
                         <div className="font-medium">{service.serviceName}</div>
                         <div className="text-sm font-semibold">
-                          {formatCurrency(service.serviceFee)}
+                          {formatCurrency(service.price)}
                         </div>
                       </div>
-                      {service.requestParts && service.requestParts.length > 0 && (
-                        <div className="ml-4 space-y-1">
-                          <div className="text-xs text-muted-foreground font-medium flex items-center gap-1">
-                            <Package className="h-3 w-3" />
-                            Parts:
-                          </div>
-                          {service.requestParts.map((part, partIndex) => (
-                            <div
-                              key={part.requestPartId || partIndex}
-                              className="flex items-center justify-between text-xs ml-4"
-                            >
-                              <span className="text-muted-foreground">{part.partName}</span>
-                              <span className="font-medium">
-                                {formatCurrency(part.unitPrice)}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                      
                       {index < repairRequest.services.length - 1 && <Separator />}
                     </div>
                   ))}
@@ -409,20 +386,7 @@ export function RepairRequestDetailDialog({
               </Card>
             )}
 
-            {/* Estimated Cost */}
-            {repairRequest.estimatedCost !== undefined && repairRequest.estimatedCost > 0 && (
-              <Card className="p-4 bg-primary/5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <DollarSign className="h-5 w-5 text-primary" />
-                    <span className="font-semibold">Estimated Total Cost</span>
-                  </div>
-                  <div className="text-2xl font-bold text-primary">
-                    {formatCurrency(repairRequest.estimatedCost)}
-                  </div>
-                </div>
-              </Card>
-            )}
+            
 
             {/* Images */}
             {repairRequest.imageUrls && repairRequest.imageUrls.length > 0 && (
@@ -450,7 +414,7 @@ export function RepairRequestDetailDialog({
             )}
 
             {/* Metadata */}
-            <Card className="p-4 bg-muted/50">
+            {/* <Card className="p-4 bg-muted/50">
               <h3 className="font-semibold mb-3 text-sm">Metadata</h3>
               <div className="space-y-2 text-xs text-muted-foreground">
                 <div className="flex justify-between">
@@ -475,29 +439,19 @@ export function RepairRequestDetailDialog({
                   <span>{formatDate(repairRequest.updatedAt)}</span>
                 </div>
               </div>
-            </Card>
+            </Card> */}
 
             {/* Action Buttons */}
             <div className="flex gap-2 pt-4">
-              {repairRequest?.status === "pending" && (
-                <>
-                  <Button 
-                    variant="default" 
-                    className="flex-1 bg-green-600 hover:bg-green-700"
-                    onClick={handleApprove}
-                    disabled={isApproving || isRejecting}
-                  >
-                    {isApproving ? "Approving..." : "Approve"}
-                  </Button>
-                  <Button 
-                    variant="default" 
-                    className="flex-1 bg-red-600 hover:bg-red-700"
-                    onClick={handleReject}
-                    disabled={isApproving || isRejecting}
-                  >
-                    {isRejecting ? "Rejecting..." : "Reject"}
-                  </Button>
-                </>
+              {repairRequest?.status !== "completed" && repairRequest?.status !== "cancelled" && !showConversionForm && (
+                <Button 
+                  variant="destructive" 
+                  className="flex-1"
+                  onClick={handleCancel}
+                  disabled={isCancelling}
+                >
+                  {isCancelling ? "Cancelling..." : "Cancel Request"}
+                </Button>
               )}
               {repairRequest?.status === "accept" && !showConversionForm && (
                 <Button 
@@ -534,7 +488,7 @@ export function RepairRequestDetailDialog({
                           <div className="space-y-2 mt-2">
                             {repairRequest.services.map((service) => (
                               <div 
-                                key={service.requestServiceId}
+                                key={service.serviceId}
                                 className={cn(
                                   "flex items-center justify-between p-2 rounded border cursor-pointer",
                                   conversionData.selectedServiceIds.includes(service.serviceId) 
@@ -559,7 +513,7 @@ export function RepairRequestDetailDialog({
                                 <div>
                                   <div className="font-medium">{service.serviceName}</div>
                                   <div className="text-sm text-gray-500">
-                                    {formatCurrency(service.serviceFee)}
+                                    {formatCurrency(service.price)}
                                   </div>
                                 </div>
                                 <div className="flex items-center">

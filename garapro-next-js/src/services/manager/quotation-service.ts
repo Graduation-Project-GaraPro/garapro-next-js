@@ -134,6 +134,35 @@ class QuotationService {
     }
   }
 
+  // Convert inspection to quotation
+  async convertInspectionToQuotation(inspectionId: string, note?: string): Promise<QuotationDto> {
+    try {
+      const response = await apiClient.post<QuotationDto>('/Inspection/convert-to-quotation', {
+        inspectionId,
+        note: note || undefined
+      });
+      if (!response.data) {
+        throw new Error('Failed to convert inspection to quotation');
+      }
+      return response.data;
+    } catch (error: any) {
+      console.error(`Failed to convert inspection ${inspectionId} to quotation:`, error);
+      
+      // Extract error message from API response
+      let errorMessage = 'Failed to convert inspection to quotation';
+      
+      if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      }
+      
+      throw new Error(errorMessage);
+    }
+  }
+
   // Copy quotation to jobs
   async copyQuotationToJobs(id: string): Promise<void> {
     try {
@@ -154,6 +183,20 @@ class QuotationService {
       
       // Throw a new error with the extracted message
       throw new Error(errorMessage);
+    }
+  }
+  
+  // Get quotation details (full info with services and parts)
+  async getQuotationDetails(id: string): Promise<QuotationDto> {
+    try {
+      const response = await apiClient.get<QuotationDto>(`${this.baseUrl}/${id}/details`);
+      if (!response.data) {
+        throw new Error('Quotation details not found');
+      }
+      return response.data;
+    } catch (error) {
+      console.error(`Failed to fetch quotation details for ${id}:`, error);
+      throw error;
     }
   }
 }

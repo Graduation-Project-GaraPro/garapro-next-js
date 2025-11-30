@@ -11,7 +11,17 @@ interface DragDropBoardProps {
   onMoveRepairOrder: (repairOrderId: string, newStatusId: string) => void
   onEditRepairOrder: (repairOrder: RepairOrder) => void
   onDeleteRepairOrder: (repairOrderId: string) => void
+  onCancelRepairOrder?: (repairOrderId: string) => void
+  onArchiveRepairOrder?: (repairOrderId: string) => void
+  onLabelsUpdated?: (repairOrderId: string, labels: Array<{
+    labelId: string
+    labelName: string
+    colorName: string
+    hexCode: string
+    orderStatusId: number
+  }>) => void
   statuses?: OrderStatus[] // Add statuses prop for dynamic columns
+  defaultLabels?: Map<string, { labelName: string; hexCode: string }> // Default label per status
 }
 
 export default function RoDragDropBoard({ 
@@ -20,7 +30,11 @@ export default function RoDragDropBoard({
   onMoveRepairOrder, 
   onEditRepairOrder, 
   onDeleteRepairOrder,
-  statuses // Accept statuses as prop
+  onCancelRepairOrder,
+  onArchiveRepairOrder,
+  onLabelsUpdated,
+  statuses, // Accept statuses as prop
+  defaultLabels = new Map() // Accept default labels
 }: DragDropBoardProps) {
   const [draggedRepairOrder, setDraggedRepairOrder] = useState<RepairOrder | null>(null)
 
@@ -112,6 +126,16 @@ export default function RoDragDropBoard({
     )
   }
 
+  // Helper function to check if a status is "Pending"
+  const isPendingStatus = (statusName: string) => {
+    return statusName.toLowerCase().includes('pending')
+  }
+
+  // Helper function to check if a status is "Completed"
+  const isCompletedStatus = (statusName: string) => {
+    return statusName.toLowerCase().includes('complete')
+  }
+
   return (
     <div className="flex h-full min-h-0">
       {columns.map((column) => (
@@ -127,7 +151,13 @@ export default function RoDragDropBoard({
           onDrop={handleDrop}
           onEditRepairOrder={onEditRepairOrder}
           onDeleteRepairOrder={onDeleteRepairOrder}
+          onCancelRepairOrder={onCancelRepairOrder}
+          onArchiveRepairOrder={onArchiveRepairOrder}
+          onLabelsUpdated={onLabelsUpdated}
+          isPending={isPendingStatus(column.title)}
+          isCompleted={isCompletedStatus(column.title)}
           isDragOver={draggedRepairOrder?.statusId !== column.id}
+          defaultLabel={defaultLabels.get(column.id) || null}
         />
       ))}
     </div>
