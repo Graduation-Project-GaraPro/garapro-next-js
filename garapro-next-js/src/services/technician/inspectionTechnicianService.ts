@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = "https://localhost:7113/odata/InspectionsTechnician";
+const API_URL = process.env.NEXT_PUBLIC_BASE_URL+ "/odata/InspectionsTechnician" || 'https://localhost:7113/odata/InspectionsTechnician';
 
 export interface PartWithQuantityDto {
   partId: string;

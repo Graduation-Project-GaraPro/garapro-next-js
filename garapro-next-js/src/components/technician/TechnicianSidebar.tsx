@@ -1,3 +1,4 @@
+// components/technician/TechnicianSidebar.tsx
 "use client";
 
 import Link from "next/link";
@@ -9,36 +10,30 @@ import {
   FaHistory,
   FaCar,
   FaWrench,
-  FaUserCircle,
   FaChartBar,
   FaClipboardCheck,
   FaCog,
+  FaUserCircle,
 } from "react-icons/fa";
-import { Dispatch, SetStateAction, useState } from "react";
-interface ChildItem {
-  id: string;
-  label: string;
-  icon: React.ComponentType;
-  href: string;
-}
+import { useState } from "react";
 
-interface SidebarItem {
-  id: string;
-  label: string;
-  icon: React.ComponentType;
-  href?: string;
-  children?: ChildItem[];
-}
-interface TechnicianSidebarProps {
-  activeSection: string;
-  setActiveSection: Dispatch<SetStateAction<string>>;
-}
-  const fullName = typeof window !== "undefined" ? localStorage.getItem("userFullName") || "User" : "User";
-  const email = typeof window !== "undefined" ? localStorage.getItem("userEmail") || "user@example.com" : "user@example.com";
+const fullName =
+  typeof window !== "undefined"
+    ? localStorage.getItem("userFullName") || "User"
+    : "User";
+
+const email =
+  typeof window !== "undefined"
+    ? localStorage.getItem("userEmail") || "user@example.com"
+    : "user@example.com";
+
 const sidebarItems = [
   { id: "home", label: "Home", icon: FaHome, href: "/technician" },
   {
-    id: "task-management", label: "My Task", icon: FaClipboardList, href: "/technician/taskManagement",
+    id: "task-management",
+    label: "My Task",
+    icon: FaClipboardList,
+    href: "/technician/taskManagement",
   },
   {
     id: "condition-inspection",
@@ -60,37 +55,32 @@ const sidebarItems = [
     ],
   },
   {
-    id: "repair-history", label: "Repair History", icon: FaHistory, href: "/technician/repairHistory",
-  },
-  // {
-  //   id: "notifications", label: "Notifications", icon: FaBell, href: "/technician/notifications",
-  // },
-  {
-    id: "vehicle-lookup", label: "Information Lookup", icon: FaCar, href: "/technician/vehicleLookup",
+    id: "repair-history",
+    label: "Repair History",
+    icon: FaHistory,
+    href: "/technician/repairHistory",
   },
   {
-    id: "statistical", label: "Statistical", icon: FaChartBar, href: "/technician/statistical",
+    id: "vehicle-lookup",
+    label: "Information Lookup",
+    icon: FaCar,
+    href: "/technician/vehicleLookup",
+  },
+  {
+    id: "statistical",
+    label: "Statistical",
+    icon: FaChartBar,
+    href: "/technician/statistical",
   },
 ];
 
-export default function TechnicianSidebar({
-  activeSection,
-  setActiveSection,
-}: TechnicianSidebarProps) {
+export default function TechnicianSidebar() {
   const pathname = usePathname();
-
   const [expandedMenu, setExpandedMenu] = useState<string | null>(null);
 
-  const isParentActive = (item: SidebarItem) => {
-  if (!item.children) return false;
-  return item.children.some((child: ChildItem) => 
-    pathname === child.href || activeSection === child.id
-  );
-};
-
-  const handleMenuItemClick = (itemId: string) => {
-    setActiveSection(itemId);
-    setExpandedMenu(null); 
+  const isParentActive = (item: any) => {
+    if (!item.children) return false;
+    return item.children.some((child: any) => pathname === child.href);
   };
 
   return (
@@ -104,9 +94,9 @@ export default function TechnicianSidebar({
 
           {sidebarItems.map((item) => {
             const IconComponent = item.icon;
-
-            const isActive = !item.children && (pathname === item.href || activeSection === item.id);
+            const isActive = !item.children && pathname === item.href;
             const isParentActiveNow = isParentActive(item);
+
             return (
               <div key={item.id}>
                 {item.children ? (
@@ -130,17 +120,13 @@ export default function TechnicianSidebar({
                     </button>
                     {expandedMenu === item.id && (
                       <div className="ml-8 mt-1 space-y-1">
-                        {item.children.map((child) => {
+                        {item.children.map((child: any) => {
                           const ChildIcon = child.icon;
-                          const isChildActive =
-                            pathname === child.href ||
-                            activeSection === child.id;
-
+                          const isChildActive = pathname === child.href;
                           return (
                             <Link
                               key={child.id}
                               href={child.href}
-                              onClick={() => setActiveSection(child.id)}
                               className={`flex items-center px-3 py-2 rounded-md text-sm font-medium ${
                                 isChildActive
                                   ? "bg-blue-200 text-blue-800 font-medium"
@@ -157,8 +143,7 @@ export default function TechnicianSidebar({
                   </div>
                 ) : (
                   <Link
-                    href={item.href!}
-                    onClick={() => handleMenuItemClick(item.id)}
+                    href={item.href}
                     className={`w-full flex items-center px-4 py-4 text-left rounded-lg mb-2 transition-colors bg-white/10 ${
                       isActive
                         ? "bg-gradient-to-r from-blue-300 to-teal-300 text-blue-800 border-r-2 border-blue-600"
@@ -181,9 +166,7 @@ export default function TechnicianSidebar({
         <div className="flex items-center space-x-3">
           <FaUserCircle className="text-3xl text-gray-400" />
           <div>
-            <p className="text-sm font-medium text-gray-800">
-              {fullName}
-            </p>
+            <p className="text-sm font-medium text-gray-800">{fullName}</p>
             <p className="text-xs text-gray-500">{email}</p>
           </div>
         </div>

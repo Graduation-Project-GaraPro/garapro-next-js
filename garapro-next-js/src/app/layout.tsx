@@ -1,7 +1,8 @@
 import "./globals.css"
 import { Toaster } from "sonner"
 
-
+import { AuthProvider } from "@/contexts/auth-context";
+import { PermissionProvider } from "@/contexts/permission-context";
 
 export const metadata = {
   title: "My App",
@@ -16,8 +17,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        {children}
-        <Toaster /> 
+        <AuthProvider>
+          <PermissionProvider>
+          {children}
+          <Toaster /> 
+          </PermissionProvider>
+        </AuthProvider>
       </body>
     </html>
   )

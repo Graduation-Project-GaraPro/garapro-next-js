@@ -1,9 +1,8 @@
-// /services/technician/statisticalService.ts
+
 import axios from "axios";
 
-const API_URL = "https://localhost:7113/odata/Statisticals";
+const API_URL = process.env.NEXT_PUBLIC_BASE_URL+ "/odata/Statisticals" || 'https://localhost:7113/odata/Statisticals';
 
-// Interface for Technician Statistics
 export interface TechnicianStatistic {
   quality: number;
   speed: number;
@@ -23,7 +22,6 @@ export interface RecentJob {
   assignedAt: string;
 }
 
-// Lấy thống kê của technician hiện tại
 export const getMyStatistics = async (): Promise<TechnicianStatistic> => {
   try {
     const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null;

@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = "https://localhost:7113/odata/JobTechnician";
+const API_URL = process.env.NEXT_PUBLIC_BASE_URL+ "/odata/JobTechnician" || 'https://localhost:7113/odata/JobTechnician';
 
 export interface JobStatusUpdate {
   JobId: string;
