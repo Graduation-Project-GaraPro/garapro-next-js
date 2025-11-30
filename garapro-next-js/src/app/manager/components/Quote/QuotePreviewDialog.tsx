@@ -100,6 +100,7 @@ export default function QuotePreviewDialog({ open, onOpenChange, quotationId }: 
       name: service.serviceName,
       price: service.totalPrice,
       isRequired: service.isRequired, // Add isRequired property
+      isGood: service.isGood, // ✅ NEW - Add isGood property
       parts: service.parts ? service.parts.map((part) => ({
         id: stringIdToNumber(part.quotationServicePartId),
         name: part.partName,
@@ -276,6 +277,23 @@ export default function QuotePreviewDialog({ open, onOpenChange, quotationId }: 
 
           <QuoteInfo quote={quoteInfoData} />
 
+          {/* Good Status Message */}
+          {quotation.status === "Good" && (
+            <div className="rounded-lg border-2 border-green-200 bg-green-50 p-6">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-600 text-white">
+                  ✓
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-green-800">All Services in Good Condition</h3>
+                  <p className="text-sm text-green-700 mt-1">
+                    No repairs needed at this time. This is an informational quotation only.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <ServicesTable services={servicesData} />
 
           <div className="grid gap-6 md:grid-cols-2">
@@ -304,13 +322,16 @@ export default function QuotePreviewDialog({ open, onOpenChange, quotationId }: 
             <ManagerNotes note={managerNote} onNoteChange={setManagerNote} />
           </div>
 
-          <QuoteActions 
-            onSend={handleSend} 
-            onDelete={handleDelete} 
-            onDownloadPDF={handleDownloadPDF}
-            onCopyToJobs={handleCopyToJobs} // Add copy to jobs handler
-            isApproved={quotation?.status === "Approved"} // Check if quotation is approved
-          />
+          {/* Hide actions for Good status quotations */}
+          {quotation.status !== "Good" && (
+            <QuoteActions 
+              onSend={handleSend} 
+              onDelete={handleDelete} 
+              onDownloadPDF={handleDownloadPDF}
+              onCopyToJobs={handleCopyToJobs} // Add copy to jobs handler
+              isApproved={quotation?.status === "Approved"} // Check if quotation is approved
+            />
+          )}
         </div>
       </DialogContent>
     </Dialog>

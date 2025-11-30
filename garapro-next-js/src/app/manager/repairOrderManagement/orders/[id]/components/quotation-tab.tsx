@@ -3,12 +3,24 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { 
   Plus,
   RefreshCw,
   Send,
   Briefcase,
-  Loader2
+  Loader2,
+  Trash2,
+  AlertTriangle
 } from "lucide-react"
 import { toast } from "sonner"
 import { CreateQuotationDialog } from "@/app/manager/components/Quote"
@@ -29,6 +41,8 @@ export default function QuotationTab({ orderId }: QuotationTabProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [quotationToDelete, setQuotationToDelete] = useState<string | null>(null)
 
   useEffect(() => {
     let pollingInterval: NodeJS.Timeout | null = null;
@@ -98,6 +112,30 @@ export default function QuotationTab({ orderId }: QuotationTabProps) {
     }
   };
 
+  const handleDeleteClick = (quotationId: string) => {
+    setQuotationToDelete(quotationId);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!quotationToDelete) return;
+
+    setActionLoading(quotationToDelete);
+    setDeleteDialogOpen(false);
+    
+    try {
+      await quotationService.deleteQuotation(quotationToDelete);
+      toast.success("Quotation deleted successfully");
+      loadQuotations();
+    } catch (err: any) {
+      console.error("Failed to delete quotation:", err);
+      toast.error(err.message || "Failed to delete quotation");
+    } finally {
+      setActionLoading(null);
+      setQuotationToDelete(null);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     // Normalize status to lowercase for comparison
     const normalizedStatus = status.toLowerCase();
@@ -109,6 +147,7 @@ export default function QuotationTab({ orderId }: QuotationTabProps) {
       approved: "bg-green-100 text-green-800",
       rejected: "bg-red-100 text-red-800",
       expired: "bg-gray-100 text-gray-800",
+      good: "bg-green-100 text-green-800",
     };
     
     // Display text for each status
@@ -118,6 +157,7 @@ export default function QuotationTab({ orderId }: QuotationTabProps) {
       approved: "Approved",
       rejected: "Rejected",
       expired: "Expired",
+      good: "✓ All Good",
     };
     
     // Determine the status key for lookup
@@ -133,6 +173,8 @@ export default function QuotationTab({ orderId }: QuotationTabProps) {
       statusKey = "rejected";
     } else if (normalizedStatus.includes("expired")) {
       statusKey = "expired";
+    } else if (normalizedStatus.includes("good")) {
+      statusKey = "good";
     }
     
     return (
@@ -212,7 +254,7 @@ export default function QuotationTab({ orderId }: QuotationTabProps) {
                             View
                           </Button>
                           
-                          {/* Send to Customer button - only for Pending quotations */}
+                          {/* Send to Customer button - only for Pending quotations (not Good status) */}
                           {q.status.toLowerCase() === "pending" && (
                             <Button 
                               variant="default"
@@ -231,6 +273,8 @@ export default function QuotationTab({ orderId }: QuotationTabProps) {
                               )}
                             </Button>
                           )}
+                          
+                          {/* Good status quotations are view-only, no actions needed */}
                           
                           {/* Copy to Jobs button - only for Approved quotations */}
                           {q.status.toLowerCase() === "approved" && (
@@ -251,6 +295,25 @@ export default function QuotationTab({ orderId }: QuotationTabProps) {
                               )}
                             </Button>
                           )}
+
+                          {/* Delete button - only for Pending or Rejected quotations */}
+                          {(q.status.toLowerCase() === "pending" || q.status.toLowerCase() === "rejected") && (
+                            <Button 
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleDeleteClick(q.quotationId)}
+                              disabled={actionLoading === q.quotationId}
+                            >
+                              {actionLoading === q.quotationId ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <>
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Delete
+                                </>
+                              )}
+                            </Button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -267,8 +330,6 @@ export default function QuotationTab({ orderId }: QuotationTabProps) {
         open={isCreateFormOpen}
         onOpenChange={setIsCreateFormOpen}
         onSubmit={() => {
-          // The quotation has already been created by the CreateQuotationDialog component
-          // Just handle the UI updates here
           handleQuotationCreated();
           setIsCreateFormOpen(false);
         }}
@@ -289,6 +350,34 @@ export default function QuotationTab({ orderId }: QuotationTabProps) {
           quotationId={selectedQuotationId}
         />
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100">
+                <AlertTriangle className="h-5 w-5 text-red-600" />
+              </div>
+              <AlertDialogTitle>Delete Quotation</AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="text-left">
+              Are you sure you want to delete this quotation? This action cannot be undone and all associated data will be permanently removed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setQuotationToDelete(null)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
+              Delete Quotation
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

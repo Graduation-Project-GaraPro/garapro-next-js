@@ -12,6 +12,7 @@ export interface QuotationServiceCreateDto {
   serviceId: string; // guid (required)
   isSelected: boolean;
   isRequired: boolean; // Add isRequired property
+  isGood?: boolean; // ✅ NEW - optional for creation
   quotationServiceParts: QuotationServicePartCreateDto[];
 }
 
@@ -32,7 +33,7 @@ export interface QuotationDto {
   createdAt: string; // datetime
   sentToCustomerAt: string | null;
   customerResponseAt: string | null;
-  status: "Pending" | "Sent" | "Approved" | "Rejected" | "Expired";
+  status: "Pending" | "Sent" | "Approved" | "Rejected" | "Expired" | "Good"; // ✅ Added "Good" status
   totalAmount: number; // decimal
   discountAmount: number; // decimal
   note?: string;
@@ -51,6 +52,7 @@ export interface QuotationServiceDto {
   serviceId: string;
   isSelected: boolean;
   isRequired: boolean; // Add isRequired property
+  isGood: boolean; // ✅ NEW - true = view only, no repair needed
   price: number; // decimal
   quantity: number;
   totalPrice: number;

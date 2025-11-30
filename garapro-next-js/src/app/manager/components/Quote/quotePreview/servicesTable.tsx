@@ -12,6 +12,7 @@ interface Service {
   name: string
   price: number
   isRequired?: boolean // Add isRequired property
+  isGood?: boolean // ✅ NEW - true = view only, no repair needed
   parts: Part[]
 }
 
@@ -38,17 +39,32 @@ export default function ServicesTable({ services }: ServicesTableProps) {
               <tr key={service.id}>
                 <td
                   rowSpan={Math.max(1, service.parts.length)} // Ensure at least 1 row
-                  className="border-b border-border px-6 py-4 font-semibold text-card-foreground align-top"
+                  className={`border-b border-border px-6 py-4 font-semibold align-top ${
+                    service.isGood ? 'text-green-700 bg-green-50' : 'text-card-foreground'
+                  }`}
                 >
                   <div className="flex items-center gap-2">
                     {service.name}
-                    {service.isRequired && (
+                    {service.isGood && (
+                      <span className="text-green-600">✓</span>
+                    )}
+                    {!service.isGood && service.isRequired && (
                       <Lock className="w-4 h-4 text-red-500" />
                     )}
                   </div>
-                  {service.isRequired && (
+                  {service.isGood && (
+                    <span className="inline-block mt-1 text-xs bg-green-600 text-white px-2 py-1 rounded">
+                      Good Condition
+                    </span>
+                  )}
+                  {!service.isGood && service.isRequired && (
                     <span className="inline-block mt-1 text-xs bg-red-100 text-red-800 px-2 py-1 rounded">
                       Required
+                    </span>
+                  )}
+                  {!service.isGood && !service.isRequired && (
+                    <span className="inline-block mt-1 text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded">
+                      Optional
                     </span>
                   )}
                 </td>
@@ -94,16 +110,36 @@ export default function ServicesTable({ services }: ServicesTableProps) {
         <h3 className="mb-4 text-lg font-semibold text-card-foreground">Parts Breakdown by Service</h3>
         <div className="space-y-6">
           {services.map((service) => (
-            <div key={service.id} className="rounded-lg bg-muted p-4">
-              <h4 className="font-semibold text-card-foreground flex items-center gap-2">
+            <div 
+              key={service.id} 
+              className={`rounded-lg p-4 ${
+                service.isGood ? 'bg-green-50 border border-green-200' : 'bg-muted'
+              }`}
+            >
+              <h4 className={`font-semibold flex items-center gap-2 ${
+                service.isGood ? 'text-green-700' : 'text-card-foreground'
+              }`}>
                 {service.name}
-                {service.isRequired && (
+                {service.isGood && (
+                  <span className="text-green-600">✓</span>
+                )}
+                {!service.isGood && service.isRequired && (
                   <Lock className="w-4 h-4 text-red-500" />
                 )}
               </h4>
-              {service.isRequired && (
+              {service.isGood && (
+                <span className="inline-block mt-1 text-xs bg-green-600 text-white px-2 py-1 rounded">
+                  Good Condition - No Repair Needed
+                </span>
+              )}
+              {!service.isGood && service.isRequired && (
                 <span className="inline-block mt-1 text-xs bg-red-100 text-red-800 px-2 py-1 rounded">
                   Required Service
+                </span>
+              )}
+              {!service.isGood && !service.isRequired && (
+                <span className="inline-block mt-1 text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded">
+                  Optional Service
                 </span>
               )}
               <div className="mt-3 space-y-2">
@@ -127,7 +163,9 @@ export default function ServicesTable({ services }: ServicesTableProps) {
               <div className="mt-3 border-t border-border pt-3">
                 <div className="flex justify-between font-semibold text-card-foreground">
                   <span>Service Total:</span>
-                  <span className="text-primary">${service.price.toLocaleString()}</span>
+                  <span className={service.isGood ? 'text-green-600' : 'text-primary'}>
+                    {service.isGood ? '$0 (No repair needed)' : `$${service.price.toLocaleString()}`}
+                  </span>
                 </div>
               </div>
             </div>

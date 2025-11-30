@@ -1,137 +1,135 @@
 // src/app/manager/components/Quote/ServicesTree.tsx
 "use client"
 
-import type React from "react"
-import { ChevronDown, ChevronRight, Lock } from "lucide-react"
+import { useState, useEffect } from "react"
+import { ChevronRight, Folder, Wrench, Home, Loader2 } from "lucide-react"
 import { Card } from "@/components/ui/card"
-import { SERVICE_CATEGORIES } from "./constants"
-import { ServiceCategory } from "./types"
+import { Button } from "@/components/ui/button"
+import { 
+  quotationTreeService, 
+  type ServiceCategory as TreeServiceCategory, 
+  type ServiceItem,
+  type BreadcrumbItem 
+} from "@/services/manager/quotation-tree-service"
 
 interface ServicesTreeProps {
-  expandedCategories: Set<string>
-  selectedServices: Set<string>
-  requiredServices?: Set<string> // Add required services prop
-  onToggleCategory: (categoryId: string) => void
-  onToggleService: (serviceId: string) => void
-  onToggleRequiredService?: (serviceId: string) => void // Add toggle required service prop
-  serviceCategories?: ServiceCategory[]
-  loadingCategories?: boolean
+  onServiceSelect: (serviceId: string, serviceName: string, price: number) => void
 }
 
-export function ServicesTree({
-  expandedCategories,
-  selectedServices,
-  requiredServices = new Set(), // Default to empty set
-  onToggleCategory,
-  onToggleService,
-  onToggleRequiredService, // Destructure the new prop
-  serviceCategories = SERVICE_CATEGORIES,
-  loadingCategories = false
-}: ServicesTreeProps) {
-  const renderCategoryTree = (categories: ServiceCategory[], level = 0) => {
-    if (loadingCategories) {
-      return (
-        <div className="py-4 text-center">
-          <p className="text-sm text-muted-foreground">Loading service categories...</p>
-        </div>
-      )
-    }
+export function ServicesTree({ onServiceSelect }: ServicesTreeProps) {
+  const [currentCategoryId, setCurrentCategoryId] = useState<string | null>(null)
+  const [categories, setCategories] = useState<TreeServiceCategory[]>([])
+  const [services, setServices] = useState<ServiceItem[]>([])
+  const [breadcrumb, setBreadcrumb] = useState<BreadcrumbItem[]>([])
+  const [loading, setLoading] = useState(true)
 
-    return categories.map((category) => (
-      <div key={category.id}>
-        <div className="flex items-center gap-2 py-2">
-          {category.children && category.children.length > 0 ? (
-            <button
-              type="button"
-              onClick={() => onToggleCategory(category.id)}
-              className="p-0 hover:bg-muted rounded transition-colors"
-            >
-              {expandedCategories.has(category.id) ? (
-                <ChevronDown className="w-4 h-4" />
-              ) : (
-                <ChevronRight className="w-4 h-4" />
-              )}
-            </button>
-          ) : (
-            <div className="w-4" />
-          )}
-          {category.children && category.children.length > 0 ? (
-            <span className="font-medium text-sm">{category.name}</span>
-          ) : (
-            <div className="flex items-center gap-2 flex-1">
-              <input
-                type="checkbox"
-                id={category.id}
-                checked={selectedServices.has(category.id)}
-                onChange={() => onToggleService(category.id)}
-                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                disabled={requiredServices.has(category.id)} // Disable if required
-              />
-              <label htmlFor={category.id} className="text-sm cursor-pointer flex-1">
-                {category.name}
-                {requiredServices.has(category.id) && (
-                  <Lock className="w-3 h-3 inline-block ml-1 text-red-500" />
-                )}
-              </label>
-              {onToggleRequiredService && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onToggleRequiredService(category.id);
-                  }}
-                  className={`p-1 rounded text-xs ${
-                    requiredServices.has(category.id)
-                      ? "bg-red-100 text-red-600"
-                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                  }`}
-                  title={requiredServices.has(category.id) ? "Remove required flag" : "Mark as required"}
-                >
-                  Required
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-        {category.children && expandedCategories.has(category.id) && (
-          <div className="ml-4 border-l border-border">{renderCategoryTree(category.children, level + 1)}</div>
-        )}
-      </div>
-    ))
+  // Load root on mount
+  useEffect(() => {
+    loadRoot()
+  }, [])
+
+  const loadRoot = async () => {
+    try {
+      setLoading(true)
+      const data = await quotationTreeService.getRoot()
+      setCategories(data.childCategories)
+      setServices(data.services)
+      setBreadcrumb(data.breadcrumb.items)
+      setCurrentCategoryId(null)
+    } catch (error) {
+      console.error("Failed to load root:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const loadCategory = async (categoryId: string) => {
+    try {
+      setLoading(true)
+      const data = await quotationTreeService.getCategory(categoryId)
+      setCategories(data.childCategories)
+      setServices(data.services)
+      setBreadcrumb(data.breadcrumb.items)
+      setCurrentCategoryId(categoryId)
+    } catch (error) {
+      console.error(`Failed to load category ${categoryId}:`, error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleBreadcrumbClick = (categoryId: string | null) => {
+    if (categoryId === null) {
+      loadRoot()
+    } else {
+      loadCategory(categoryId)
+    }
   }
 
   return (
     <Card className="lg:col-span-1 p-6 h-fit max-h-[calc(100vh-200px)] overflow-y-auto">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-lg font-semibold">Select Services</h2>
+        <h2 className="text-lg font-semibold">Browse Services</h2>
       </div>
-      <div className="space-y-1">{renderCategoryTree(serviceCategories)}</div>
-      {selectedServices.size > 0 && (
-        <div className="mt-6 pt-4 border-t border-border">
-          <p className="text-sm font-medium mb-2">Selected: {selectedServices.size}</p>
-          <div className="flex flex-wrap gap-2">
-            {Array.from(selectedServices).map((serviceId) => {
-              // Find the service name
-              let serviceName = "";
-              for (const category of serviceCategories) {
-                if (category.children) {
-                  const service = category.children.find((s) => s.id === serviceId);
-                  if (service) {
-                    serviceName = service.name;
-                    break;
-                  }
-                }
-              }
-              return (
-                <div key={serviceId} className="bg-primary text-primary-foreground text-xs px-2 py-1 rounded flex items-center">
-                  {serviceName || serviceId}
-                  {requiredServices.has(serviceId) && (
-                    <Lock className="w-3 h-3 ml-1" />
-                  )}
-                </div>
-              )
-            })}
+
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-2 mb-4 text-sm text-gray-600 flex-wrap pb-4 border-b">
+        {breadcrumb.map((item, index) => (
+          <div key={item.categoryId || 'root'} className="flex items-center gap-2">
+            {index > 0 && <ChevronRight className="w-4 h-4" />}
+            <button
+              type="button"
+              onClick={() => handleBreadcrumbClick(item.categoryId)}
+              className="hover:text-blue-600 hover:underline flex items-center gap-1"
+            >
+              {index === 0 && <Home className="w-4 h-4" />}
+              {item.categoryName}
+            </button>
           </div>
+        ))}
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {/* Categories */}
+          {categories.map((category) => (
+            <button
+              key={category.serviceCategoryId}
+              type="button"
+              onClick={() => loadCategory(category.serviceCategoryId)}
+              className="w-full flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:border-blue-500 hover:bg-blue-50 transition-colors text-left"
+            >
+              <Folder className="w-5 h-5 text-blue-600 flex-shrink-0" />
+              <span className="font-medium text-sm">{category.categoryName}</span>
+              <ChevronRight className="w-4 h-4 ml-auto text-gray-400" />
+            </button>
+          ))}
+
+          {/* Services */}
+          {services.map((service) => (
+            <button
+              key={service.serviceId}
+              type="button"
+              onClick={() => onServiceSelect(service.serviceId, service.serviceName, service.price)}
+              className="w-full flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:border-green-500 hover:bg-green-50 transition-colors text-left"
+            >
+              <Wrench className="w-5 h-5 text-green-600 flex-shrink-0" />
+              <div className="flex-1">
+                <div className="font-medium text-sm">{service.serviceName}</div>
+                <div className="text-xs text-gray-600">${service.price.toFixed(2)}</div>
+              </div>
+            </button>
+          ))}
+
+          {categories.length === 0 && services.length === 0 && (
+            <div className="text-center py-8 text-gray-500 text-sm">
+              No categories or services found
+            </div>
+          )}
         </div>
       )}
     </Card>
