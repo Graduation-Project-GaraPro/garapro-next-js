@@ -43,3 +43,25 @@ export interface CreateVehicleDto {
   year: number;
   odometer: number | null;
 }
+
+// Vehicle Brand
+export interface VehicleBrand {
+  brandID: string;
+  brandName: string;
+  country: string;
+}
+
+// Vehicle Model
+export interface VehicleModel {
+  modelID: string;
+  modelName: string;
+  manufacturingYear: number;
+  brandID: string;
+}
+
+// Vehicle Color
+export interface VehicleColor {
+  colorID: string;
+  colorName: string;
+  hexCode: string;
+}

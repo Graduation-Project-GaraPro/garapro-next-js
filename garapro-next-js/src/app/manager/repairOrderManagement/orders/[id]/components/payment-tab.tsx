@@ -145,10 +145,18 @@ export default function PaymentTab({ orderId, repairOrderStatus, onPaymentSucces
   const handleConfirmPayment = async () => {
     try {
       setProcessingPayment(true)
-      const response = await paymentService.createPayment(orderId, {
-        method: "Cash",
+      
+      const paymentRequest = {
+        method: 0, // 0 = Cash (backend expects numeric enum)
         description: cashPaymentData.description || `Cash payment for repair order ${orderId}`,
-      })
+      };
+      
+      console.log("=== PAYMENT REQUEST ===");
+      console.log("Repair Order ID:", orderId);
+      console.log("Request Body:", JSON.stringify(paymentRequest, null, 2));
+      console.log("API Endpoint:", `/payments/manager-create/${orderId}`);
+      
+      const response = await paymentService.createPayment(orderId, paymentRequest)
 
       toast({
         title: "Payment Success",
@@ -170,12 +178,47 @@ export default function PaymentTab({ orderId, repairOrderStatus, onPaymentSucces
         description: ""
       })
     } catch (error: any) {
-      console.error("Failed to process payment:", error)
-      toast({
-        title: "Payment Failed",
-        description: error.response?.data?.message || "Failed to process cash payment",
-        variant: "destructive",
-      })
+      console.error("=== PAYMENT ERROR ===");
+      console.error("Error object:", error);
+      console.error("Error message:", error?.message);
+      console.error("Error status:", error?.status);
+      console.error("Error code:", error?.code);
+      console.error("Error details:", error?.details);
+      
+      const errorMessage = error?.message || "";
+      const responseData = error?.details; // Full response data stored in details
+      
+      const isActuallySuccessful = 
+        errorMessage.includes("Payment record created successfully") || 
+        errorMessage.includes("successfully") ||
+        (responseData && responseData.message && responseData.message.includes("successfully"));
+      
+      if (isActuallySuccessful) {
+        toast({
+          title: "Payment Success",
+          description: responseData?.message || "Cash payment processed successfully. Repair order status updated.",
+        })
+
+        await loadPaymentSummary()
+
+        if (onPaymentSuccess) {
+          onPaymentSuccess()
+        }
+
+        // Close dialog and reset
+        setShowPaymentPreview(false)
+        setPaymentPreview(null)
+        setCashPaymentData({
+          description: ""
+        })
+      } else {
+        // Actual failure
+        toast({
+          title: "Payment Failed",
+          description: errorMessage || "Failed to process cash payment",
+          variant: "destructive",
+        })
+      }
     } finally {
       setProcessingPayment(false)
     }
@@ -379,10 +422,6 @@ export default function PaymentTab({ orderId, repairOrderStatus, onPaymentSucces
                 {/* Payment Status */}
                 <div className="space-y-2 pt-4 border-t">
                   <div className="flex justify-between">
-                    <span className="text-sm">Paid Amount:</span>
-                    <span className="text-sm font-medium text-green-600">${(paymentSummary?.paidAmount || 0).toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between">
                     <span className="text-sm font-semibold">Balance Due:</span>
                     <span className={`text-sm font-bold ${balanceDue > 0 ? 'text-red-600' : 'text-green-600'}`}>
                       ${balanceDue.toFixed(2)}
@@ -575,10 +614,6 @@ export default function PaymentTab({ orderId, repairOrderStatus, onPaymentSucces
                       <span>Amount to Pay:</span>
                       <span>${paymentSummary?.amountToPay.toFixed(2) || '0.00'}</span>
                     </div>
-                    <div className="flex justify-between text-sm text-gray-600">
-                      <span>Paid:</span>
-                      <span className="text-green-600">${paymentSummary?.paidAmount.toFixed(2) || '0.00'}</span>
-                    </div>
                     <div className="flex justify-between text-lg font-bold text-red-600 border-t pt-2">
                       <span>Balance Due:</span>
                       <span>${balanceDue.toFixed(2)}</span>
@@ -685,17 +720,9 @@ export default function PaymentTab({ orderId, repairOrderStatus, onPaymentSucces
                       <span>Discount:</span>
                       <span className="font-medium">-${paymentPreview.discountAmount.toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between border-t border-green-300 pt-2 font-semibold">
-                      <span>Total Amount:</span>
-                      <span>${paymentPreview.totalAmount.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between text-green-600">
-                      <span>Already Paid:</span>
-                      <span className="font-medium">${paymentPreview.paidAmount.toFixed(2)}</span>
-                    </div>
                     <div className="flex justify-between border-t border-green-300 pt-2 font-bold text-lg">
-                      <span>Balance Due:</span>
-                      <span className="text-red-600">${(paymentPreview.totalAmount - paymentPreview.paidAmount).toFixed(2)}</span>
+                      <span>Total Amount:</span>
+                      <span className="text-red-600">${paymentPreview.totalAmount.toFixed(2)}</span>
                     </div>
                   </div>
                 </div>
@@ -724,7 +751,7 @@ export default function PaymentTab({ orderId, repairOrderStatus, onPaymentSucces
                   />
                 </div>
 
-                {(paymentPreview.totalAmount - paymentPreview.paidAmount) <= 0 && (
+                {paymentPreview.totalAmount <= 0 && (
                   <div className="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
                     <p className="text-sm text-yellow-800">
                       This repair order has been fully paid. No additional payment is required.
@@ -750,7 +777,7 @@ export default function PaymentTab({ orderId, repairOrderStatus, onPaymentSucces
                 </Button>
                 <Button
                   onClick={handleConfirmPayment}
-                  disabled={processingPayment || (paymentPreview.totalAmount - paymentPreview.paidAmount) <= 0}
+                  disabled={processingPayment || paymentPreview.totalAmount <= 0}
                   className="bg-[#154c79] hover:bg-[#123c66] text-white"
                 >
                   {processingPayment ? (
@@ -761,7 +788,7 @@ export default function PaymentTab({ orderId, repairOrderStatus, onPaymentSucces
                   ) : (
                     <>
                       <Check className="w-4 h-4 mr-2" />
-                      Confirm Payment (${(paymentPreview.totalAmount - paymentPreview.paidAmount).toFixed(2)})
+                      Confirm Payment (${paymentPreview.totalAmount.toFixed(2)})
                     </>
                   )}
                 </Button>

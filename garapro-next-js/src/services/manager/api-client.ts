@@ -71,7 +71,19 @@ class ApiClient {
     });
 
     try {
+      // Log request details for debugging
+      console.log("=== API CLIENT REQUEST ===");
+      console.log("URL:", url);
+      console.log("Method:", config.method);
+      console.log("Headers:", config.headers);
+      console.log("Body:", config.body);
+      
       const response = await fetch(url, config);
+      
+      console.log("=== API CLIENT RESPONSE ===");
+      console.log("Status:", response.status);
+      console.log("Status Text:", response.statusText);
+      console.log("OK:", response.ok);
 
       // Apply response interceptors
       let processedResponse = response;
@@ -81,7 +93,15 @@ class ApiClient {
 
       if (!processedResponse.ok) {
         const errorData = await this.parseErrorResponse(processedResponse);
-        throw new Error(errorData.message || `HTTP error! status: ${processedResponse.status}`);
+        console.log("=== API CLIENT ERROR DATA ===");
+        console.log("Error Data:", errorData);
+        
+        // Create error object with full error data
+        const error = new Error(errorData.message || `HTTP error! status: ${processedResponse.status}`) as Error & ApiError;
+        error.status = errorData.status;
+        error.code = errorData.code;
+        error.details = errorData.details;
+        throw error;
       }
 
       // Handle 204 No Content responses
@@ -142,11 +162,13 @@ class ApiClient {
       }
       
       const errorData = await response.json();
+      
+      // Store the full response data in details for later access
       return {
         message: errorData.message || 'An error occurred',
         status: response.status,
         code: errorData.code,
-        details: errorData.details
+        details: errorData // Store full response data
       };
     } catch {
       return {
