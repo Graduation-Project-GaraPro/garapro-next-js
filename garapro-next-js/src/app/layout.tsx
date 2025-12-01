@@ -1,6 +1,7 @@
 import { OnlineUserProvider } from "@/constants/OnlineUserProvider";
 import "./globals.css";
 import { Toaster } from "sonner";
+import EmergencyHubProvider from "@/app/providers/EmergencyHubProvider";
 
 export const metadata = {
   title: "My App",
@@ -15,7 +16,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <OnlineUserProvider>{children}</OnlineUserProvider>
+        <OnlineUserProvider>
+          <EmergencyHubProvider>{children}</EmergencyHubProvider>
+        </OnlineUserProvider>
         <Toaster />
       </body>
     </html>

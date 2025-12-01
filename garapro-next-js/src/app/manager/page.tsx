@@ -1,17 +1,19 @@
-"use client"
+"use client";
 
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import Link from "next/link"
-import { Calendar, Settings, Users, BarChart3, Wrench } from "lucide-react"
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { Calendar, Settings, Users, BarChart3, Wrench } from "lucide-react";
 
+console.log("ManagerDashboard loaded");
 export default function ManagerDashboard() {
   return (
     <div className="p-6 space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Manager Dashboard</h1>
         <p className="text-muted-foreground">
-          Welcome to the manager dashboard. Navigate to different sections using the menu below.
+          Welcome to the manager dashboard. Navigate to different sections using
+          the menu below.
         </p>
       </div>
 
@@ -28,9 +30,7 @@ export default function ManagerDashboard() {
           </div>
           <div className="mt-4">
             <Link href="/manager/CustomerAppointments">
-              <Button className="w-full">
-                Open Appointments
-              </Button>
+              <Button className="w-full">Open Appointments</Button>
             </Link>
           </div>
         </Card>
@@ -47,9 +47,7 @@ export default function ManagerDashboard() {
           </div>
           <div className="mt-4">
             <Link href="/manager/techSchedule">
-              <Button className="w-full">
-                Open Tech Schedule
-              </Button>
+              <Button className="w-full">Open Tech Schedule</Button>
             </Link>
           </div>
         </Card>
@@ -66,9 +64,7 @@ export default function ManagerDashboard() {
           </div>
           <div className="mt-4">
             <Link href="/manager/garageSetting">
-              <Button className="w-full">
-                Open Settings
-              </Button>
+              <Button className="w-full">Open Settings</Button>
             </Link>
           </div>
         </Card>
@@ -85,9 +81,7 @@ export default function ManagerDashboard() {
           </div>
           <div className="mt-4">
             <Link href="/manager/repairOrderManagement/ro-board">
-              <Button className="w-full">
-                Open Job Board
-              </Button>
+              <Button className="w-full">Open Job Board</Button>
             </Link>
           </div>
         </Card>
@@ -104,13 +98,11 @@ export default function ManagerDashboard() {
           </div>
           <div className="mt-4">
             <Link href="/manager/technician-assignment-demo">
-              <Button className="w-full">
-                View Demo
-              </Button>
+              <Button className="w-full">View Demo</Button>
             </Link>
           </div>
         </Card>
       </div>
     </div>
-  )
+  );
 }

@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import type * as React from "react"
+import type * as React from "react";
 import {
   BarChart3,
   Calendar,
@@ -17,9 +17,9 @@ import {
   Users,
   // Wrench,
   LayoutDashboard,
-} from "lucide-react"
+} from "lucide-react";
 
-import { NavMain } from "@/app/manager/components/layout/nav-main"
+import { NavMain } from "@/app/manager/components/layout/nav-main";
 import {
   Sidebar,
   SidebarContent,
@@ -28,7 +28,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
 
 // Updated data structure to match your requirements
 const data = {
@@ -94,8 +94,8 @@ const data = {
   // Admin section
   adminNav: [
     {
-      title: "Employees",
-      url: "/manager/accountManagement",
+      title: "Emergency Requests",
+      url: "/manager/emergency",
       icon: Users,
     },
     {
@@ -109,17 +109,17 @@ const data = {
       icon: CreditCard,
     },
   ],
-}
+};
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="icon" className="border-r" {...props}>
       <SidebarHeader className="border-b mt-14 py-0">
         {/* Company Logo/Brand */}
-        <SidebarMenu >
+        <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" className="px-2 pl-2" asChild>
-              <a href="/manager/dashboard">
+              <a href="/manager">
                 <div className="flex aspect-square size-6 items-center justify-center rounded-sm bg-[#ae2621] text-sidebar-primary-foreground">
                   <LayoutDashboard className="size-4" />
                 </div>
@@ -148,5 +148,5 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarContent>
       <SidebarRail />
     </Sidebar>
-  )
+  );
 }
