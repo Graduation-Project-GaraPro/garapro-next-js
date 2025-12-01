@@ -1,8 +1,7 @@
 import axios from "axios";
-
+import { handleApiError } from "@/utils/authUtils";
 const API_URL = process.env.NEXT_PUBLIC_BASE_URL+ "/odata/Specification" || 'https://localhost:7113/odata/Specification';
 
-// API Response Types
 export interface SpecificationField {
   label: string;
   value: string;
@@ -22,35 +21,32 @@ export interface VehicleSpecificationDto {
   categories: SpecificationCategory[];
 }
 
-// Get all vehicle specifications
 export const getAllSpecifications = async (): Promise<VehicleSpecificationDto[]> => {
   try {
-    const response = await fetch('YOUR_API_URL', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        // Thêm token nếu cần
-      }
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+    const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
+    if (!token) {
+      throw new Error("Missing authentication token");
     }
 
-    const data = await response.json();
-    
-    if (!data || !Array.isArray(data)) {
+    const response = await axios.get(API_URL, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    const data = response.data;
+    if (!Array.isArray(data)) {
       console.warn('API response is not an array:', data);
       return [];
     }
+    
     return data;
   } catch (error) {
-    console.error('Error fetching specifications:', error);
-    return []; // Trả về array rỗng thay vì throw error
+    return handleApiError(error);
   }
 };
 
-// Search vehicle specifications by keyword
 export const searchSpecifications = async (keyword: string): Promise<VehicleSpecificationDto[]> => {
   try {
     const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
@@ -70,8 +66,8 @@ export const searchSpecifications = async (keyword: string): Promise<VehicleSpec
   } catch (error) {
     console.error("Error searching specifications:", error);
     if (axios.isAxiosError(error)) {
-      throw new Error(error.response?.data?.message || "Unable to search vehicle specifications");
+      return handleApiError(error);
     }
-    throw error;
+    return handleApiError(error);
   }
 };
