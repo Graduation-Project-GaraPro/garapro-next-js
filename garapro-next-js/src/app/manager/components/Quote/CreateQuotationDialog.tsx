@@ -16,6 +16,7 @@ import { serviceCatalog, GarageServiceCatalogItem, Part } from "@/services/servi
 import { quotationService } from "@/services/manager/quotation-service"
 import { repairOrderService } from "@/services/manager/repair-order-service"
 import { quotationTreeService } from "@/services/manager/quotation-tree-service"
+import { formatVND } from "@/lib/currency"
 import { 
   CreateQuotationDto, 
   QuotationServiceCreateDto, 
@@ -85,30 +86,85 @@ export function CreateQuotationDialog({ open, onOpenChange, roData, onSubmit }: 
     // Store the service selection temporarily
     setCurrentServiceSelection({ serviceId, serviceName, servicePrice: price })
     
-    // Fetch parts for this service using the tree API
+    // Try to fetch parts for this service using the tree API first
     try {
       const serviceDetails = await quotationTreeService.getServiceDetails(serviceId)
-      // Show part category selector modal
-      setPartModalOpen(serviceId)
-      // Store part categories for this service
-      const allParts: any[] = []
-      serviceDetails.partCategories.forEach(category => {
-        category.parts.forEach(part => {
-          allParts.push({
-            partId: part.partId,
-            name: part.partName,
-            price: part.price
-          })
+      
+      // Check if part categories have parts included
+      const hasPartsInCategories = serviceDetails.partCategories.some(
+        (cat: any) => cat.parts && cat.parts.length > 0
+      )
+      
+      if (hasPartsInCategories) {
+        // API includes parts in categories - extract them
+        const allParts: any[] = []
+        serviceDetails.partCategories.forEach((category: any) => {
+          if (category.parts) {
+            category.parts.forEach((part: any) => {
+              allParts.push({
+                partId: part.partId,
+                name: part.partName,
+                price: part.price
+              })
+            })
+          }
         })
-      })
-      setPartsForService(prev => ({
-        ...prev,
-        [serviceId]: allParts
-      }))
-    } catch (error) {
-      console.error("Failed to fetch service details:", error)
-      // If no parts, just add the service
-      addServiceWithoutParts(serviceId, serviceName, price)
+        setPartsForService(prev => ({
+          ...prev,
+          [serviceId]: allParts
+        }))
+        setPartModalOpen(serviceId)
+      } else {
+        // API only returns category IDs - fetch parts for each category
+        console.log("Fetching parts for each category...")
+        const allParts: any[] = []
+        
+        for (const category of serviceDetails.partCategories) {
+          try {
+            const categoryParts = await quotationTreeService.getPartsByCategory(category.partCategoryId)
+            categoryParts.forEach((part: any) => {
+              allParts.push({
+                partId: part.partId,
+                name: part.name,
+                price: part.price
+              })
+            })
+          } catch (error) {
+            console.error(`Failed to fetch parts for category ${category.partCategoryId}:`, error)
+          }
+        }
+        
+        if (allParts.length > 0) {
+          setPartsForService(prev => ({
+            ...prev,
+            [serviceId]: allParts
+          }))
+          setPartModalOpen(serviceId)
+        } else {
+          addServiceWithoutParts(serviceId, serviceName, price)
+        }
+      }
+    } catch (error: any) {
+      console.warn("Tree API error, falling back to service catalog:", error)
+      
+      // Fallback: Try to fetch parts using the old service catalog API
+      try {
+        const parts = await serviceCatalog.getPartsByServiceId(serviceId)
+        if (parts && parts.length > 0) {
+          setPartsForService(prev => ({
+            ...prev,
+            [serviceId]: parts
+          }))
+          setPartModalOpen(serviceId)
+        } else {
+          // No parts available, just add the service
+          addServiceWithoutParts(serviceId, serviceName, price)
+        }
+      } catch (fallbackError) {
+        console.error("Failed to fetch parts from service catalog:", fallbackError)
+        // If both APIs fail, just add the service without parts
+        addServiceWithoutParts(serviceId, serviceName, price)
+      }
     }
   }
 
@@ -160,26 +216,66 @@ export function CreateQuotationDialog({ open, onOpenChange, roData, onSubmit }: 
     try {
       // Check if we already have parts for this service
       if (!partsForService[serviceId]) {
-        const serviceDetails = await quotationTreeService.getServiceDetails(serviceId)
-        const allParts: any[] = []
-        serviceDetails.partCategories.forEach(category => {
-          category.parts.forEach(part => {
-            allParts.push({
-              partId: part.partId,
-              name: part.partName,
-              price: part.price
+        // Try tree API first
+        try {
+          const serviceDetails = await quotationTreeService.getServiceDetails(serviceId)
+          const allParts: any[] = []
+          
+          // Check if parts are included in categories
+          const hasPartsInCategories = serviceDetails.partCategories.some(
+            (cat: any) => cat.parts && cat.parts.length > 0
+          )
+          
+          if (hasPartsInCategories) {
+            // Extract parts from categories
+            serviceDetails.partCategories.forEach((category: any) => {
+              if (category.parts) {
+                category.parts.forEach((part: any) => {
+                  allParts.push({
+                    partId: part.partId,
+                    name: part.partName,
+                    price: part.price
+                  })
+                })
+              }
             })
-          })
-        })
-        setPartsForService(prev => ({
-          ...prev,
-          [serviceId]: allParts
-        }))
+          } else {
+            // Fetch parts for each category
+            for (const category of serviceDetails.partCategories) {
+              try {
+                const categoryParts = await quotationTreeService.getPartsByCategory(category.partCategoryId)
+                categoryParts.forEach((part: any) => {
+                  allParts.push({
+                    partId: part.partId,
+                    name: part.name,
+                    price: part.price
+                  })
+                })
+              } catch (error) {
+                console.error(`Failed to fetch parts for category ${category.partCategoryId}:`, error)
+              }
+            }
+          }
+          
+          setPartsForService(prev => ({
+            ...prev,
+            [serviceId]: allParts
+          }))
+        } catch (treeError) {
+          console.warn("Tree API not available, using service catalog:", treeError)
+          // Fallback to service catalog
+          const parts = await serviceCatalog.getPartsByServiceId(serviceId)
+          setPartsForService(prev => ({
+            ...prev,
+            [serviceId]: parts
+          }))
+        }
       }
       
       setPartModalOpen(serviceId)
     } catch (error) {
       console.error("Failed to fetch parts for service:", error)
+      alert("No parts available for this service")
     }
   }
 
@@ -414,7 +510,7 @@ export function CreateQuotationDialog({ open, onOpenChange, roData, onSubmit }: 
                                   </span>
                                 )}
                               </div>
-                              <div className="text-sm text-gray-600">${service.price.toFixed(2)}</div>
+                              <div className="text-sm text-gray-600">{formatVND(service.price)}</div>
                             </div>
                             <div className="flex gap-2">
                               <Button
@@ -455,7 +551,7 @@ export function CreateQuotationDialog({ open, onOpenChange, roData, onSubmit }: 
                                   <div key={item.id} className="flex justify-between items-center text-sm bg-gray-50 p-2 rounded">
                                     <span>{item.name}</span>
                                     <div className="flex items-center gap-2">
-                                      <span>${item.price.toFixed(2)}</span>
+                                      <span>{formatVND(item.price)}</span>
                                       <button
                                         type="button"
                                         onClick={() => removeCustomItem(serviceId, item.id)}
@@ -474,7 +570,7 @@ export function CreateQuotationDialog({ open, onOpenChange, roData, onSubmit }: 
                       
                       <div className="border-t pt-4 flex justify-between items-center font-bold text-lg">
                         <span>Total:</span>
-                        <span>${calculateTotal().toFixed(2)}</span>
+                        <span>{formatVND(calculateTotal())}</span>
                       </div>
                     </div>
                   )}

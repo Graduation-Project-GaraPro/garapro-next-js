@@ -17,20 +17,34 @@ export interface InspectionDto {
 }
 
 export interface InspectionServiceDto {
+  serviceInspectionId: string;
   serviceId: string;
   serviceName: string;
-  description: string;
-  price: number;
-  estimatedDuration: number;
+  conditionStatus: number; // 0 = Good, 1 = Needs_Attention, 2 = Replace
+  createdAt: string;
+  description?: string; // Optional - may not be in API response
+  price?: number; // Optional - may not be in API response
+  estimatedDuration?: number; // Optional - may not be in API response
   parts: InspectionPartDto[];
 }
 
+// Condition Status enum
+export enum ConditionStatus {
+  Good = 0,
+  Needs_Attention = 1,
+  Replace = 2
+}
+
 export interface InspectionPartDto {
+  partInspectionId: string;
   partId: string;
-  name: string;
-  price: number;
+  partName: string;
   quantity: number;
-  totalPrice: number;
+  status: string | null;
+  createdAt: string;
+  name?: string; // Alias for partName
+  price?: number; // Optional - may not be in API response
+  totalPrice?: number; // Optional - may not be in API response
 }
 
 // Request interface for creating an inspection

@@ -84,13 +84,34 @@ export default function JobsTab({ orderId, branchId }: JobsTabProps) {
   }
 
   const handleAssignTech = (jobId: string) => {
+    // Check if job is in progress
+    const job = jobs.find(j => j.jobId === jobId)
+    if (job && job.status === 2) { // 2 = In Progress
+      toast({
+        variant: "destructive",
+        title: "Cannot Reassign Technician",
+        description: "This job is currently in progress. Please wait until it's completed or ask the technician to pause it.",
+      })
+      return
+    }
+    
     setSelectedJobIds([jobId])
     setIsTechSelectionOpen(true)
   }
 
   const handleBatchAssignTech = () => {
-    // Get all pending jobs for batch assignment
+    // Get all pending jobs for batch assignment (exclude in-progress jobs)
     const pendingJobs = jobs.filter(job => job.status === 0) // 0 = Pending
+    
+    if (pendingJobs.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "No Pending Jobs",
+        description: "There are no pending jobs available for assignment.",
+      })
+      return
+    }
+    
     setSelectedJobIds(pendingJobs.map(job => job.jobId))
     setIsTechSelectionOpen(true)
   }
@@ -144,10 +165,11 @@ export default function JobsTab({ orderId, branchId }: JobsTabProps) {
       setIsTechSelectionOpen(false);
       setSelectedJobIds([]);
       
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to assign technician:", error);
-      // Extract error message if it's an Error object
-      const errorMessage = error instanceof Error ? error.message : "Failed to assign technician to job(s)";
+      
+      // Extract error message from backend response or Error object
+      const errorMessage = error?.response?.data?.message || error?.message || "Failed to assign technician to job(s)";
       setAssignmentError(errorMessage);
       
       // Show error toast
@@ -281,7 +303,9 @@ export default function JobsTab({ orderId, branchId }: JobsTabProps) {
                         variant="outline"
                         size="sm"
                         onClick={() => handleAssignTech(job.jobId)}
+                        disabled={job.status === 2} // 2 = In Progress
                         className="flex items-center gap-2"
+                        title={job.status === 2 ? "Cannot reassign while in progress" : ""}
                       >
                         {assignedTechs[job.jobId] ? (
                           <>

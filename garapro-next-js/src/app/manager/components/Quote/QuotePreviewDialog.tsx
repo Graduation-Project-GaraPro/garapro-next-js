@@ -18,6 +18,7 @@ import { quotationService } from "@/services/manager/quotation-service"
 import { QuotationDto } from "@/types/manager/quotation"
 import { Button } from "@/components/ui/button"
 import { FileSearch } from "lucide-react"
+import { formatVND } from "@/lib/currency"
 
 // Helper function to convert string ID to number
 const stringIdToNumber = (id: string): number => {
@@ -95,12 +96,17 @@ export default function QuotePreviewDialog({ open, onOpenChange, quotationId }: 
   const getServicesData = () => {
     if (!quotation) return []
     
+    // Calculate inspection fee per good service
+    const goodServicesCount = quotation.quotationServices.filter(s => s.isGood).length
+    const inspectionFeePerService = goodServicesCount > 0 ? quotation.inspectionFee / goodServicesCount : 0
+    
     return quotation.quotationServices.map((service) => ({
       id: stringIdToNumber(service.quotationServiceId),
       name: service.serviceName,
       price: service.totalPrice,
       isRequired: service.isRequired, // Add isRequired property
       isGood: service.isGood, // ✅ NEW - Add isGood property
+      inspectionFee: service.isGood ? inspectionFeePerService : 0, // ✅ NEW - Split inspection fee among good services
       parts: service.parts ? service.parts.map((part) => ({
         id: stringIdToNumber(part.quotationServicePartId),
         name: part.partName,
@@ -163,6 +169,15 @@ export default function QuotePreviewDialog({ open, onOpenChange, quotationId }: 
   const handleCopyToJobs = async () => {
     if (!quotation) return
     
+    // Check if jobs were already created
+    if (quotation.jobsCreated) {
+      toast.error("Jobs Already Created", {
+        description: `Jobs were already created from this quotation on ${new Date(quotation.jobsCreatedAt || '').toLocaleDateString()}`,
+        duration: 5000,
+      });
+      return;
+    }
+    
     // Show loading toast
     const loadingToast = toast.loading("Converting quotation to jobs...");
     
@@ -177,27 +192,40 @@ export default function QuotePreviewDialog({ open, onOpenChange, quotationId }: 
         duration: 4000,
       });
       
+      // Update local state to reflect jobs created
+      setQuotation({
+        ...quotation,
+        jobsCreated: true,
+        jobsCreatedAt: new Date().toISOString()
+      });
+      
       // Close dialog after successful conversion
       setTimeout(() => {
         onOpenChange(false);
       }, 1000);
-    } catch (error) {
+    } catch (error: any) {
       // Dismiss loading toast
       toast.dismiss(loadingToast);
       
       // Extract error message from the error object
       let errorMessage = "Failed to convert quotation to jobs. Please try again.";
       
-      if (error instanceof Error) {
+      if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error instanceof Error) {
         errorMessage = error.message;
       } else if (typeof error === 'string') {
         errorMessage = error;
       }
       
+      // Check if it's a duplicate service error
+      const isDuplicateServiceError = errorMessage.toLowerCase().includes("already exist") || 
+                                      errorMessage.toLowerCase().includes("duplicate");
+      
       // Show error toast with specific message
-      toast.error("Conversion Failed", {
+      toast.error(isDuplicateServiceError ? "Duplicate Services Detected" : "Conversion Failed", {
         description: errorMessage,
-        duration: 5000,
+        duration: isDuplicateServiceError ? 8000 : 5000, // Longer duration for duplicate errors
       });
       
       console.error("Failed to copy quotation to jobs:", error);
@@ -305,15 +333,27 @@ export default function QuotePreviewDialog({ open, onOpenChange, quotationId }: 
                   <span className="font-medium text-card-foreground">{quotation.quotationServices.length}</span>
                 </div>
                 <div className="flex justify-between">
+                  <span className="text-muted-foreground">Good Condition Services:</span>
+                  <span className="font-medium text-green-600">
+                    {quotation.quotationServices.filter(s => s.isGood).length}
+                  </span>
+                </div>
+                <div className="flex justify-between">
                   <span className="text-muted-foreground">Total Parts:</span>
                   <span className="font-medium text-card-foreground">
                     {quotation.quotationServices.reduce((sum, service) => sum + (service.parts ? service.parts.length : 0), 0)}
                   </span>
                 </div>
+                {quotation.inspectionFee > 0 && (
+                  <div className="flex justify-between border-t border-border pt-3">
+                    <span className="text-muted-foreground">Inspection Fee:</span>
+                    <span className="font-medium text-green-600">{formatVND(quotation.inspectionFee)}</span>
+                  </div>
+                )}
                 <div className="border-t border-border pt-3">
                   <div className="flex justify-between">
                     <span className="text-lg font-semibold text-card-foreground">Total Amount:</span>
-                    <span className="text-2xl font-bold text-primary">${totalPrice.toLocaleString()}</span>
+                    <span className="text-2xl font-bold text-primary">{formatVND(totalPrice)}</span>
                   </div>
                 </div>
               </div>
@@ -330,6 +370,8 @@ export default function QuotePreviewDialog({ open, onOpenChange, quotationId }: 
               onDownloadPDF={handleDownloadPDF}
               onCopyToJobs={handleCopyToJobs} // Add copy to jobs handler
               isApproved={quotation?.status === "Approved"} // Check if quotation is approved
+              jobsCreated={quotation?.jobsCreated || false} // Pass jobs created flag
+              jobsCreatedAt={quotation?.jobsCreatedAt || null} // Pass jobs created timestamp
             />
           )}
         </div>

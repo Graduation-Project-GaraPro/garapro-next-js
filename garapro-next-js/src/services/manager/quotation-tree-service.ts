@@ -99,6 +99,20 @@ class QuotationTreeService {
       throw error;
     }
   }
+
+  // Get parts by category ID
+  async getPartsByCategory(categoryId: string): Promise<PartItem[]> {
+    try {
+      const response = await apiClient.get<PartItem[]>(`${this.baseUrl}/parts/category/${categoryId}`);
+      if (!response.data) {
+        throw new Error('No data received from API');
+      }
+      return response.data;
+    } catch (error) {
+      console.error(`Failed to fetch parts for category ${categoryId}:`, error);
+      throw error;
+    }
+  }
 }
 
 export const quotationTreeService = new QuotationTreeService();

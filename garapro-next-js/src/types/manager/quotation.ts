@@ -36,10 +36,14 @@ export interface QuotationDto {
   status: "Pending" | "Sent" | "Approved" | "Rejected" | "Expired" | "Good"; // ✅ Added "Good" status
   totalAmount: number; // decimal
   discountAmount: number; // decimal
+  inspectionFee: number; // ✅ NEW - inspection fee for the entire quotation
   note?: string;
+  customerNote?: string | null;
   expiresAt: string | null;
   customerName: string;
   vehicleInfo: string | null;
+  jobsCreated: boolean; // ✅ NEW - flag to track if jobs were created from this quotation
+  jobsCreatedAt: string | null; // ✅ NEW - timestamp when jobs were created
   quotationServices: QuotationServiceDto[];
   quotationServiceParts: unknown | null;
   inspection: unknown | null;
@@ -57,6 +61,10 @@ export interface QuotationServiceDto {
   quantity: number;
   totalPrice: number;
   createdAt: string;
+  discountValue: number;
+  finalPrice: number;
+  appliedPromotionId: string | null;
+  appliedPromotion: unknown | null;
   serviceName: string;
   serviceDescription: string;
   parts: QuotationServicePartDto[]; // Changed from quotationServiceParts to parts to match API response

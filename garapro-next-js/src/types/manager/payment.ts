@@ -38,7 +38,7 @@ export enum PaymentMethodEnum {
 }
 
 export interface CreatePaymentRequest {
-  method: PaymentMethod | number; // Accept both string and number
+  method: number; // Backend expects numeric enum (0 = Cash, 1 = PayOs)
   description: string;
 }
 

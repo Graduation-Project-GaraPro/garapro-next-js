@@ -11,6 +11,7 @@ import {
   type ServiceItem,
   type BreadcrumbItem 
 } from "@/services/manager/quotation-tree-service"
+import { formatVND } from "@/lib/currency"
 
 interface ServiceTreeNavigatorProps {
   onServiceSelect: (serviceId: string, serviceName: string, price: number) => void
@@ -117,7 +118,7 @@ export function ServiceTreeNavigator({ onServiceSelect }: ServiceTreeNavigatorPr
                 <Wrench className="w-5 h-5 text-green-600 flex-shrink-0" />
                 <div className="flex-1">
                   <div className="font-medium">{service.serviceName}</div>
-                  <div className="text-sm text-gray-600">${service.price.toFixed(2)}</div>
+                  <div className="text-sm text-gray-600">{formatVND(service.price)}</div>
                 </div>
               </button>
             ))}
