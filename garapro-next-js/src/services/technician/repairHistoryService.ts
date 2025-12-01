@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = "https://localhost:7113/odata/RepairHistories";
+const API_URL = process.env.NEXT_PUBLIC_BASE_URL+ "/odata/RepairHistories" || 'https://localhost:7113/odata/RepairHistories';
 
 export interface RepairHistoryDto {
   vehicle: VehicleDto;

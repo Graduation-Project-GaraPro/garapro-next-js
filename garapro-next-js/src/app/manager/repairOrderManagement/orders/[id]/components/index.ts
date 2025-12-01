@@ -1,7 +1,6 @@
 export { default as VehicleInformation } from './vehicle-information'
 export { default as InspectionsTab } from './inspections-tab'
 export { default as JobsTab } from './jobs-tab'
-export { default as WorkProgressTab } from './work-progress-tab'
 export { default as PaymentTab } from './payment-tab'
 export { default as QuotationTab } from './quotation-tab'
 export { default as EditRepairOrderDialog } from './edit-repair-order-dialog'

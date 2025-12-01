@@ -30,10 +30,8 @@ import {
 } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
-//Define types for task status and priority
 type TaskStatus = "new" | "in-progress" | "completed" | "on-hold";
 
-// Define the structure of a task
 interface Task {
   id: string | number;
   vehicle: string;
@@ -133,7 +131,6 @@ export default function TaskManagement() {
 
   const router = useRouter();
 
-  // Debounce search term
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearchTerm(searchTerm);

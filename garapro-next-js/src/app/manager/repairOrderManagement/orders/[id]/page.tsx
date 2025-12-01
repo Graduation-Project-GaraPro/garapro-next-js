@@ -19,7 +19,6 @@ import {
   VehicleInformation, 
   InspectionsTab, 
   JobsTab, 
-  WorkProgressTab, 
   PaymentTab,
   QuotationTab,
   EditRepairOrderDialog
@@ -110,24 +109,34 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
     )
   }
 
-  // Mock data - in real app this would come from API
-  const orderData = {
-    id: orderId,
-    customer: "Justine Anderson",
-    vehicle: "2017 Honda CR-V EX",
-    status: "Requires Authorization",
-    inOdometer: "Add odometer",
-    outOdometer: "Add odometer",
-    createdDate: "2024-01-15",
-    estimatedCompletion: "2024-01-17",
+  // Get display data from repair order
+  const getOrderDisplayData = () => {
+    if (!repairOrder) {
+      return {
+        shortId: orderId.substring(0, 4),
+        customer: "Loading...",
+        vehicle: "Loading...",
+        status: "Loading...",
+        labels: []
+      }
+    }
+    
+    return {
+      shortId: repairOrder.repairOrderId.substring(0, 4),
+      customer: repairOrder.customerName || "Unknown Customer",
+      vehicle: `Vehicle #${repairOrder.vehicleId.substring(0, 4)}`, // Will be replaced with actual vehicle info
+      status: repairOrder.statusId || "Unknown",
+      labels: repairOrder.assignedLabels || []
+    }
   }
+  
+  const orderData = getOrderDisplayData()
 
   const tabs = [
     { id: "vehicle-info", label: "VEHICLE INFO", icon: FileText },
     { id: "inspections", label: "INSPECTIONS", icon: Clipboard },
     { id: "quotation", label: "QUOTATION", icon: Clipboard },
     { id: "jobs", label: "JOBS", icon: Calculator },
-    { id: "work-in-progress", label: "WORK-IN-PROGRESS", icon: Wrench },
     { id: "payment", label: "PAYMENT", icon: CreditCard },
   ]
 
@@ -139,7 +148,6 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
       inspections: <InspectionsTab orderId={orderId} highlightInspectionId={highlightInspectionId} />,
       quotation: <QuotationTab orderId={orderId} />,
       jobs: <JobsTab orderId={orderId} branchId={userBranchId || undefined} />,
-      "work-in-progress": <WorkProgressTab orderId={orderId} />,
       payment: <PaymentTab orderId={orderId} repairOrderStatus={repairOrder ? parseInt(repairOrder.statusId) : undefined} onPaymentSuccess={handleOrderUpdated} />
     }
 
@@ -163,14 +171,23 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
             </Button>
             <div>
               <h1 className="text-lg font-semibold">
-                RO #{orderData.id}: {orderData.customer}&apos;s {orderData.vehicle}
+                RO #{orderData.shortId} • {orderData.customer} • {orderData.vehicle}
               </h1>
-              <div className="flex items-center space-x-4 mt-1">
-                <Badge variant="secondary" className="bg-green-500 text-white">
-                  {orderData.status}
-                </Badge>
-                <span className="text-sm">In: {orderData.inOdometer}</span>
-                <span className="text-sm">Out: {orderData.outOdometer}</span>
+              <div className="flex items-center gap-3 mt-1 flex-wrap">
+                {orderData.labels.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    {orderData.labels.map((label) => (
+                      <Badge 
+                        key={label.labelId}
+                        variant="secondary"
+                        style={{ backgroundColor: label.hexCode, color: '#fff' }}
+                        className="text-xs"
+                      >
+                        {label.labelName}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>

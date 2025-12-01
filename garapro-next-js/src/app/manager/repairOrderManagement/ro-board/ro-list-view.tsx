@@ -66,7 +66,11 @@ export default function ListView({ repairOrders, loading, onEditRepairOrder, onD
     router.push(`/manager/repairOrderManagement/orders/${repairOrder.repairOrderId}`)
   }
 
-  const getStatusColor = (statusId: string) => {
+  const getStatusColor = (statusId: string | undefined | null) => {
+    if (!statusId || typeof statusId !== 'string') {
+      return "bg-gray-100 text-gray-700 border-gray-200"
+    }
+    
     // This would need to be updated to use the actual status data
     switch (statusId.toLowerCase()) {
       case "pending-status":
@@ -219,7 +223,9 @@ export default function ListView({ repairOrders, loading, onEditRepairOrder, onD
                     </div>
                     <div className="flex items-center gap-1">
                       <DollarSign className="w-3 h-3 text-green-600" />
-                      <span className="font-semibold text-green-600">${repairOrder.estimatedAmount?.toFixed(2) || "0.00"}</span>
+                      <span className="font-semibold text-green-600">
+                        {(repairOrder.estimatedAmount || 0).toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}
+                      </span>
                     </div>
                   </div>
                 </div>

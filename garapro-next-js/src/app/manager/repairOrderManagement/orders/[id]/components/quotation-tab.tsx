@@ -3,12 +3,26 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { 
   Plus,
   RefreshCw,
   Send,
   Briefcase,
-  Loader2
+  Loader2,
+  Trash2,
+  AlertTriangle,
+  Wifi,
+  WifiOff
 } from "lucide-react"
 import { toast } from "sonner"
 import { CreateQuotationDialog } from "@/app/manager/components/Quote"
@@ -16,6 +30,9 @@ import QuotePreviewDialog from "@/app/manager/components/Quote/QuotePreviewDialo
 import { quotationService } from "@/services/manager/quotation-service"
 import { QuotationDto } from "@/types/manager/quotation"
 import { useEffect } from "react"
+import { formatVND } from "@/lib/currency"
+import { useQuotationHub } from "@/hooks/use-quotation-hub"
+import { authService } from "@/services/authService"
 
 interface QuotationTabProps {
   orderId: string
@@ -29,6 +46,31 @@ export default function QuotationTab({ orderId }: QuotationTabProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [quotationToDelete, setQuotationToDelete] = useState<string | null>(null)
+
+  // Get current user for SignalR
+  const currentUser = authService.getCurrentUser();
+  const userId = currentUser?.userId || undefined;
+
+  // ✨ Initialize SignalR connection for real-time customer response updates
+  const { isConnected, connectionId } = useQuotationHub({
+    userId: userId,
+    isManager: true, // Manager should receive all quotation updates
+    onCustomerResponse: (event) => {
+      console.log("🔔 Customer response received in quotation tab:", event);
+      // Reload quotations to show updated status
+      loadQuotations();
+    },
+    onQuotationUpdate: (quotation) => {
+      console.log("🔄 Quotation updated in quotation tab:", quotation);
+      // Update the specific quotation in the list
+      setQuotations(prev => 
+        prev.map(q => q.quotationId === quotation.quotationId ? quotation : q)
+      );
+    },
+    autoConnect: true
+  });
 
   useEffect(() => {
     let pollingInterval: NodeJS.Timeout | null = null;
@@ -36,8 +78,10 @@ export default function QuotationTab({ orderId }: QuotationTabProps) {
     // Load initial quotations
     loadQuotations();
     
-    // Set up polling for updates
-    pollingInterval = setInterval(loadQuotations, 30000); // Poll every 30 seconds
+    // Set up polling for updates (as fallback if SignalR is not connected)
+    // Reduce polling frequency when SignalR is connected
+    const pollingFrequency = isConnected ? 60000 : 30000; // 60s if connected, 30s if not
+    pollingInterval = setInterval(loadQuotations, pollingFrequency);
 
     // Cleanup function
     return () => {
@@ -46,7 +90,7 @@ export default function QuotationTab({ orderId }: QuotationTabProps) {
         clearInterval(pollingInterval);
       }
     };
-  }, [orderId]);
+  }, [orderId, isConnected]);
 
   const loadQuotations = async () => {
     try {
@@ -85,6 +129,15 @@ export default function QuotationTab({ orderId }: QuotationTabProps) {
   };
   
   const handleCopyToJobs = async (quotationId: string) => {
+    // Check if jobs were already created
+    const quotation = quotations.find(q => q.quotationId === quotationId);
+    if (quotation?.jobsCreated) {
+      toast.error("Jobs Already Created", {
+        description: `Jobs were already created from this quotation on ${new Date(quotation.jobsCreatedAt || '').toLocaleDateString()}`
+      });
+      return;
+    }
+    
     setActionLoading(quotationId);
     try {
       await quotationService.copyQuotationToJobs(quotationId);
@@ -92,9 +145,44 @@ export default function QuotationTab({ orderId }: QuotationTabProps) {
       loadQuotations();
     } catch (err: any) {
       console.error("Failed to copy quotation to jobs:", err);
-      toast.error(err.message || "Failed to create jobs from quotation");
+      
+      // Extract error message from backend response
+      const errorMessage = err?.response?.data?.message || err?.message || "Failed to create jobs from quotation";
+      
+      // Check if it's a duplicate service error
+      const isDuplicateServiceError = errorMessage.toLowerCase().includes("already exist") || 
+                                      errorMessage.toLowerCase().includes("duplicate");
+      
+      toast.error(isDuplicateServiceError ? "Duplicate Services Detected" : "Failed to Create Jobs", {
+        description: errorMessage,
+        duration: isDuplicateServiceError ? 8000 : 5000, // Longer duration for duplicate errors
+      });
     } finally {
       setActionLoading(null);
+    }
+  };
+
+  const handleDeleteClick = (quotationId: string) => {
+    setQuotationToDelete(quotationId);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!quotationToDelete) return;
+
+    setActionLoading(quotationToDelete);
+    setDeleteDialogOpen(false);
+    
+    try {
+      await quotationService.deleteQuotation(quotationToDelete);
+      toast.success("Quotation deleted successfully");
+      loadQuotations();
+    } catch (err: any) {
+      console.error("Failed to delete quotation:", err);
+      toast.error(err.message || "Failed to delete quotation");
+    } finally {
+      setActionLoading(null);
+      setQuotationToDelete(null);
     }
   };
 
@@ -109,6 +197,7 @@ export default function QuotationTab({ orderId }: QuotationTabProps) {
       approved: "bg-green-100 text-green-800",
       rejected: "bg-red-100 text-red-800",
       expired: "bg-gray-100 text-gray-800",
+      good: "bg-green-100 text-green-800",
     };
     
     // Display text for each status
@@ -118,6 +207,7 @@ export default function QuotationTab({ orderId }: QuotationTabProps) {
       approved: "Approved",
       rejected: "Rejected",
       expired: "Expired",
+      good: "✓ All Good",
     };
     
     // Determine the status key for lookup
@@ -133,6 +223,8 @@ export default function QuotationTab({ orderId }: QuotationTabProps) {
       statusKey = "rejected";
     } else if (normalizedStatus.includes("expired")) {
       statusKey = "expired";
+    } else if (normalizedStatus.includes("good")) {
+      statusKey = "good";
     }
     
     return (
@@ -147,7 +239,20 @@ export default function QuotationTab({ orderId }: QuotationTabProps) {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Quotations</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-gray-900">Quotations</h1>
+            <div className="flex items-center gap-1.5">
+              {isConnected ? (
+                <>
+                  <Wifi className="w-4 h-4 text-green-600" />
+                </>
+              ) : (
+                <>
+                  <WifiOff className="w-4 h-4 text-gray-400" />
+                </>
+              )}
+            </div>
+          </div>
           <p className="text-sm text-gray-600 mt-1">
             Create quotations manually or convert from completed inspections
           </p>
@@ -200,7 +305,7 @@ export default function QuotationTab({ orderId }: QuotationTabProps) {
                       <td className="py-3 px-4">
                         {getStatusBadge(q.status)}
                       </td>
-                      <td className="py-3 px-4 text-right">${q.totalAmount.toFixed(2)}</td>
+                      <td className="py-3 px-4 text-right">{formatVND(q.totalAmount)}</td>
                       <td className="py-3 px-4">{new Date(q.createdAt).toLocaleDateString()}</td>
                       <td className="py-3 px-4">
                         <div className="flex justify-end gap-2">
@@ -212,7 +317,7 @@ export default function QuotationTab({ orderId }: QuotationTabProps) {
                             View
                           </Button>
                           
-                          {/* Send to Customer button - only for Pending quotations */}
+                          {/* Send to Customer button - only for Pending quotations (not Good status) */}
                           {q.status.toLowerCase() === "pending" && (
                             <Button 
                               variant="default"
@@ -232,8 +337,23 @@ export default function QuotationTab({ orderId }: QuotationTabProps) {
                             </Button>
                           )}
                           
-                          {/* Copy to Jobs button - only for Approved quotations */}
-                          {q.status.toLowerCase() === "approved" && (
+                          {/* Good status quotations are view-only, no actions needed */}
+                          
+                          {/* Jobs Created Badge - show if jobs were already created */}
+                          {q.jobsCreated && (
+                            <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium bg-blue-100 text-blue-800">
+                              <Briefcase className="h-3 w-3" />
+                              Jobs Created
+                              {q.jobsCreatedAt && (
+                                <span className="text-blue-600">
+                                  • {new Date(q.jobsCreatedAt).toLocaleDateString()}
+                                </span>
+                              )}
+                            </span>
+                          )}
+                          
+                          {/* Copy to Jobs button - only for Approved quotations that haven't been converted yet */}
+                          {q.status.toLowerCase() === "approved" && !q.jobsCreated && (
                             <Button 
                               variant="default"
                               size="sm"
@@ -247,6 +367,25 @@ export default function QuotationTab({ orderId }: QuotationTabProps) {
                                 <>
                                   <Briefcase className="h-4 w-4 mr-2" />
                                   Copy to Jobs
+                                </>
+                              )}
+                            </Button>
+                          )}
+
+                          {/* Delete button - only for Pending or Rejected quotations */}
+                          {(q.status.toLowerCase() === "pending" || q.status.toLowerCase() === "rejected") && (
+                            <Button 
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleDeleteClick(q.quotationId)}
+                              disabled={actionLoading === q.quotationId}
+                            >
+                              {actionLoading === q.quotationId ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <>
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Delete
                                 </>
                               )}
                             </Button>
@@ -267,8 +406,6 @@ export default function QuotationTab({ orderId }: QuotationTabProps) {
         open={isCreateFormOpen}
         onOpenChange={setIsCreateFormOpen}
         onSubmit={() => {
-          // The quotation has already been created by the CreateQuotationDialog component
-          // Just handle the UI updates here
           handleQuotationCreated();
           setIsCreateFormOpen(false);
         }}
@@ -289,6 +426,34 @@ export default function QuotationTab({ orderId }: QuotationTabProps) {
           quotationId={selectedQuotationId}
         />
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100">
+                <AlertTriangle className="h-5 w-5 text-red-600" />
+              </div>
+              <AlertDialogTitle>Delete Quotation</AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="text-left">
+              Are you sure you want to delete this quotation? This action cannot be undone and all associated data will be permanently removed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setQuotationToDelete(null)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
+              Delete Quotation
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

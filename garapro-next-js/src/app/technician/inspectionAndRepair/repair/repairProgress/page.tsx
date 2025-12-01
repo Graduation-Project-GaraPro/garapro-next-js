@@ -5,6 +5,7 @@ import {
   CheckCircle, Clock, Play, Pause, ArrowLeft, Car, FileText,
   Save,Settings,Plus,Edit,X,Loader, AlertTriangle, ChevronDown, ChevronUp,  Package  
 } from "lucide-react";
+const API_URL = process.env.NEXT_PUBLIC_BASE_URL ;
 import {
   getRepairOrderDetails,
   createRepair,
@@ -15,8 +16,6 @@ import {
    PartCategoryRepairDto,    
   JobDetailDto
 } from "@/services/technician/repairService";
-
-import { authService } from "@/services/authService";
 import { updateJobStatus } from "@/services/technician/jobTechnicianService";
 import signalRService, { 
   RepairCreatedEvent, 
@@ -159,12 +158,9 @@ export default function RepairProgressPage() {
       try {
         setLoading(true);
         setError("");
+        const authToken = typeof window !== "undefined" ? localStorage.getItem("authToken") : "";
         
-        const authToken = typeof window !== "undefined" ?  authService.getToken() : "";
-        
-        console.log("sadasdasd token",authToken)
-  
-        const jobResponse = await fetch(`https://localhost:7113/odata/JobTechnician/my-jobs/${jobId}`, {
+        const jobResponse = await fetch(API_URL+`/odata/JobTechnician/my-jobs/${jobId}`, {
           headers: {
             Authorization: `Bearer ${authToken}`,
           },
@@ -179,7 +175,7 @@ export default function RepairProgressPage() {
         }
         
         try {
-          const myJobsResponse = await fetch(`https://localhost:7113/odata/JobTechnician/my-jobs`, {
+          const myJobsResponse = await fetch(API_URL+`/odata/JobTechnician/my-jobs`, {
             headers: {
               Authorization: `Bearer ${authToken}`,
             },

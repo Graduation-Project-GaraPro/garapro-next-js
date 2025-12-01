@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = "https://localhost:7113/odata/Repairs";
+const API_URL = process.env.NEXT_PUBLIC_BASE_URL +"/odata/Repairs" || 'https://localhost:7113/odata/Repairs';
 
 export interface RepairCreateDto {
   jobId: string; 
@@ -114,7 +114,7 @@ export const getRepairOrderDetails = async (repairOrderId: string): Promise<Repa
     if (!token) {
       throw new Error("Missing authentication token");
     }
-
+    console.log("URL: ",API_URL);
     const response = await axios.get(`${API_URL}/${repairOrderId}`, {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -168,7 +168,7 @@ export const updateRepair = async (repairId: string, data: RepairUpdateDto): Pro
         "Content-Type": "application/json",
       },
     });
-    return response.data; // Backend trả về { message: "Cập nhật Repair thành công." }
+    return response.data; 
   } catch (error) {
     if (axios.isAxiosError(error)) {
       const message = error.response?.data?.message || error.message;

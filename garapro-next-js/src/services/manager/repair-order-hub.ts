@@ -21,20 +21,14 @@ class RepairOrderHubService {
     }
 
     try {
-      // Get the base URL from environment variables (without /api for SignalR hubs)
-      const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "https://localhost:7113/api";
-      // SignalR hubs are at root level, not under /api
-      const hubBaseUrl = baseUrl.replace('/api', '');
+      const { getHubBaseUrl, HUB_CONNECTION_OPTIONS, HUB_ENDPOINTS } = await import('./hub-config');
+      const hubUrl = `${getHubBaseUrl()}${HUB_ENDPOINTS.REPAIR_ORDER}`;
       
-      // Get the authentication token from localStorage
-      const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
+      console.log("🔌 Connecting to RepairOrderHub:", hubUrl);
       
       // Configure the connection with authentication
-      // Note: SignalR automatically appends "/negotiate" to the URL
       const builder = new HubConnectionBuilder()
-        .withUrl(`${hubBaseUrl}/api/repairorderhub`, {
-          accessTokenFactory: () => token || ""
-        })
+        .withUrl(hubUrl, HUB_CONNECTION_OPTIONS)
         .configureLogging(LogLevel.Information);
 
       this.connection = builder.build();
@@ -42,7 +36,7 @@ class RepairOrderHubService {
       // Start
       await this.connection.start();
       this.isConnected = true;
-      console.log("SignalR Connected");
+      console.log("✅ RepairOrderHub Connected");
 
       // Handle
       this.connection.onclose(async () => {
@@ -53,7 +47,7 @@ class RepairOrderHubService {
       
       // The server will automatically send events to the client
     } catch (error) {
-      console.error("SignalR Connection Error: ", error);
+      console.error("❌ RepairOrderHub Connection Error:", error);
       this.isConnected = false;
     }
   }
@@ -67,17 +61,24 @@ class RepairOrderHubService {
     while (retryCount < maxRetries && !this.isConnected) {
       try {
         await new Promise(resolve => setTimeout(resolve, retryInterval));
-        await this.connection?.start();
+        
+        // Check if connection still exists before attempting to start
+        if (!this.connection) {
+          console.warn("⚠️ Connection object is null, cannot reconnect");
+          break;
+        }
+        
+        await this.connection.start();
         this.isConnected = true;
-        console.log("SignalR Reconnected");
+        console.log("✅ RepairOrderHub Reconnected");
         return;
       } catch (error) {
-        console.error(`Reconnection attempt ${retryCount + 1} failed:`, error);
+        console.error(`❌ Reconnection attempt ${retryCount + 1} failed:`, error);
         retryCount++;
       }
     }
 
-    console.error("Failed to reconnect to SignalR after maximum retries");
+    console.error("❌ Failed to reconnect to RepairOrderHub after maximum retries");
   }
 
   // Register event listeners

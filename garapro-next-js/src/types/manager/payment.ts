@@ -22,7 +22,7 @@ export interface PaymentSummaryResponse {
   totalAmount: number;
   discountAmount: number;
   amountToPay: number;
-  paidAmount: number;
+  // paidAmount: number; // DEPRECATED - Removed from backend
   balanceDue: number;
   paymentHistory: PaymentHistoryItem[];
   paymentStatus: 'Unpaid' | 'Partial' | 'Paid';
@@ -31,17 +31,23 @@ export interface PaymentSummaryResponse {
 // Create Payment Request (POST /api/payments/manager-create/{repairOrderId})
 export type PaymentMethod = 'Cash' | 'PayOs';
 
+// Payment method enum values (backend expects numbers)
+export enum PaymentMethodEnum {
+  Cash = 0,
+  PayOs = 1
+}
+
 export interface CreatePaymentRequest {
-  method: PaymentMethod;
+  method: number; // Backend expects numeric enum (0 = Cash, 1 = PayOs)
   description: string;
 }
 
 export interface CreatePaymentResponse {
   message: string;
   paymentId: number;
-  method: PaymentMethod;
+  method: PaymentMethod | number; // Backend returns enum as number
   amount: number;
-  status: string;
+  status: string | number; // Backend returns enum as number
   qrCodeData: string | null;
 }
 
@@ -78,7 +84,7 @@ export interface PaymentPreviewResponse {
   repairOrderId: string;
   repairOrderCost: number;
   estimatedAmount: number;
-  paidAmount: number;
+  // paidAmount: number; // DEPRECATED - Removed from backend
   discountAmount: number;
   totalAmount: number;
   customerName: string;
@@ -114,7 +120,7 @@ export interface RepairOrderPaymentSummary {
   repairOrderId: string;
   repairOrderCost: number;
   estimatedAmount: number;
-  paidAmount: number;
+  // paidAmount: number; // DEPRECATED - Removed from backend
   discountAmount: number;
   totalAmount: number;
   services: PaymentService[];

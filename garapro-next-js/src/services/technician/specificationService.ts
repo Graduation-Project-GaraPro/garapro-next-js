@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = "https://localhost:7113/odata/Specification";
+const API_URL = process.env.NEXT_PUBLIC_BASE_URL+ "/odata/Specification" || 'https://localhost:7113/odata/Specification';
 
 // API Response Types
 export interface SpecificationField {

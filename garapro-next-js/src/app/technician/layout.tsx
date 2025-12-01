@@ -50,15 +50,14 @@ export default function TechnicianLayout({ children }: { children: React.ReactNo
   }
 
   // OK → render layout technician
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="flex">
-        <TechnicianSidebar />
-        <div className="flex-1 flex flex-col">
-          <TechnicianHeader />
-          <main className="flex-1 p-6">{children}</main>
-        </div>
+return (
+    <div className="min-h-screen bg-gray-100 flex flex-col">
+      <TechnicianHeader />
+      <div className="flex flex-1">
+        <TechnicianSidebar/>
+        <main className="flex-1 p-3">{children}</main>
       </div>
     </div>
   );
+  
 }

@@ -109,14 +109,16 @@ export default function QuotationDetailsView({
     switch (status) {
       case "Pending":
         return <Badge variant="secondary">Pending</Badge>;
-      case "Sent to Customer":
+      case "Sent":
         return <Badge className="bg-blue-500">Sent</Badge>;
-      case "Approved by Customer":
+      case "Approved":
         return <Badge className="bg-green-500">Approved</Badge>;
-      case "Rejected by Customer":
+      case "Rejected":
         return <Badge variant="destructive">Rejected</Badge>;
       case "Expired":
         return <Badge variant="destructive">Expired</Badge>;
+      case "Good":
+        return <Badge className="bg-green-600">✓ All Good</Badge>;
       default:
         return <Badge variant="secondary">Pending</Badge>;
     }
@@ -183,6 +185,18 @@ export default function QuotationDetailsView({
             </CardContent>
           </Card>
           
+          {/* Good Status Message */}
+          {quotation.status === "Good" && (
+            <Card className="bg-green-50 border-green-200">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-2 text-green-700">
+                  <Check className="w-5 h-5" />
+                  <p className="font-medium">All services in good condition - No repairs needed</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Services and Parts */}
           <Card>
             <CardHeader>
@@ -190,37 +204,61 @@ export default function QuotationDetailsView({
             </CardHeader>
             <CardContent className="space-y-4">
               {quotation.quotationServices.map(service => (
-                <div key={service.quotationServiceId} className="border rounded-lg">
+                <div 
+                  key={service.quotationServiceId} 
+                  className={`border rounded-lg ${service.isGood ? 'bg-green-50 border-green-200' : ''}`}
+                >
                   <div className="flex items-center justify-between p-4">
                     <div className="flex items-center space-x-3">
                       <div>
-                        <h3 className="font-medium">{service.serviceName}</h3>
+                        <div className="flex items-center gap-2">
+                          <h3 className={`font-medium ${service.isGood ? 'text-green-700' : ''}`}>
+                            {service.serviceName}
+                          </h3>
+                          {service.isGood && (
+                            <Badge className="bg-green-600">✓ Good Condition</Badge>
+                          )}
+                          {!service.isGood && service.isRequired && (
+                            <Badge variant="destructive">⚠️ Required</Badge>
+                          )}
+                          {!service.isGood && !service.isRequired && (
+                            <Badge variant="secondary">Optional</Badge>
+                          )}
+                        </div>
                       </div>
                     </div>
                     
                     <div className="flex items-center space-x-4">
-                      <span className="font-medium">${service.price.toFixed(2)}</span>
-                      <span className="text-sm text-gray-500">Qty: {service.quantity}</span>
+                      {service.isGood ? (
+                        <span className="text-sm text-green-600 font-medium">No repair needed</span>
+                      ) : (
+                        <>
+                          <span className="font-medium">${service.price.toFixed(2)}</span>
+                          <span className="text-sm text-gray-500">Qty: {service.quantity}</span>
+                        </>
+                      )}
                       
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => toggleServiceExpansion(service.quotationServiceId)}
-                      >
-                        {expandedServices[service.quotationServiceId] ? (
-                          <ChevronDown className="h-4 w-4" />
-                        ) : (
-                          <ChevronRight className="h-4 w-4" />
-                        )}
-                      </Button>
+                      {service.parts && service.parts.length > 0 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => toggleServiceExpansion(service.quotationServiceId)}
+                        >
+                          {expandedServices[service.quotationServiceId] ? (
+                            <ChevronDown className="h-4 w-4" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4" />
+                          )}
+                        </Button>
+                      )}
                     </div>
                   </div>
                   
-                  {expandedServices[service.quotationServiceId] && service.quotationServiceParts.length > 0 && (
+                  {expandedServices[service.quotationServiceId] && service.parts && service.parts.length > 0 && (
                     <div className="border-t p-4 bg-gray-50">
                       <h4 className="font-medium mb-3">Parts</h4>
                       <div className="space-y-3">
-                        {service.quotationServiceParts.map(part => (
+                        {service.parts.map(part => (
                           <div key={part.quotationServicePartId} className="flex items-center justify-between">
                             <div className="flex items-center space-x-3">
                               <div>
@@ -251,29 +289,31 @@ export default function QuotationDetailsView({
           </Card>
           
           {/* Financial Summary */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Financial Summary</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2 max-w-xs ml-auto">
-                <div className="flex justify-between">
-                  <span>Subtotal:</span>
-                  <span>${quotation.totalAmount.toFixed(2)}</span>
+          {quotation.status !== "Good" && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Financial Summary</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2 max-w-xs ml-auto">
+                  <div className="flex justify-between">
+                    <span>Subtotal:</span>
+                    <span>${quotation.totalAmount.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Discount:</span>
+                    <span>${quotation.discountAmount.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between font-semibold text-lg border-t pt-2">
+                    <span>Total:</span>
+                    <span>
+                      ${(quotation.totalAmount - quotation.discountAmount).toFixed(2)}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span>Discount:</span>
-                  <span>${quotation.discountAmount.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between font-semibold text-lg border-t pt-2">
-                  <span>Total:</span>
-                  <span>
-                    ${(quotation.totalAmount - quotation.discountAmount).toFixed(2)}
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
           
           {/* Notes */}
           {quotation.note && (
@@ -314,7 +354,7 @@ export default function QuotationDetailsView({
             </DropdownMenu>
           </div>
           
-          {quotation.status === "Sent to Customer" && (
+          {quotation.status === "Sent" && (
             <div className="flex flex-wrap gap-2">
               <Button 
                 variant="destructive" 

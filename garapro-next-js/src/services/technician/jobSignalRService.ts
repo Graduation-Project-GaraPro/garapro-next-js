@@ -1,5 +1,7 @@
 import * as signalR from "@microsoft/signalr";
 
+const API_URL = process.env.NEXT_PUBLIC_HUB_BASE_URL+ "/hubs/job" || 'http://localhost:7113/hubs/job';
+
 class JobSignalRService {
   private connection: signalR.HubConnection | null = null;
   private isConnecting = false;
@@ -20,7 +22,7 @@ class JobSignalRService {
       }
 
       this.connection = new signalR.HubConnectionBuilder()
-        .withUrl("http://localhost:5117/hubs/job", { 
+        .withUrl(API_URL, { 
           accessTokenFactory: () => token,
         })
         .withAutomaticReconnect([0, 2000, 5000, 10000])
@@ -52,7 +54,6 @@ class JobSignalRService {
     }
   }
 
-  // Join technician group
   public async joinTechnicianGroup(technicianId: string): Promise<void> {
     if (!this.connection) {
       throw new Error("SignalR connection not established");

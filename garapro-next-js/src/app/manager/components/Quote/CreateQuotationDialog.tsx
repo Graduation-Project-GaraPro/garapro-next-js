@@ -15,6 +15,8 @@ import { PartSelectionModal } from "./PartSelectionModal"
 import { serviceCatalog, GarageServiceCatalogItem, Part } from "@/services/service-catalog"
 import { quotationService } from "@/services/manager/quotation-service"
 import { repairOrderService } from "@/services/manager/repair-order-service"
+import { quotationTreeService } from "@/services/manager/quotation-tree-service"
+import { formatVND } from "@/lib/currency"
 import { 
   CreateQuotationDto, 
   QuotationServiceCreateDto, 
@@ -36,20 +38,22 @@ interface CreateQuotationDialogProps {
 }
 
 export function CreateQuotationDialog({ open, onOpenChange, roData, onSubmit }: CreateQuotationDialogProps) {
-  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(["design", "development"]))
-  const [selectedServices, setSelectedServices] = useState<Set<string>>(new Set())
-  const [requiredServices, setRequiredServices] = useState<Set<string>>(new Set()) // Add required services state
+  const [selectedServices, setSelectedServices] = useState<Map<string, { name: string; price: number }>>(new Map())
+  const [requiredServices, setRequiredServices] = useState<Set<string>>(new Set())
   const [customItems, setCustomItems] = useState<Record<string, CustomItem[]>>({})
-  const [partModalOpen, setPartModalOpen] = useState<string | null>(null) // Add part modal state
-  const [partsForService, setPartsForService] = useState<Record<string, PartWithRecommendation[]>>({}) // Add parts state
+  const [partModalOpen, setPartModalOpen] = useState<string | null>(null)
+  const [partsForService, setPartsForService] = useState<Record<string, any[]>>({})
+  const [currentServiceSelection, setCurrentServiceSelection] = useState<{
+    serviceId: string
+    serviceName: string
+    servicePrice: number
+  } | null>(null)
   const [formData, setFormData] = useState({
     dateCreated: new Date().toISOString().split("T")[0],
     customerName: roData?.customerName || "",
     customerPhone: roData?.customerPhone || "",
     validUntil: "",
   })
-  const [serviceCategories, setServiceCategories] = useState<ServiceCategory[]>(SERVICE_CATEGORIES)
-  const [loadingCategories, setLoadingCategories] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [repairOrder, setRepairOrder] = useState<RepairOrder | null>(null)
 
@@ -77,78 +81,114 @@ export function CreateQuotationDialog({ open, onOpenChange, roData, onSubmit }: 
     fetchRepairOrder();
   }, [roData?.roNumber]);
 
-  // Fetch service categories from API
-  useEffect(() => {
-    const fetchServiceCategories = async () => {
-      try {
-        setLoadingCategories(true);
-        const apiCategories = await serviceCatalog.getCategories();
+  // Handle service selection from tree
+  const handleServiceSelect = async (serviceId: string, serviceName: string, price: number) => {
+    // Store the service selection temporarily
+    setCurrentServiceSelection({ serviceId, serviceName, servicePrice: price })
+    
+    // Try to fetch parts for this service using the tree API first
+    try {
+      const serviceDetails = await quotationTreeService.getServiceDetails(serviceId)
+      
+      // Check if part categories have parts included
+      const hasPartsInCategories = serviceDetails.partCategories.some(
+        (cat: any) => cat.parts && cat.parts.length > 0
+      )
+      
+      if (hasPartsInCategories) {
+        // API includes parts in categories - extract them
+        const allParts: any[] = []
+        serviceDetails.partCategories.forEach((category: any) => {
+          if (category.parts) {
+            category.parts.forEach((part: any) => {
+              allParts.push({
+                partId: part.partId,
+                name: part.partName,
+                price: part.price
+              })
+            })
+          }
+        })
+        setPartsForService(prev => ({
+          ...prev,
+          [serviceId]: allParts
+        }))
+        setPartModalOpen(serviceId)
+      } else {
+        // API only returns category IDs - fetch parts for each category
+        console.log("Fetching parts for each category...")
+        const allParts: any[] = []
         
-        // Transform API response to match component structure
-        const transformedCategories: ServiceCategory[] = [];
-        
-        // Fetch services for each category
-        for (const cat of apiCategories) {
-          const services = await serviceCatalog.getServicesByCategoryId(cat.serviceCategoryId);
-          
-          // Transform services to match the component structure
-          const transformedServices = services.map((service: GarageServiceCatalogItem) => ({
-            id: service.serviceId,
-            name: service.serviceName,
-            price: service.price,
-            isAdvanced: service.isAdvanced // Add isAdvanced attribute
-          }));
-          
-          transformedCategories.push({
-            id: cat.serviceCategoryId,
-            name: cat.categoryName,
-            children: transformedServices
-          });
+        for (const category of serviceDetails.partCategories) {
+          try {
+            const categoryParts = await quotationTreeService.getPartsByCategory(category.partCategoryId)
+            categoryParts.forEach((part: any) => {
+              allParts.push({
+                partId: part.partId,
+                name: part.name,
+                price: part.price
+              })
+            })
+          } catch (error) {
+            console.error(`Failed to fetch parts for category ${category.partCategoryId}:`, error)
+          }
         }
         
-        setServiceCategories(transformedCategories);
-      } catch (error) {
-        console.error("Failed to fetch service categories:", error);
-        // Fallback to hardcoded categories if API fails
-        setServiceCategories(SERVICE_CATEGORIES);
-      } finally {
-        setLoadingCategories(false);
+        if (allParts.length > 0) {
+          setPartsForService(prev => ({
+            ...prev,
+            [serviceId]: allParts
+          }))
+          setPartModalOpen(serviceId)
+        } else {
+          addServiceWithoutParts(serviceId, serviceName, price)
+        }
       }
-    };
+    } catch (error: any) {
+      console.warn("Tree API error, falling back to service catalog:", error)
+      
+      // Fallback: Try to fetch parts using the old service catalog API
+      try {
+        const parts = await serviceCatalog.getPartsByServiceId(serviceId)
+        if (parts && parts.length > 0) {
+          setPartsForService(prev => ({
+            ...prev,
+            [serviceId]: parts
+          }))
+          setPartModalOpen(serviceId)
+        } else {
+          // No parts available, just add the service
+          addServiceWithoutParts(serviceId, serviceName, price)
+        }
+      } catch (fallbackError) {
+        console.error("Failed to fetch parts from service catalog:", fallbackError)
+        // If both APIs fail, just add the service without parts
+        addServiceWithoutParts(serviceId, serviceName, price)
+      }
+    }
+  }
 
-    fetchServiceCategories();
-  }, []);
+  const addServiceWithoutParts = (serviceId: string, serviceName: string, price: number) => {
+    setSelectedServices(prev => new Map(prev).set(serviceId, { name: serviceName, price }))
+    setCurrentServiceSelection(null)
+  }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
-  const toggleCategory = (categoryId: string) => {
-    const newExpanded = new Set(expandedCategories)
-    if (newExpanded.has(categoryId)) {
-      newExpanded.delete(categoryId)
-    } else {
-      newExpanded.add(categoryId)
+  const removeService = (serviceId: string) => {
+    if (requiredServices.has(serviceId)) {
+      return // Don't allow removing required services
     }
-    setExpandedCategories(newExpanded)
-  }
-
-  const toggleService = (serviceId: string) => {
-    const newSelected = new Set(selectedServices)
-    if (newSelected.has(serviceId)) {
-      // Don't allow deselecting required services
-      if (requiredServices.has(serviceId)) {
-        return;
-      }
-      newSelected.delete(serviceId)
-      const newCustomItems = { ...customItems }
-      delete newCustomItems[serviceId]
-      setCustomItems(newCustomItems)
-    } else {
-      newSelected.add(serviceId)
-    }
+    const newSelected = new Map(selectedServices)
+    newSelected.delete(serviceId)
     setSelectedServices(newSelected)
+    
+    const newCustomItems = { ...customItems }
+    delete newCustomItems[serviceId]
+    setCustomItems(newCustomItems)
   }
 
   // Toggle required status for a service (manager functionality)
@@ -158,10 +198,6 @@ export function CreateQuotationDialog({ open, onOpenChange, roData, onSubmit }: 
       newRequired.delete(serviceId)
     } else {
       newRequired.add(serviceId)
-      // Auto-select required services
-      const newSelected = new Set(selectedServices)
-      newSelected.add(serviceId)
-      setSelectedServices(newSelected)
     }
     setRequiredServices(newRequired)
   }
@@ -178,40 +214,73 @@ export function CreateQuotationDialog({ open, onOpenChange, roData, onSubmit }: 
   // Fetch parts for a service when "Add Parts" is clicked
   const handleAddParts = async (serviceId: string) => {
     try {
-      // Check if it's a simple service (not advanced) and already has parts
-      const serviceCustomItems = customItems[serviceId] || [];
-      if (!isServiceAdvanced(serviceId) && serviceCustomItems.length > 0) {
-        // Show an alert or message to the user
-        alert("Simple services can only have one part selected. Please remove the existing part before adding a new one.");
-        return;
-      }
-
       // Check if we already have parts for this service
       if (!partsForService[serviceId]) {
-        const parts = await serviceCatalog.getPartsByServiceId(serviceId);
-        // Store parts directly without the recommended property
-        setPartsForService(prev => ({
-          ...prev,
-          [serviceId]: parts
-        }));
+        // Try tree API first
+        try {
+          const serviceDetails = await quotationTreeService.getServiceDetails(serviceId)
+          const allParts: any[] = []
+          
+          // Check if parts are included in categories
+          const hasPartsInCategories = serviceDetails.partCategories.some(
+            (cat: any) => cat.parts && cat.parts.length > 0
+          )
+          
+          if (hasPartsInCategories) {
+            // Extract parts from categories
+            serviceDetails.partCategories.forEach((category: any) => {
+              if (category.parts) {
+                category.parts.forEach((part: any) => {
+                  allParts.push({
+                    partId: part.partId,
+                    name: part.partName,
+                    price: part.price
+                  })
+                })
+              }
+            })
+          } else {
+            // Fetch parts for each category
+            for (const category of serviceDetails.partCategories) {
+              try {
+                const categoryParts = await quotationTreeService.getPartsByCategory(category.partCategoryId)
+                categoryParts.forEach((part: any) => {
+                  allParts.push({
+                    partId: part.partId,
+                    name: part.name,
+                    price: part.price
+                  })
+                })
+              } catch (error) {
+                console.error(`Failed to fetch parts for category ${category.partCategoryId}:`, error)
+              }
+            }
+          }
+          
+          setPartsForService(prev => ({
+            ...prev,
+            [serviceId]: allParts
+          }))
+        } catch (treeError) {
+          console.warn("Tree API not available, using service catalog:", treeError)
+          // Fallback to service catalog
+          const parts = await serviceCatalog.getPartsByServiceId(serviceId)
+          setPartsForService(prev => ({
+            ...prev,
+            [serviceId]: parts
+          }))
+        }
       }
       
-      setPartModalOpen(serviceId);
+      setPartModalOpen(serviceId)
     } catch (error) {
-      console.error("Failed to fetch parts for service:", error);
+      console.error("Failed to fetch parts for service:", error)
+      alert("No parts available for this service")
     }
   }
 
   // Add a part to a service
-  const addPartToService = (serviceId: string, part: Part) => {
-    // Check if it's a simple service (not advanced) and already has parts
-    const serviceCustomItems = customItems[serviceId] || [];
-    if (!isServiceAdvanced(serviceId) && serviceCustomItems.length > 0) {
-      // Show an alert or message to the user
-      alert("Simple services can only have one part selected. Please remove the existing part before adding a new one.");
-      return;
-    }
-
+  const addPartToService = (serviceId: string, part: any) => {
     const newItem: CustomItem = {
       id: `${serviceId}-${part.partId}`,
       name: part.name,
@@ -223,7 +292,16 @@ export function CreateQuotationDialog({ open, onOpenChange, roData, onSubmit }: 
       [serviceId]: [...(prev[serviceId] || []), newItem],
     }))
     
-    setPartModalOpen(null);
+    // If this is from the initial service selection, add the service now
+    if (currentServiceSelection && currentServiceSelection.serviceId === serviceId) {
+      setSelectedServices(prev => new Map(prev).set(
+        currentServiceSelection.serviceId, 
+        { name: currentServiceSelection.serviceName, price: currentServiceSelection.servicePrice }
+      ))
+      setCurrentServiceSelection(null)
+    }
+    
+    setPartModalOpen(null)
   }
 
   // Transform custom items to quotation service parts format
@@ -257,10 +335,10 @@ export function CreateQuotationDialog({ open, onOpenChange, roData, onSubmit }: 
     
     try {
       // Transform data to match API format
-      const quotationServices: QuotationServiceCreateDto[] = Array.from(selectedServices).map(serviceId => ({
-        serviceId: serviceId, // Keep original case for serviceId to match API expectations
-        isSelected: true,
-        isRequired: requiredServices.has(serviceId), // Add isRequired property
+      const quotationServices: QuotationServiceCreateDto[] = Array.from(selectedServices.keys()).map(serviceId => ({
+        serviceId: serviceId,
+        isSelected: false, // Manager sets to false, customer will select
+        isRequired: requiredServices.has(serviceId),
         quotationServiceParts: transformCustomItemsToQuotationParts(serviceId)
       }));
 
@@ -298,7 +376,7 @@ export function CreateQuotationDialog({ open, onOpenChange, roData, onSubmit }: 
       // Call the original onSubmit for any local handling
       const localQuotationData: QuotationData = {
         ...formData,
-        selectedServices: Array.from(selectedServices),
+        selectedServices: Array.from(selectedServices.keys()),
         customItems,
         totalPrice: calculateTotal(),
         repairOrderId: roData?.roNumber || "",
@@ -360,17 +438,8 @@ export function CreateQuotationDialog({ open, onOpenChange, roData, onSubmit }: 
 
   const calculateTotal = () => {
     let total = 0
-    Array.from(selectedServices).forEach((serviceId) => {
-      // Find service in serviceCategories
-      for (const category of serviceCategories) {
-        if (category.children) {
-          const service = category.children.find((s: ServiceCategory) => s.id === serviceId)
-          if (service) {
-            total += service.price || 0
-            break
-          }
-        }
-      }
+    selectedServices.forEach((service) => {
+      total += service.price || 0
     })
     Object.values(customItems).forEach((items) => {
       items.forEach((item) => {
@@ -389,26 +458,10 @@ export function CreateQuotationDialog({ open, onOpenChange, roData, onSubmit }: 
     )
   }
 
-  // Helper function to find service name in dynamic categories
+  // Helper function to find service name
   const findServiceName = (serviceId: string) => {
-    for (const category of serviceCategories) {
-      if (category.children) {
-        const service = category.children.find((s: ServiceCategory) => s.id === serviceId);
-        if (service) return service.name;
-      }
-    }
-    return "";
-  }
-
-  // Helper function to check if a service is advanced
-  const isServiceAdvanced = (serviceId: string) => {
-    for (const category of serviceCategories) {
-      if (category.children) {
-        const service = category.children.find((s: ServiceCategory) => s.id === serviceId);
-        if (service) return service.isAdvanced ?? true; // Default to true if not specified
-      }
-    }
-    return true;
+    const service = selectedServices.get(serviceId)
+    return service?.name || ""
   }
 
   return (
@@ -425,16 +478,7 @@ export function CreateQuotationDialog({ open, onOpenChange, roData, onSubmit }: 
         <form onSubmit={handleSubmit} className="space-y-6 h-full flex flex-col">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-grow overflow-hidden">
             {/* Services Tree */}
-            <ServicesTree
-              expandedCategories={expandedCategories}
-              selectedServices={selectedServices}
-              requiredServices={requiredServices} // Pass required services
-              onToggleCategory={toggleCategory}
-              onToggleService={toggleService}
-              onToggleRequiredService={toggleRequiredService} // Pass toggle required function
-              serviceCategories={serviceCategories}
-              loadingCategories={loadingCategories}
-            />
+            <ServicesTree onServiceSelect={handleServiceSelect} />
 
             {/* Main Content */}
             <Card className="lg:col-span-2 p-6 h-fit max-h-[calc(100vh-200px)] overflow-y-auto">
@@ -449,15 +493,87 @@ export function CreateQuotationDialog({ open, onOpenChange, roData, onSubmit }: 
                 <div className="border-t border-border pt-6">
                   <h3 className="text-lg font-semibold mb-4">Quotation Summary</h3>
                   
-                  {/* Services Summary */}
-                  <ServicesSummary
-                    selectedServices={selectedServices}
-                    requiredServices={requiredServices} // Pass required services
-                    customItems={customItems}
-                    onRemoveCustomItem={removeCustomItem}
-                    onAddParts={handleAddParts} // Add this prop
-                    serviceCategories={serviceCategories} // Pass dynamic categories
-                  />
+                  {/* Selected Services */}
+                  {selectedServices.size === 0 ? (
+                    <p className="text-sm text-gray-500">No services selected yet. Browse the tree to add services.</p>
+                  ) : (
+                    <div className="space-y-4">
+                      {Array.from(selectedServices.entries()).map(([serviceId, service]) => (
+                        <div key={serviceId} className="border rounded-lg p-4">
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <div className="font-medium">{service.name}</div>
+                                {requiredServices.has(serviceId) && (
+                                  <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded">
+                                    Required
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-sm text-gray-600">{formatVND(service.price)}</div>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                type="button"
+                                variant={requiredServices.has(serviceId) ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => toggleRequiredService(serviceId)}
+                                className={requiredServices.has(serviceId) ? "bg-red-600 hover:bg-red-700" : ""}
+                              >
+                                {requiredServices.has(serviceId) ? "Required" : "Mark Required"}
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleAddParts(serviceId)}
+                              >
+                                Add Parts
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removeService(serviceId)}
+                                disabled={requiredServices.has(serviceId)}
+                              >
+                                Remove
+                              </Button>
+                            </div>
+                          </div>
+                          
+                          {/* Parts for this service */}
+                          {customItems[serviceId] && customItems[serviceId].length > 0 && (
+                            <div className="mt-2 pt-2 border-t">
+                              <div className="text-xs font-medium text-gray-600 mb-1">Parts:</div>
+                              <div className="space-y-1">
+                                {customItems[serviceId].map((item) => (
+                                  <div key={item.id} className="flex justify-between items-center text-sm bg-gray-50 p-2 rounded">
+                                    <span>{item.name}</span>
+                                    <div className="flex items-center gap-2">
+                                      <span>{formatVND(item.price)}</span>
+                                      <button
+                                        type="button"
+                                        onClick={() => removeCustomItem(serviceId, item.id)}
+                                        className="text-red-600 hover:text-red-800"
+                                      >
+                                        ×
+                                      </button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                      
+                      <div className="border-t pt-4 flex justify-between items-center font-bold text-lg">
+                        <span>Total:</span>
+                        <span>{formatVND(calculateTotal())}</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <Button
@@ -478,9 +594,19 @@ export function CreateQuotationDialog({ open, onOpenChange, roData, onSubmit }: 
         <PartSelectionModal
           serviceName={findServiceName(partModalOpen)}
           parts={partsForService[partModalOpen] || []}
-          isAdvancedService={isServiceAdvanced(partModalOpen)} // Use dynamic value
+          isAdvancedService={true}
           onSelect={(part) => addPartToService(partModalOpen!, part)}
-          onClose={() => setPartModalOpen(null)}
+          onClose={() => {
+            setPartModalOpen(null)
+            // If closing without selecting parts, still add the service
+            if (currentServiceSelection && currentServiceSelection.serviceId === partModalOpen) {
+              addServiceWithoutParts(
+                currentServiceSelection.serviceId,
+                currentServiceSelection.serviceName,
+                currentServiceSelection.servicePrice
+              )
+            }
+          }}
         />
       )}
     </Dialog>
