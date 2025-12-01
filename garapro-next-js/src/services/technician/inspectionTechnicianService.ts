@@ -36,17 +36,13 @@ export const getTechnicianId = async (): Promise<string | null> => {
       throw new Error("Missing authentication token");
     }
 
-    const response = await axios.get(`${API_URL}/my-inspections`, {
+    const response = await axios.get(`${API_URL}/my-technician-id`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
-    const data = response.data.value || response.data;
-    if (data && data.length > 0 && data[0].technicianId) {
-      return data[0].technicianId;
-    }
-
-    return null;
+    
+    return response.data.technicianId || null;
   } catch (error) {
     console.error("Error fetching technician ID:", error);
     return null;

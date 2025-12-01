@@ -6,6 +6,7 @@ export interface JobStatusUpdate {
   JobId: string;
   JobStatus: number; 
 }
+// THAY THẾ HÀM getTechnicianId HIỆN TẠI BẰNG:
 export const getTechnicianId = async (): Promise<string | null> => {
   try {
     const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
@@ -13,27 +14,20 @@ export const getTechnicianId = async (): Promise<string | null> => {
       throw new Error("Missing authentication token");
     }
 
-    const response = await axios.get(`${API_URL}/my-jobs`, {
+    const response = await axios.get(`${API_URL}/my-technician-id`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
-
-    const data = response.data.value || response.data;
     
-    console.log("API Response for TechnicianId:", data);
-    
-    if (data && data.length > 0 && data[0].technicians && data[0].technicians.length > 0) {
-      const technicianId = data[0].technicians[0].technicianId;
-      console.log("TechnicianId found:", technicianId);
-      return technicianId;
-    }
-
-    console.warn("TechnicianId not found in response");
-    return null;
+    console.log("Technician ID response:", response.data);
+    return response.data.technicianId || null;
   } catch (error) {
     console.error("Error fetching technician ID:", error);
-    return null;
+    
+    // Fallback: lấy từ localStorage nếu đã lưu trước đó
+    const savedTechId = typeof window !== "undefined" ? localStorage.getItem("technicianId") : null;
+    return savedTechId;
   }
 };
 // Lấy danh sách công việc của technician

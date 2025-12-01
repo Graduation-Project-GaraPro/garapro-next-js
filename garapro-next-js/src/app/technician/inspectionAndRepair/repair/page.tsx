@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import * as signalR from "@microsoft/signalr";
 import Image from "next/image";
 import { 
   Wrench, 
@@ -89,6 +90,8 @@ export default function ConditionInspection() {
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [technicianId, setTechnicianId] = useState<string | null>(null);
   const [signalRConnected, setSignalRConnected] = useState(false);
+  const [connectionRetryCount, setConnectionRetryCount] = useState(0);
+
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(6);
@@ -120,45 +123,76 @@ export default function ConditionInspection() {
     fetchJobs();
   }, [currentPage, pageSize]);
 
-// SignalR Connection and Real-time Updates
 useEffect(() => {
   const setupSignalR = async () => {
     try {
-      // Lấy technicianId
+      console.log("🔧 Setting up Job SignalR connection...");
+      
       const id = await getTechnicianId();
       if (!id) {
-        console.warn("Could not get technician ID");
+        console.warn("Could not get technician ID for Job, will retry...");
+        setTimeout(() => {
+          setConnectionRetryCount(prev => prev + 1);
+        }, 3000);
         return;
       }
+      
       setTechnicianId(id);
-      console.log("TechnicianId for ConditionInspection:", id);
+      console.log("Job TechnicianId:", id);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("technicianId", id);
+      }
 
       await jobSignalRService.startConnection();
       setSignalRConnected(true);
-      
+      console.log("Job SignalR connected successfully");
+
       await jobSignalRService.joinTechnicianGroup(id);
+      console.log(`Joined Job Technician_${id} group`);
 
       jobSignalRService.onJobAssigned(async (data: JobAssignedEvent) => {
-        console.log("JobAssigned event in ConditionInspection:", data);
-        
+        console.log("JobAssigned event received:", data);
+      
         await fetchJobs();
-      });      
+      });
 
     } catch (error) {
-      console.error("SignalR setup failed in ConditionInspection:", error);
+      console.error("Job SignalR setup failed:", error);
       setSignalRConnected(false);
+
+      setTimeout(() => {
+        setConnectionRetryCount(prev => prev + 1);
+      }, 5000);
     }
   };
 
   setupSignalR();
 
-  // Cleanup function
+
   return () => {
+    console.log("Cleaning up Job SignalR connection...");
     if (technicianId) {
       jobSignalRService.leaveTechnicianGroup(technicianId);
     }
     jobSignalRService.offAllEvents();
   };
+}, [connectionRetryCount]); 
+
+useEffect(() => {
+  const checkConnectionStatus = setInterval(() => {
+    const state = jobSignalRService.getConnectionState();
+    console.log("📡 Job SignalR Connection State:", state);
+    
+    if (state === signalR.HubConnectionState.Connected) {
+      setSignalRConnected(true);
+    } else if (state === signalR.HubConnectionState.Disconnected) {
+      setSignalRConnected(false);
+      // Tự động reconnect
+      setConnectionRetryCount(prev => prev + 1);
+    }
+  }, 10000); // Check mỗi 10 giây
+
+  return () => clearInterval(checkConnectionStatus);
 }, []);
 
 
@@ -175,18 +209,15 @@ useEffect(() => {
         return;
       }
 
-      // Mock pagination for frontend
       const startIndex = (currentPage - 1) * pageSize;
       const endIndex = startIndex + pageSize;
       const paginatedData = data.slice(startIndex, endIndex);
 
       const mappedVehicles: Vehicle[] = paginatedData.map((item) => {
-        // Build vehicle name
         const vehicleName = item.vehicle
           ? `${item.vehicle.brand?.brandName || ""} ${item.vehicle.model?.modelName || ""} ${item.vehicle.model?.manufacturingYear || ""}`.trim() || "Unknown"
           : "Unknown";
 
-        // Map status from API to UI format
         let uiStatus = "New";
         const apiStatus = item.status?.toLowerCase() || "";
         
@@ -200,7 +231,6 @@ useEffect(() => {
           uiStatus = "New";
         }
 
-        // Format deadline
         const deadlineStr = item.deadline 
           ? new Date(item.deadline).toLocaleDateString("en-GB") 
           : "N/A";

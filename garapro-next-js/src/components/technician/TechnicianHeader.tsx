@@ -344,12 +344,19 @@ export default function TechnicianHeader() {
     return `${Math.floor(diffInMinutes / 1440)} days ago`;
   };
 
-  const handleLogout = async () => {
+const handleLogout = async () => {
+  try {
     await notificationSignalRService.stopConnection();
-    authService.logout();
+    await authService.logout();
     setShowAccountMenu(false);
-    router.push("/login");
-  };
+    
+    window.location.href = "/login";
+    
+  } catch (error) {
+    console.error("Logout error:", error);
+    window.location.href = "/login";
+  }
+};
 
   return (
     <header className="bg-gradient-to-r from-blue-100 to-teal-100 shadow-sm border-b border-teal-200 p-4 w-full text-white">
@@ -443,18 +450,21 @@ export default function TechnicianHeader() {
                         onClick={() => handleNotificationClick(notification.id)}
                       >
                         <div className="flex items-start justify-between">
-                          <div className="flex-1 pr-10">
-                            <p
-                              className={`text-sm leading-relaxed ${
-                                !notification.isRead ? "font-semibold text-gray-900" : "text-gray-600"
-                              }`}
-                            >
-                              {notification.content}
-                            </p>
-                            <p className="text-xs text-gray-500 mt-1.5">
-                              {formatTime(notification.timeSent)}
-                            </p>
-                          </div>
+                       <div className="flex-1 pr-10">
+  <p
+    className={`text-sm leading-relaxed ${
+      !notification.isRead ? "font-semibold text-gray-900" : "text-gray-600"
+    }`}
+  >
+    {notification.content.length > 150 
+      ? `${notification.content.substring(0, 150)}...` 
+      : notification.content
+    }
+  </p>
+  <p className="text-xs text-gray-500 mt-1.5">
+    {formatTime(notification.timeSent)}
+  </p>
+</div>
 
                           {/* Unread icon */}
                           {!notification.isRead && (
