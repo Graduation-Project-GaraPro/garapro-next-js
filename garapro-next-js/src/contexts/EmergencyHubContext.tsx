@@ -120,14 +120,14 @@ export const EmergencyHubProvider: React.FC<{ children: React.ReactNode }> = ({
               // Optionally show browser notification
               if (typeof window !== "undefined" && "Notification" in window) {
                 if (Notification.permission === "granted") {
-                  new Notification(payload.Message ?? "Yêu cầu cứu hộ mới", {
+                  new Notification(payload.Message ?? "New Emergency!", {
                     body: payload.Address ?? "",
                   });
                 } else if (Notification.permission !== "denied") {
                   Notification.requestPermission().then(
                     (perm) =>
                       perm === "granted" &&
-                      new Notification(payload.Message ?? "Yêu cầu cứu hộ mới")
+                      new Notification(payload.Message ?? "New Emergency!")
                   );
                 }
               }

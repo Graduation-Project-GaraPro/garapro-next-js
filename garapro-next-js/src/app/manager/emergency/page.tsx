@@ -15,6 +15,7 @@ type EmergencyRequest = {
   status?: number;
   distanceToGarageKm?: number | null;
   requestTime?: string | null;
+  branchId?: string;
   [k: string]: any;
 };
 
@@ -50,18 +51,13 @@ export default function EmergencyList() {
   const [selectedTech, setSelectedTech] = useState<string | null>(null);
   const [technicians, setTechnicians] = useState<any[]>([]);
 
-  // ❗ Mock list tech – bạn sẽ thay bằng fetch API
-  //   const technicians = [
-  //     { id: "tech-1", name: "Nguyễn Văn A" },
-  //     { id: "tech-2", name: "Trần Văn B" },
-  //     { id: "tech-3", name: "Lê Văn C" },
-  //   ];
+  const apiBase =
+    process.env.NEXT_PUBLIC_API_BASE_URL ?? "https://localhost:7113/api";
 
+  // ===== LOAD EMERGENCY REQUESTS =====
   useEffect(() => {
     const load = async () => {
       try {
-        const apiBase =
-          process.env.NEXT_PUBLIC_API_BASE_URL ?? "https://localhost:7113/api";
         const res = await fetch(`${apiBase}/EmergencyRequest/getAll`, {
           cache: "no-store",
         });
@@ -76,7 +72,9 @@ export default function EmergencyList() {
     };
 
     load();
-  }, []);
+  }, [apiBase]);
+
+  // ===== LOAD TECHNICIANS =====
   const loadTechnicians = async (branchId?: string) => {
     if (!branchId) {
       setTechnicians([]);
@@ -87,10 +85,9 @@ export default function EmergencyList() {
       const res = await apiClient.get(`/Branch/${branchId}/technicians`);
 
       if (res.success) {
-        const json = res.data;
-        setTechnicians(json);
+        setTechnicians(res.data as any[]);
       } else {
-        console.error("Không load được danh sách kỹ thuật viên");
+        console.error("Failed to load technicians");
         setTechnicians([]);
       }
     } catch (err) {
@@ -99,7 +96,7 @@ export default function EmergencyList() {
     }
   };
 
-  // ===== HANDLE ASSIGN TECH =====
+  // ===== ASSIGN TECHNICIAN =====
   const handleAssignTech = async () => {
     if (!selectedTech || !selectedEmergencyId) return;
 
@@ -109,15 +106,14 @@ export default function EmergencyList() {
     });
 
     if (response.success) {
-      alert("Gán kỹ thuật viên thành công!");
+      alert("Technician assigned successfully!");
       setOpenAssignModal(false);
       setSelectedTech(null);
 
-      // reload
-      const res = await apiClient.get(`/EmergencyRequest/getAll`);
-      setData(res.data);
+      const updated = await apiClient.get(`/EmergencyRequest/getAll`);
+      setData(updated.data as EmergencyRequest[]);
     } else {
-      alert("Gán thất bại!");
+      alert("Assign failed!");
     }
   };
 
@@ -140,9 +136,9 @@ export default function EmergencyList() {
             {data.map((r) => {
               const s = statusLabel(r.status);
 
-              const allowAccept = (r.status ?? 0) === 0; // Pending
+              const allowAccept = (r.status ?? 0) === 0;
               const allowCancel = [0, 1].includes(r.status ?? 0);
-              const allowAssign = r.status === 1; // Accepted
+              const allowAssign = r.status === 1;
 
               return (
                 <li
@@ -164,13 +160,16 @@ export default function EmergencyList() {
                         </div>
 
                         <p className="mt-1 text-sm text-gray-600">
-                          {r.issueDescription ?? r.address ?? "Không có mô tả"}
+                          {r.issueDescription ??
+                            r.address ??
+                            "No description provided"}
                         </p>
 
                         <div className="mt-2 text-xs text-gray-500 flex gap-2">
-                          <span>Xe: {r.vehicle?.licensePlate ?? "—"}</span>|
+                          <span>Vehicle: {r.vehicle?.licensePlate ?? "—"}</span>
+                          |
                           <span>
-                            Khách: {r.customer?.userName ?? r.customerId}
+                            Customer: {r.customer?.userName ?? r.customerId}
                           </span>
                         </div>
                       </div>
@@ -180,11 +179,11 @@ export default function EmergencyList() {
                           href={`/manager/test?erId=${r.emergencyRequestId}`}
                           className="text-sky-600 text-sm hover:underline"
                         >
-                          Xem chi tiết
+                          View details
                         </Link>
 
                         <div className="flex gap-2">
-                          {/* ACCEPT BUTTON */}
+                          {/* ACCEPT */}
                           <button
                             disabled={!allowAccept}
                             className={`px-3 py-1 text-sm rounded text-white ${
@@ -193,10 +192,10 @@ export default function EmergencyList() {
                                 : "bg-gray-100 text-gray-400 cursor-not-allowed"
                             }`}
                           >
-                            Chấp nhận
+                            Accept
                           </button>
 
-                          {/* CANCEL BUTTON */}
+                          {/* CANCEL */}
                           <button
                             disabled={!allowCancel}
                             className={`px-3 py-1 text-sm rounded text-white ${
@@ -205,10 +204,10 @@ export default function EmergencyList() {
                                 : "bg-gray-100 text-gray-400 cursor-not-allowed"
                             }`}
                           >
-                            Huỷ
+                            Cancel
                           </button>
 
-                          {/* ASSIGN TECH BUTTON */}
+                          {/* ASSIGN */}
                           {allowAssign && (
                             <button
                               onClick={() => {
@@ -218,7 +217,7 @@ export default function EmergencyList() {
                               }}
                               className="px-3 py-1 text-sm rounded text-white bg-purple-600 hover:bg-purple-700"
                             >
-                              Gán kỹ thuật viên
+                              Assign Technician
                             </button>
                           )}
                         </div>
@@ -232,17 +231,17 @@ export default function EmergencyList() {
         )}
       </div>
 
-      {/* =============== MODAL =============== */}
+      {/* MODAL */}
       {openAssignModal && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg shadow-lg w-96">
-            <h2 className="text-lg font-medium">Chọn kỹ thuật viên</h2>
+            <h2 className="text-lg font-medium">Select Technician</h2>
 
             <select
               className="mt-4 w-full border rounded px-3 py-2"
               onChange={(e) => setSelectedTech(e.target.value)}
             >
-              <option value="">-- Chọn kỹ thuật viên --</option>
+              <option value="">-- Choose technician --</option>
               {technicians.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.fullName}
@@ -255,7 +254,7 @@ export default function EmergencyList() {
                 onClick={() => setOpenAssignModal(false)}
                 className="px-4 py-1 rounded bg-gray-200"
               >
-                Hủy
+                Cancel
               </button>
 
               <button
@@ -267,7 +266,7 @@ export default function EmergencyList() {
                     : "bg-gray-300 cursor-not-allowed"
                 }`}
               >
-                Gán
+                Assign
               </button>
             </div>
           </div>
