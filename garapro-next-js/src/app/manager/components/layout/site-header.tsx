@@ -1,13 +1,13 @@
-"use client"
+"use client";
 
-import { Bell, PanelLeft, Settings, User } from "lucide-react"
-import Link from "next/link"
-import Image from "next/image"
-import { authService } from "@/services/authService"
-import { SearchForm } from "@/app/manager/components/layout/search-form"
-import { Button } from "@/components/ui/button"
-import { Separator } from "@/components/ui/separator"
-import { useSidebar } from "@/components/ui/sidebar"
+import { Bell, PanelLeft, Settings, User } from "lucide-react";
+import Link from "next/link";
+import Image from "next/image";
+import { authService } from "@/services/authService";
+import { SearchForm } from "@/app/manager/components/layout/search-form";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { useSidebar } from "@/components/ui/sidebar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,38 +15,47 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Badge } from "@/components/ui/badge"
-import TechnicianAssignmentNotification from "@/components/manager/technician-assignment-notification"
+} from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
+import TechnicianAssignmentNotification from "@/components/manager/technician-assignment-notification";
 
 export function SiteHeader() {
-  const { toggleSidebar } = useSidebar()
+  const { toggleSidebar } = useSidebar();
 
   return (
-    <header className="flex sticky top-0 z-50 w-full items-center border-b" style={{ backgroundColor: '#154c79' }}>
+    <header
+      className="flex sticky top-0 z-50 w-full items-center border-b"
+      style={{ backgroundColor: "#154c79" }}
+    >
       <div className="flex h-[--header-height] w-full items-center gap-2 px-4 py-3">
-        <Button className="h-8 w-8 text-white hover:text-white hover:bg-white/10" variant="ghost" size="icon" onClick={toggleSidebar}>
+        <Button
+          className="h-8 w-8 text-white hover:text-white hover:bg-white/10"
+          variant="ghost"
+          size="icon"
+          onClick={toggleSidebar}
+        >
           <PanelLeft />
         </Button>
         <Separator orientation="vertical" className="mr-2 h-4 bg-white/30" />
 
         {/* GaragePro Logo */}
-        <Link 
-          href="/" 
+        <Link
+          href="/manager"
           className="flex items-center gap-0 select-none cursor-pointer hover:opacity-90 transition-opacity"
-          style={{ WebkitUserSelect: 'none', userSelect: 'none' }}
+          style={{ WebkitUserSelect: "none", userSelect: "none" }}
         >
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg overflow-hidden">
-              <Image
-                src="/gr_logo.png"
-                alt="GaragePro Logo"
-                width={32}
-                height={32}
-                className="h-full w-full object-contain pointer-events-none"
-              />
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg overflow-hidden">
+            <Image
+              src="/gr_logo.png"
+              alt="GaragePro Logo"
+              width={32}
+              height={32}
+              className="h-full w-full object-contain pointer-events-none"
+            />
           </div>
           <span className="font-semibold text-lg text-white pointer-events-none">
-            Garage<span className="text-600 text-xl font-semibold italic">Pro</span>
+            Garage
+            <span className="text-600 text-xl font-semibold italic">Pro</span>
           </span>
         </Link>
 
@@ -59,7 +68,11 @@ export function SiteHeader() {
         {/* Right side buttons */}
         <div className="flex items-center gap-2">
           {/* Settings Button */}
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:text-white hover:bg-white/10">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-white hover:text-white hover:bg-white/10"
+          >
             <Settings className="h-4 w-4" />
           </Button>
 
@@ -68,7 +81,11 @@ export function SiteHeader() {
 
           {/* General Notifications Button with Badge */}
           <div className="relative">
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:text-white hover:bg-white/10">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-white hover:text-white hover:bg-white/10"
+            >
               <Bell className="h-4 w-4" />
             </Button>
             <Badge
@@ -79,12 +96,15 @@ export function SiteHeader() {
             </Badge>
           </div>
 
-         <Separator orientation="vertical" className="h-4 bg-white/30" />
+          <Separator orientation="vertical" className="h-4 bg-white/30" />
 
           {/* User Profile Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 px-2 gap-2 text-white hover:text-white hover:bg-white/10">
+              <Button
+                variant="ghost"
+                className="h-8 px-2 gap-2 text-white hover:text-white hover:bg-white/10"
+              >
                 <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-medium">
                   DA
                 </div>
@@ -103,11 +123,16 @@ export function SiteHeader() {
                 Settings
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() =>authService.logout()} className="text-red-600">Log out</DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => authService.logout()}
+                className="text-red-600"
+              >
+                Log out
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </div>
     </header>
-  )
+  );
 }
