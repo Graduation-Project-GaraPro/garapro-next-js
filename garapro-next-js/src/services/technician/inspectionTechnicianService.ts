@@ -1,5 +1,5 @@
 import axios from "axios";
-
+import { handleApiError } from "@/utils/authUtils";
 const API_URL = process.env.NEXT_PUBLIC_BASE_URL+ "/odata/InspectionsTechnician" || 'https://localhost:7113/odata/InspectionsTechnician';
 
 export interface PartWithQuantityDto {
@@ -45,7 +45,7 @@ export const getTechnicianId = async (): Promise<string | null> => {
     return response.data.technicianId || null;
   } catch (error) {
     console.error("Error fetching technician ID:", error);
-    return null;
+    return handleApiError(error);
   }
 };
 
@@ -64,7 +64,7 @@ export const getMyInspections = async () => {
     return response.data.value || response.data;
   } catch (error) {
     console.error("Error fetching inspections:", error);
-    throw error;
+    return handleApiError(error);
   }
 };
 
@@ -83,7 +83,7 @@ export const getInspectionById = async (id: string) => {
     return response.data;
   } catch (error) {
     console.error("Error fetching inspection detail:", error);
-    throw error;
+    return handleApiError(error);
   }
 };
 
@@ -106,7 +106,7 @@ export const startInspection = async (id: string) => {
     return response.data;
   } catch (error) {
     console.error("Error starting inspection:", error);
-    throw error;
+    return handleApiError(error);
   }
 };
 
@@ -131,7 +131,7 @@ export const updateInspection = async (id: string, data: UpdateInspectionRequest
     return response.data;
   } catch (error) {
     console.error("Error updating inspection:", error);
-    throw error;
+    return handleApiError(error);
   }
 };
 
@@ -157,7 +157,7 @@ export const removePartFromInspection = async (
     return response.data;
   } catch (error) {
     console.error("Error removing part:", error);
-    throw error;
+    return handleApiError(error);
   }
 };
 
@@ -176,7 +176,7 @@ export const getAllServices = async () => {
     return response.data;
   } catch (error) {
     console.error("Error fetching services:", error);
-    throw error;
+    return handleApiError(error);
   }
 };
 
@@ -200,7 +200,7 @@ export const addServiceToInspection = async (inspectionId: string, serviceId: st
     return response.data;
   } catch (error) {
     console.error("Error adding service:", error);
-    throw error;
+    return handleApiError(error);
   }
 };
 
@@ -225,7 +225,7 @@ export const removeServiceFromInspection = async (
     return response.data;
   } catch (error) {
     console.error("Error removing service:", error);
-    throw error;
+    return handleApiError(error);
   }
 };
 
@@ -251,6 +251,6 @@ export const removePartCategoryFromService = async (
     return response.data;
   } catch (error) {
     console.error("Error removing part category:", error);
-    throw error;
+    return handleApiError(error);
   }
 };

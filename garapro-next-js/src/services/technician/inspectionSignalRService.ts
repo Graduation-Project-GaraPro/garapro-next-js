@@ -2,9 +2,6 @@ import * as signalR from "@microsoft/signalr";
 
 const API_URL = process.env.NEXT_PUBLIC_HUB_BASE_URL+ "/hubs/inspection" || 'http://localhost:7113/hubs/inspection';
 
-// class InspectionSignalRService {
-//   private connection: signalR.HubConnection | null = null;
-//   private isConnecting = false;
 
  class InspectionSignalRService {
   private connection: signalR.HubConnection | null = null;
@@ -41,7 +38,7 @@ const API_URL = process.env.NEXT_PUBLIC_HUB_BASE_URL+ "/hubs/inspection" || 'htt
         .withAutomaticReconnect({
           nextRetryDelayInMilliseconds: (retryContext) => {
             if (retryContext.previousRetryCount >= this.maxReconnectAttempts) {
-              return null; // Stop reconnecting
+              return null; 
             }
             return Math.min(1000 * Math.pow(2, retryContext.previousRetryCount), 30000);
           }

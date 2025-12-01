@@ -1,5 +1,5 @@
 import axios from "axios";
-
+import { handleApiError } from "@/utils/authUtils";
 const API_URL = process.env.NEXT_PUBLIC_BASE_URL +"/odata/Repairs" || 'https://localhost:7113/odata/Repairs';
 
 export interface RepairCreateDto {
@@ -126,7 +126,7 @@ export const getRepairOrderDetails = async (repairOrderId: string): Promise<Repa
       const message = error.response?.data?.message || error.message;
       throw new Error(message);
     }
-    throw error;
+    return handleApiError(error);
   }
 };
 
@@ -150,7 +150,7 @@ export const createRepair = async (data: RepairCreateDto): Promise<RepairRespons
       const message = error.response?.data?.message || error.message;
       throw new Error(message);
     }
-    throw error;
+    return handleApiError(error);
   }
 };
 
@@ -174,6 +174,6 @@ export const updateRepair = async (repairId: string, data: RepairUpdateDto): Pro
       const message = error.response?.data?.message || error.message;
       throw new Error(message);
     }
-    throw error;
+    return handleApiError(error);
   }
 };

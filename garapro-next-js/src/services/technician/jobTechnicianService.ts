@@ -1,12 +1,12 @@
 import axios from "axios";
-
+import { handleApiError } from "@/utils/authUtils";
 const API_URL = process.env.NEXT_PUBLIC_BASE_URL+ "/odata/JobTechnician" || 'https://localhost:7113/odata/JobTechnician';
 
 export interface JobStatusUpdate {
   JobId: string;
   JobStatus: number; 
 }
-// THAY THẾ HÀM getTechnicianId HIỆN TẠI BẰNG:
+
 export const getTechnicianId = async (): Promise<string | null> => {
   try {
     const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
@@ -25,12 +25,10 @@ export const getTechnicianId = async (): Promise<string | null> => {
   } catch (error) {
     console.error("Error fetching technician ID:", error);
     
-    // Fallback: lấy từ localStorage nếu đã lưu trước đó
     const savedTechId = typeof window !== "undefined" ? localStorage.getItem("technicianId") : null;
     return savedTechId;
   }
 };
-// Lấy danh sách công việc của technician
 export const getMyJobs = async () => {
   try {
     const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
@@ -47,7 +45,7 @@ export const getMyJobs = async () => {
   } catch (error) {
     console.error("Error fetching jobs:", error);
 
-    throw error;
+   return handleApiError(error);
   }
 };
 
@@ -67,7 +65,7 @@ export const getJobById = async (id: string) => {
     return response.data;
   } catch (error) {
     console.error("Error fetching job detail:", error);
-    throw error;
+    return handleApiError(error);
   }
 };
 
@@ -92,6 +90,6 @@ export const updateJobStatus = async (data: JobStatusUpdate) => {
     return response.data;
   } catch (error) {
     console.error("Error updating job status:", error);
-    throw error;
+    return handleApiError(error);
   }
 };

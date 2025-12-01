@@ -1,5 +1,5 @@
 import axios from "axios";
-
+import { handleApiError } from "@/utils/authUtils";
 const API_URL = process.env.NEXT_PUBLIC_BASE_URL+ "/odata/RepairHistories" || 'https://localhost:7113/odata/RepairHistories';
 
 export interface RepairHistoryDto {
@@ -79,8 +79,8 @@ export const getMyRepairHistory = async (): Promise<RepairHistoryDto[]> => {
   } catch (error) {
     console.error("Error fetching repair history:", error);
     if (axios.isAxiosError(error)) {
-      throw new Error(error.response?.data?.message || "Unable to load repair history");
+       return handleApiError(error);
     }
-    throw error;
+    return handleApiError(error);
   }
 };
