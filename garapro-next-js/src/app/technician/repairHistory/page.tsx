@@ -14,7 +14,6 @@ import {
   FaExclamationTriangle,
   FaCalendar,
   FaIdCard,
-  FaStar,
   FaSearch,
   FaExclamationCircle,
   FaSort,
@@ -28,9 +27,8 @@ import {
   FaAngleDoubleLeft, 
   FaAngleDoubleRight
 } from "react-icons/fa";
-import { getMyRepairHistory, JobHistoryDto } from "@/services/technician/repairHistoryService";
+import { getMyRepairHistory} from "@/services/technician/repairHistoryService";
 
-// Transform API data to UI format
 interface VehicleHistory {
   id: string;
   vehicle: string;
@@ -41,7 +39,6 @@ interface VehicleHistory {
   repairCount: number;
   totalVehicleAmount: number;
   customerIssue: string;
-  priority: "high" | "medium" | "low";
   history: RepairEntry[];
 }
 
@@ -97,12 +94,11 @@ export default function RepairHistory() {
 
       const data = await getMyRepairHistory();
       
-      // Mock pagination for frontend
       const startIndex = (currentPage - 1) * pageSize;
       const endIndex = startIndex + pageSize;
       const paginatedData = data.slice(startIndex, endIndex);
 
-      // Transform API data to UI format
+
       const transformedData: VehicleHistory[] = paginatedData.map((item) => ({
         id: item.vehicle.vehicleId,
         vehicle: `${item.vehicle.brand?.brandName || 'Unknown'} ${item.vehicle.model?.modelName || ''}`.trim(),
@@ -112,8 +108,7 @@ export default function RepairHistory() {
         licensePlate: item.vehicle.licensePlate,
         repairCount: item.repairCount,
         totalVehicleAmount: item.totalVehicleAmount,
-        customerIssue: item.customerIssue || "No issues reported",
-        priority: getPriorityFromLevel(item.completedJobs),
+        customerIssue: item.customerIssue || "No issues reported",        
         history: item.completedJobs.map((job) => ({
           date: job.deadline || new Date().toISOString(),
           jobName: job.jobName,
@@ -128,7 +123,6 @@ export default function RepairHistory() {
 
       setVehicleHistories(transformedData);
       
-      // Set pagination info
       setTotalCount(data.length);
       setTotalPages(Math.ceil(data.length / pageSize));
       setHasPreviousPage(currentPage > 1);
@@ -144,40 +138,6 @@ export default function RepairHistory() {
       }
     } finally {
       setLoading(false);
-    }
-  };
-
-  const getPriorityFromLevel = (jobs: JobHistoryDto[]): "high" | "medium" | "low" => {
-    if (jobs.length === 0) return "low";
-    const avgLevel = jobs.reduce((sum, job) => sum + job.level, 0) / jobs.length;
-    if (avgLevel >= 3) return "high";
-    if (avgLevel >= 2) return "medium";
-    return "low";
-  };
-
-  const getPriorityColor = (priority: "high" | "medium" | "low") => {
-    switch (priority) {
-      case "high":
-        return "bg-red-100 text-red-800 border-red-200";
-      case "medium":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200";
-      case "low":
-        return "bg-green-100 text-green-800 border-green-200";
-      default:
-        return "bg-gray-100 text-gray-800 border-gray-200";
-    }
-  };
-
-  const getPriorityText = (priority: "high" | "medium" | "low") => {
-    switch (priority) {
-      case "high":
-        return "High";
-      case "medium":
-        return "Medium";
-      case "low":
-        return "Low";
-      default:
-        return "Undetermined";
     }
   };
 
@@ -402,16 +362,6 @@ export default function RepairHistory() {
                     </div>
 
                     <div className="text-right">
-                      <div className="mb-3">
-                        <span
-                          className={`px-4 py-2 text-sm font-semibold rounded-full border ${getPriorityColor(
-                            vehicle.priority
-                          )}`}
-                        >
-                          {getPriorityText(vehicle.priority)}
-                        </span>
-                      </div>
-
                       <p className="text-sm text-gray-500 flex items-center justify-end mb-2">
                         <FaTools className="mr-2" />
                         {vehicle.repairCount} repair times
@@ -650,24 +600,7 @@ export default function RepairHistory() {
                                 <strong className="text-gray-700">Total Amount:</strong>
                                 <p className="text-gray-600 font-semibold">{entry.totalAmount.toLocaleString()} VND</p>
                               </div>
-                            </div>
-                            
-                            <div className="flex items-start">
-                              <FaStar className="mr-2 text-yellow-500 mt-1 flex-shrink-0" />
-                              <div className="flex-1">
-                                <strong className="text-gray-700">Priority:</strong>
-                                <p className="flex items-center mt-1">
-                                  <span
-                                    className={`px-3 py-1 text-sm rounded-full ${getPriorityColor(
-                                      selectedVehicle.priority
-                                    )} text-gray-800`}
-                                  >
-                                    {getPriorityText(selectedVehicle.priority)}
-                                  </span>
-                                </p>
-                              </div>
-                            </div>
-                            
+                            </div>                            
                             <div className="flex items-start">
                               <FaClipboardList className="mr-2 text-blue-500 mt-1 flex-shrink-0" />
                               <div className="flex-1">

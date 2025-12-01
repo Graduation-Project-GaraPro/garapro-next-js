@@ -4,9 +4,12 @@ import { useState, useEffect, useRef } from "react"
 import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Edit2, Trash2, Loader2, Plus, User, Eye } from "lucide-react"
-import { inspectionService, InspectionDto } from "@/services/manager/inspection-service"
+import { Edit2, Trash2, Loader2, Plus, User, Eye, FileText } from "lucide-react"
+import { toast } from "sonner"
+import { inspectionService } from "@/services/manager/inspection-service"
+import type { InspectionDto } from "@/types/manager/inspection"
 import { repairOrderService } from "@/services/manager/repair-order-service"
+import { quotationService } from "@/services/manager/quotation-service"
 import { CreateInspectionDialog } from "./create-inspection-dialog"
 import { TechnicianSelectionDialog } from "@/components/manager/technician-selection-dialog"
 import { InspectionDetailDialog } from "./inspection-detail-dialog"
@@ -28,6 +31,8 @@ export default function InspectionsTab({ orderId, highlightInspectionId }: Inspe
   const [detailInspectionId, setDetailInspectionId] = useState<string | null>(null)
   const [branchId, setBranchId] = useState<string | null>(null)
   const [highlightedInspectionId, setHighlightedInspectionId] = useState<string | null>(null)
+  const [convertingInspectionId, setConvertingInspectionId] = useState<string | null>(null)
+  const [inspectionQuotations, setInspectionQuotations] = useState<Record<string, boolean>>({})
   const inspectionRefs = useRef<Record<string, HTMLDivElement | null>>({})
 
   useEffect(() => {
@@ -45,6 +50,18 @@ export default function InspectionsTab({ orderId, highlightInspectionId }: Inspe
         // Fetch inspections
         const inspections = await inspectionService.getInspectionsByRepairOrderId(orderId)
         setInspectionTasks(inspections)
+        
+        // Check which inspections have quotations
+        const quotationChecks: Record<string, boolean> = {}
+        for (const inspection of inspections) {
+          try {
+            const quotations = await quotationService.getQuotationsByInspectionId(inspection.inspectionId)
+            quotationChecks[inspection.inspectionId] = quotations.length > 0
+          } catch (err) {
+            quotationChecks[inspection.inspectionId] = false
+          }
+        }
+        setInspectionQuotations(quotationChecks)
       } catch (err) {
         console.error("Failed to fetch data:", err)
         setError("Failed to load data. Please try again.")
@@ -116,12 +133,46 @@ export default function InspectionsTab({ orderId, highlightInspectionId }: Inspe
       try {
         const inspections = await inspectionService.getInspectionsByRepairOrderId(orderId)
         setInspectionTasks(inspections)
+        
+        // Refresh quotation checks
+        const quotationChecks: Record<string, boolean> = {}
+        for (const inspection of inspections) {
+          try {
+            const quotations = await quotationService.getQuotationsByInspectionId(inspection.inspectionId)
+            quotationChecks[inspection.inspectionId] = quotations.length > 0
+          } catch (err) {
+            quotationChecks[inspection.inspectionId] = false
+          }
+        }
+        setInspectionQuotations(quotationChecks)
       } catch (err) {
         console.error("Failed to refresh inspections:", err)
       }
     }
 
     fetchInspections()
+  }
+  
+  const handleConvertToQuotation = async (inspectionId: string) => {
+    setConvertingInspectionId(inspectionId)
+    try {
+      await quotationService.convertInspectionToQuotation(inspectionId)
+      toast.success("Inspection converted to quotation successfully")
+      
+      // Mark this inspection as having a quotation
+      setInspectionQuotations(prev => ({
+        ...prev,
+        [inspectionId]: true
+      }))
+      
+      // Optionally refresh the inspections list
+      handleInspectionCreated()
+    } catch (err: any) {
+      console.error("Failed to convert inspection to quotation:", err)
+      toast.error(err.message || "Failed to convert inspection to quotation")
+    } finally {
+      setConvertingInspectionId(null)
+    }
   }
 
   const handleAssignTech = (inspectionId: string) => {
@@ -226,6 +277,36 @@ export default function InspectionsTab({ orderId, highlightInspectionId }: Inspe
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
+                      {/* Convert to Quotation Button - Show only for completed inspections without quotation */}
+                      {task.status.toLowerCase() === "completed" && !inspectionQuotations[task.inspectionId] && (
+                        <Button 
+                          variant="default"
+                          size="sm" 
+                          onClick={() => handleConvertToQuotation(task.inspectionId)}
+                          disabled={convertingInspectionId === task.inspectionId}
+                          className="bg-green-600 hover:bg-green-700"
+                        >
+                          {convertingInspectionId === task.inspectionId ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Converting...
+                            </>
+                          ) : (
+                            <>
+                              <FileText className="h-4 w-4 mr-2" />
+                              Convert to Quotation
+                            </>
+                          )}
+                        </Button>
+                      )}
+                      
+                      {/* Show badge if quotation exists */}
+                      {inspectionQuotations[task.inspectionId] && (
+                        <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-800">
+                          Quotation Created
+                        </span>
+                      )}
+                      
                       {/* Assign Tech Button - Show for all non-completed inspections */}
                       {task.status.toLowerCase() !== "completed" && (
                         <Button 

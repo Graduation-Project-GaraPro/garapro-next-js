@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { getMyJobs } from "@/services/technician/jobTechnicianService";
 import { useRouter } from "next/navigation";
-import jobSignalRService, { JobAssignedEvent, JobReassignedEvent } from "@/services/technician/jobSignalRService";
+import jobSignalRService, { JobAssignedEvent } from "@/services/technician/jobSignalRService";
 import { getTechnicianId } from "@/services/technician/jobTechnicianService";
 import {
   CheckCircle,
@@ -32,7 +32,6 @@ import { LucideIcon } from "lucide-react";
 
 //Define types for task status and priority
 type TaskStatus = "new" | "in-progress" | "completed" | "on-hold";
-type TaskPriority = "high" | "medium" | "low";
 
 // Define the structure of a task
 interface Task {
@@ -43,7 +42,6 @@ interface Task {
   time: string;
   status: TaskStatus;
   progress: number;
-  priority: TaskPriority;
   technician: string;
   licensePlate: string;
   owner: string;
@@ -51,7 +49,6 @@ interface Task {
   description: string;
 }
 
-/** --- Types that match API JSON structure (camelCase) --- **/
 interface BrandResp { brandId?: string; brandName?: string; country?: string; }
 interface ModelResp { modelId?: string; modelName?: string; manufacturingYear?: number; }
 interface ColorResp { colorId?: string; colorName?: string; hexCode?: string; }
@@ -326,7 +323,6 @@ export default function TaskManagement() {
               time: deadlineStr,
               status: normalizedStatus,
               progress,
-              priority: "medium",
               technician:
                 newJob.technicians && newJob.technicians.length > 0
                   ? newJob.technicians[0].fullName || "Technician"
@@ -346,21 +342,7 @@ export default function TaskManagement() {
         } catch (error) {
           console.error("Error fetching new job details:", error);
         }
-      });
-
-      jobSignalRService.onJobReassigned(async (data: JobReassignedEvent) => {
-        console.log("JobReassigned event:", data);
-        try {
-          const fullData: JobResponse[] = await getMyJobs();
-          const newJob = fullData.find((x) => x.jobId === data.jobId);
-
-          if (newJob) {
-            alert(`A job has been reassigned to you!\nJob: ${data.jobName}`);
-          }
-        } catch (error) {
-          console.error("Error fetching reassigned job details:", error);
-        }
-      });
+      });     
 
     } catch (error) {
       console.error("SignalR setup failed:", error);
@@ -505,11 +487,6 @@ export default function TaskManagement() {
                 <h3 className="text-lg font-bold text-gray-900">{task.vehicle}</h3>
                 <p className="text-gray-700 text-sm font-bold italic">{task.jobName}</p>
               </div>
-            </div>
-            <div
-              className={`px-3 py-1 rounded-full text-xs font-semibold border ${priorityConfig[task.priority]}`}
-            >
-              {task.priority.toUpperCase()}
             </div>
           </div>
 
@@ -847,7 +824,6 @@ const TaskDetailModal = ({
   onClose, 
   onStartWork,
   statusConfig,
-  priorityConfig 
 }: { 
   task: Task;
   onClose: () => void;
@@ -938,12 +914,6 @@ const TaskDetailModal = ({
                   <Calendar className="w-4 h-4 mr-1" />
                   {task.time}
                 </p>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-gray-600">Priority Level:</span>
-                <span className={`px-3 py-1 rounded-full text-sm font-semibold border ${priorityConfig[task.priority]}`}>
-                  {task.priority.toUpperCase()}
-                </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium text-gray-600">Status:</span>

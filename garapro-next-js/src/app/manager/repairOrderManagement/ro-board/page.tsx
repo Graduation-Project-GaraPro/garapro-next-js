@@ -7,13 +7,18 @@ import RoDragDropBoard from "./ro-drag-drop-board"
 import ListView from "./ro-list-view"
 import EditTaskModal from "@/app/manager/repairOrderManagement/components/edit-task-modal"
 import CreateTask from "@/app/manager/repairOrderManagement/components/create-task"
+import CancelRODialog from "./cancel-ro-dialog"
+import ArchiveRODialog from "./archive-ro-dialog"
+import { useRouter } from "next/navigation"
 import { repairOrderService } from "@/services/manager/repair-order-service"
 import { repairOrderHubService, type RoBoardCardDto } from "@/services/manager/repair-order-hub"
+import { labelService } from "@/services/manager/label-service"
 import type { RepairOrder, CreateRepairOrderRequest } from "@/types/manager/repair-order"
 import type { OrderStatus } from "@/types/manager/order-status"
 import type { Job } from "@/types/job"
 import { toast } from "sonner"
 import { SearchForm } from "@/app/manager/components/layout/search-form"
+import { authService } from "@/services/authService"
 
 type ViewMode = "board" | "list"
 
@@ -22,9 +27,15 @@ export default function BoardPage() {
   const [statuses, setStatuses] = useState<OrderStatus[]>([])
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [editingRepairOrder, setEditingRepairOrder] = useState<RepairOrder | null>(null)
+  const [cancelingRepairOrderId, setCancelingRepairOrderId] = useState<string | null>(null)
+  const [archivingRepairOrderId, setArchivingRepairOrderId] = useState<string | null>(null)
+  const [isCanceling, setIsCanceling] = useState(false)
+  const [isArchiving, setIsArchiving] = useState(false)
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState<ViewMode>("board")
   const [signalRConnected, setSignalRConnected] = useState(false)
+  const [defaultLabels, setDefaultLabels] = useState<Map<string, { labelName: string; hexCode: string }>>(new Map())
+  const router = useRouter()
 
   useEffect(() => {
     initializePage();
@@ -42,10 +53,31 @@ export default function BoardPage() {
     // Load initial data
     await Promise.all([
       loadRepairOrders(),
-      loadStatuses()
+      loadStatuses(),
+      loadDefaultLabels()
     ]);
     
     setLoading(false);
+  };
+
+  const loadDefaultLabels = async () => {
+    try {
+      const allLabels = await labelService.getAllLabels()
+      const defaultLabelMap = new Map<string, { labelName: string; hexCode: string }>()
+      
+      allLabels.forEach((label) => {
+        if (label.isDefault) {
+          defaultLabelMap.set(label.orderStatusId.toString(), {
+            labelName: label.labelName,
+            hexCode: label.hexCode
+          })
+        }
+      })
+      
+      setDefaultLabels(defaultLabelMap)
+    } catch (error) {
+      console.error("Failed to load default labels:", error)
+    }
   };
 
   const initializeSignalR = async () => {
@@ -181,6 +213,76 @@ export default function BoardPage() {
     }
   }
 
+  const handleLabelsUpdated = (repairOrderId: string, labels: Array<{
+    labelId: string
+    labelName: string
+    colorName: string
+    hexCode: string
+    orderStatusId: number
+  }>) => {
+    setRepairOrders((prev) =>
+      prev.map((ro) =>
+        ro.repairOrderId === repairOrderId
+          ? { ...ro, assignedLabels: labels }
+          : ro
+      )
+    )
+  }
+
+  const handleCancelRepairOrder = async (cancelReason: string) => {
+    if (!cancelingRepairOrderId) return
+
+    setIsCanceling(true)
+    try {
+      await repairOrderService.cancelRepairOrder({
+        repairOrderId: cancelingRepairOrderId,
+        cancelReason
+      })
+      
+      toast.success("Repair order canceled successfully")
+      setCancelingRepairOrderId(null)
+      
+      // Refresh the repair orders list
+      await loadRepairOrders()
+    } catch (error) {
+      console.error("Failed to cancel repair order:", error)
+      toast.error("Failed to cancel repair order. Please try again.")
+    } finally {
+      setIsCanceling(false)
+    }
+  }
+
+  const handleArchiveRepairOrder = async (archiveReason: string) => {
+    if (!archivingRepairOrderId) return
+
+    setIsArchiving(true)
+    try {
+      const currentUser = authService.getCurrentUser()
+      
+      if (!currentUser.userId) {
+        toast.error("User not authenticated")
+        return
+      }
+      
+      await repairOrderService.archiveRepairOrder({
+        repairOrderId: archivingRepairOrderId,
+        archiveReason,
+        archivedByUserId: currentUser.userId
+      })
+      
+      toast.success("Repair order archived successfully")
+      setArchivingRepairOrderId(null)
+      
+      // Refresh the repair orders list
+      await loadRepairOrders()
+    } catch (error) {
+      console.error("Failed to archive repair order:", error)
+      toast.error("Failed to archive repair order. Please try again.")
+    } finally {
+      setIsArchiving(false)
+    }
+  }
+
   // Handle drag and drop - this is the main function for moving repair orders
   const handleMoveRepairOrder = async (repairOrderId: string, newStatusId: string) => {
     try {
@@ -272,7 +374,12 @@ export default function BoardPage() {
             <div className="flex items-center gap-2 w-full">
               <div className="flex items-center gap-2 flex-1">
                 <SearchForm className="w-72" />
-                <Button variant="outline" size="sm" className="text-gray-600 border-gray-200 hover:bg-gray-50">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="text-gray-600 border-gray-200 hover:bg-gray-50"
+                  onClick={() => router.push("/manager/garageSetting/ro-label")}
+                >
                   <Filter className="w-4 h-4 mr-2" />
                   RO Label
                   <span className="ml-2 px-1.5 py-0.5 bg-green-100 text-green-700 text-xs rounded font-medium">
@@ -330,7 +437,11 @@ export default function BoardPage() {
                 onMoveRepairOrder={handleMoveRepairOrder}
                 onEditRepairOrder={setEditingRepairOrder}
                 onDeleteRepairOrder={handleDeleteRepairOrder}
+                onCancelRepairOrder={setCancelingRepairOrderId}
+                onArchiveRepairOrder={setArchivingRepairOrderId}
+                onLabelsUpdated={handleLabelsUpdated}
                 statuses={statuses}
+                defaultLabels={defaultLabels}
               />
             ) : (
               <ListView
@@ -351,6 +462,24 @@ export default function BoardPage() {
         onClose={() => setEditingRepairOrder(null)}
         onSubmit={handleUpdateRepairOrder}
         onDelete={handleDeleteRepairOrder}
+      />
+
+      {/* Cancel Dialog */}
+      <CancelRODialog
+        open={!!cancelingRepairOrderId}
+        onOpenChange={(open) => !open && setCancelingRepairOrderId(null)}
+        onConfirm={handleCancelRepairOrder}
+        repairOrderId={cancelingRepairOrderId || ""}
+        isLoading={isCanceling}
+      />
+
+      {/* Archive Dialog */}
+      <ArchiveRODialog
+        open={!!archivingRepairOrderId}
+        onOpenChange={(open) => !open && setArchivingRepairOrderId(null)}
+        onConfirm={handleArchiveRepairOrder}
+        repairOrderId={archivingRepairOrderId || ""}
+        isLoading={isArchiving}
       />
     </div>
   )

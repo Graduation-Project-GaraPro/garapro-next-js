@@ -2,22 +2,8 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  CheckCircle,
-  Clock,
-  Play,
-  Pause,
-  ArrowLeft,
-  Car,
-  FileText,
-  Save,
-  Settings,
-  Plus,
-  Edit,
-  X,
-  Loader,
-  AlertTriangle,  ChevronDown,    
-  ChevronUp,       
-  Package  
+  CheckCircle, Clock, Play, Pause, ArrowLeft, Car, FileText,
+  Save,Settings,Plus,Edit,X,Loader, AlertTriangle, ChevronDown, ChevronUp,  Package  
 } from "lucide-react";
 import {
   getRepairOrderDetails,
@@ -29,6 +15,8 @@ import {
    PartCategoryRepairDto,    
   JobDetailDto
 } from "@/services/technician/repairService";
+
+import { authService } from "@/services/authService";
 import { updateJobStatus } from "@/services/technician/jobTechnicianService";
 import signalRService, { 
   RepairCreatedEvent, 
@@ -171,8 +159,11 @@ export default function RepairProgressPage() {
       try {
         setLoading(true);
         setError("");
-        const authToken = typeof window !== "undefined" ? localStorage.getItem("authToken") : "";
         
+        const authToken = typeof window !== "undefined" ?  authService.getToken() : "";
+        
+        console.log("sadasdasd token",authToken)
+  
         const jobResponse = await fetch(`https://localhost:7113/odata/JobTechnician/my-jobs/${jobId}`, {
           headers: {
             Authorization: `Bearer ${authToken}`,
@@ -611,10 +602,10 @@ const saveStepDetails = async () => {
       showSuccessToastMessage("Repair step created and started successfully!");
     }
     closeModal();
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error saving repair:", error);
-    setError("Failed to save repair details");
-    setErrorMessage("Failed to save repair details. Please try again.");
+    const errorMessage = error.message || "Failed to save repair details. Please try again.";
+    setErrorMessage(errorMessage);
     setShowErrorModal(true);
   }
 };
@@ -1066,30 +1057,93 @@ const handleSaveProgress = async () => {
                   />
                 </div>
                 {!isUpdating && (
-                  <div className="flex space-x-4">
-                    <div className="flex-1">
-                      <label className="text-sm font-medium text-gray-600 mb-2 block">Estimated Hours:<span className="text-red-500">*</span></label>
-                      <input
-                        type="number"
-                        value={editForm.estimatedHours}
-                        onChange={(e) => setEditForm(prev => ({ ...prev, estimatedHours: parseInt(e.target.value) || 0 }))}
-                        min="0"
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <label className="text-sm font-medium text-gray-600 mb-2 block">Estimated Minutes:</label>
-                      <input
-                        type="number"
-                        value={editForm.estimatedMinutes}
-                        onChange={(e) => setEditForm(prev => ({ ...prev, estimatedMinutes: parseInt(e.target.value) || 0 }))}
-                        min="0"
-                        max="59"
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                    </div>
-                  </div>
-                )}
+  <div className="flex space-x-4">
+    <div className="flex-1">
+      <label className="text-sm font-medium text-gray-600 mb-2 block">
+        Estimated Hours:<span className="text-red-500">*</span>
+      </label>
+      <div className="flex items-center space-x-2">
+        <button
+          type="button"
+          onClick={() => 
+            setEditForm(prev => ({ 
+              ...prev, 
+              estimatedHours: Math.max(0, prev.estimatedHours - 1) 
+            }))
+          }
+          className="p-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors duration-200"
+          disabled={editForm.estimatedHours === 0}
+        >
+          <span className="text-gray-700 font-bold">-</span>
+        </button>
+        <input
+          // type="number"
+          value={editForm.estimatedHours}
+          onChange={(e) => {
+            const value = parseInt(e.target.value) || 0;
+            setEditForm(prev => ({ ...prev, estimatedHours: value }));
+          }}
+         min="0"
+          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center"
+        />
+        <button
+          type="button"
+          onClick={() => 
+            setEditForm(prev => ({ 
+              ...prev, 
+              estimatedHours: prev.estimatedHours + 1 
+            }))
+          }
+          className="p-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors duration-200"
+        >
+          <span className="text-gray-700 font-bold">+</span>
+        </button>
+      </div>
+    </div>
+    
+    <div className="flex-1">
+      <label className="text-sm font-medium text-gray-600 mb-2 block">
+        Estimated Minutes:
+      </label>
+      <div className="flex items-center space-x-2">
+        <button
+          type="button"
+          onClick={() => 
+            setEditForm(prev => ({ 
+              ...prev, 
+              estimatedMinutes: prev.estimatedMinutes === 0 ? 59 : prev.estimatedMinutes - 1 
+            }))
+          }
+          className="p-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors duration-200"
+        >
+          <span className="text-gray-700 font-bold">-</span>
+        </button>
+        <input
+          value={editForm.estimatedMinutes}
+          onChange={(e) => {
+            const value = parseInt(e.target.value) || 0;
+            setEditForm(prev => ({ ...prev, estimatedMinutes: value }));
+          }}
+          min="0"
+          max="59"
+          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center"
+        />
+        <button
+          type="button"
+          onClick={() => 
+            setEditForm(prev => ({ 
+              ...prev, 
+              estimatedMinutes: (prev.estimatedMinutes + 1) % 60 
+            }))
+          }
+          className="p-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors duration-200"
+        >
+          <span className="text-gray-700 font-bold">+</span>
+        </button>
+      </div>
+    </div>
+  </div>
+)}
               </div>
               <div className="flex justify-end space-x-3 mt-6">
                 <button

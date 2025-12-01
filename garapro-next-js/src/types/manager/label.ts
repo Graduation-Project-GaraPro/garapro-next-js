@@ -1,24 +1,34 @@
+// Label types for repair order management
+
 export interface Label {
-  id: number
-  name: string
-  category: string
-  color: string
-  description: string
+  labelId: number
+  labelName: string
+  description: string | null
+  colorName: string
+  hexCode: string
+  orderStatusId: number
   isDefault: boolean
-  // Optional business fields
-  active?: boolean
-  usageCount?: number
-  slug?: string
-  createdAt?: string
-  updatedAt?: string
+  createdAt: string
+  updatedAt: string | null
 }
 
-export interface NewLabel {
-  name: string
-  category: string
-  color: string
-  description: string
-  // Optional business fields
-  active?: boolean
-  slug?: string
+export interface CreateLabelRequest {
+  labelName: string
+  description?: string
+  colorName: string
+  hexCode: string
+  orderStatusId: number
+  isDefault: boolean
+}
+
+export interface UpdateLabelRequest extends Partial<CreateLabelRequest> {
+  labelId: number
+}
+
+export interface AssignedLabel {
+  labelId: string
+  labelName: string
+  colorName: string
+  hexCode: string
+  orderStatusId: number
 }

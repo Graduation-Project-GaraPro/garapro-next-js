@@ -1,14 +1,19 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { CreditCard, DollarSign, MoreHorizontal, FileDown, FolderOpen, Share2, X, Download, Printer, Check } from "lucide-react"
+import { CreditCard, DollarSign, MoreHorizontal, FileDown, FolderOpen, Share2, X, Download, Printer, Check, QrCode } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { paymentService } from "@/services/manager/payment-service"
+import { useToast } from "@/hooks/use-toast"
+import type { PaymentSummaryResponse, PaymentPreviewResponse } from "@/types/manager/payment"
 
 interface PaymentTabProps {
   orderId: string
+  repairOrderStatus?: number
+  onPaymentSuccess?: () => void
 }
 
 interface PaymentMethod {
@@ -20,10 +25,9 @@ interface PaymentMethod {
 interface Transaction {
   id: string
   date: string
-  name: string
   amount: number
   paymentMethod: string
-  paymentInfo: string
+  status: string
 }
 
 const paymentMethods: PaymentMethod[] = [
@@ -33,51 +37,57 @@ const paymentMethods: PaymentMethod[] = [
     icon: <DollarSign className="w-8 h-8" />
   },
   {
-    id: "credit",
-    name: "Credit or Debit",
-    icon: <CreditCard className="w-8 h-8" />
-  },
-
-  {
-    id: "other",
-    name: "Other",
-    icon: <MoreHorizontal className="w-8 h-8" />
+    id: "payos",
+    name: "PayOs (QR Code)",
+    icon: <QrCode className="w-8 h-8" />
   }
 ]
 
-// Sample transaction data
-const completedTransactions: Transaction[] = [
-  {
-    id: "1",
-    date: "August 27, 2021",
-    name: "Frank Stan",
-    amount: 100.00,
-    paymentMethod: "Cash",
-    paymentInfo: "Cash"
-  }
-]
-
-export default function PaymentTab({ orderId }: PaymentTabProps) {
+export default function PaymentTab({ orderId, repairOrderStatus, onPaymentSuccess }: PaymentTabProps) {
+  const { toast } = useToast()
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>("")
   const [showInvoice, setShowInvoice] = useState<boolean>(false)
   const [showCashPayment, setShowCashPayment] = useState<boolean>(false)
+  const [showPaymentPreview, setShowPaymentPreview] = useState<boolean>(false)
+  const [showQRCode, setShowQRCode] = useState<boolean>(false)
+  const [qrCodeData, setQrCodeData] = useState<string>("")
+  const [paymentSummary, setPaymentSummary] = useState<PaymentSummaryResponse | null>(null)
+  const [paymentPreview, setPaymentPreview] = useState<PaymentPreviewResponse | null>(null)
+  const [loading, setLoading] = useState<boolean>(false)
+  const [loadingPreview, setLoadingPreview] = useState<boolean>(false)
+  const [processingPayment, setProcessingPayment] = useState<boolean>(false)
   const [cashPaymentData, setCashPaymentData] = useState({
-    date: new Date().toISOString().split('T')[0],
-    customerName: "Quan",
-    amount: "",
-    paidInFull: false
+    description: ""
   })
 
-  // Sample repair order data
-  const totalLabor = 177.50
-  const totalParts = 176.43
-  const totalFees = 33.08
-  const discounts = 33.93
-  const subtotal = totalLabor + totalParts + totalFees - discounts
-  const taxes = 16.67
-  const grandTotal = subtotal + taxes
-  const paidToDate = 100.00
-  const balanceDue = grandTotal - paidToDate
+  // Check if repair order is completed (StatusId = 3)
+  const isRepairOrderCompleted = repairOrderStatus === 3
+
+  // Load payment summary
+  useEffect(() => {
+    if (isRepairOrderCompleted) {
+      loadPaymentSummary()
+    }
+  }, [orderId, isRepairOrderCompleted])
+
+  const loadPaymentSummary = async () => {
+    try {
+      setLoading(true)
+      const data = await paymentService.getPaymentSummary(orderId)
+      setPaymentSummary(data)
+    } catch (error: any) {
+      console.error("Failed to load payment summary:", error)
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Failed to load payment summary",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const balanceDue = paymentSummary?.balanceDue || 0
 
   const handleShareInvoice = () => {
     // TODO: Implement email functionality
@@ -94,31 +104,148 @@ export default function PaymentTab({ orderId }: PaymentTabProps) {
     console.log("Print invoice")
   }
 
-  const handleCashPayment = () => {
-    setShowCashPayment(true)
+  const handlePaymentMethodSelect = async (methodId: string) => {
+    if (!isRepairOrderCompleted) {
+      toast({
+        title: "Cannot Process Payment",
+        description: "Repair order must be completed before processing payment",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setSelectedPaymentMethod(methodId)
+    
+    if (methodId === "cash") {
+      // Load payment preview from API
+      await loadPaymentPreview()
+    } else if (methodId === "payos") {
+      handleGenerateQRCode()
+    }
   }
 
-  const handleCashPaymentSubmit = () => {
-    // TODO: Process cash payment
-    console.log("Process cash payment:", cashPaymentData)
-    setShowCashPayment(false)
-    // Reset form
+  const loadPaymentPreview = async () => {
+    try {
+      setLoadingPreview(true)
+      const preview = await paymentService.getPaymentPreview(orderId)
+      setPaymentPreview(preview)
+      setShowPaymentPreview(true)
+    } catch (error: any) {
+      console.error("Failed to load payment preview:", error)
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Failed to load payment preview",
+        variant: "destructive",
+      })
+    } finally {
+      setLoadingPreview(false)
+    }
+  }
+
+  const handleConfirmPayment = async () => {
+    try {
+      setProcessingPayment(true)
+      const response = await paymentService.createPayment(orderId, {
+        method: "Cash",
+        description: cashPaymentData.description || `Cash payment for repair order ${orderId}`,
+      })
+
+      toast({
+        title: "Payment Success",
+        description: response.message || "Cash payment processed successfully. Repair order status updated.",
+      })
+
+      // Reload payment summary to update transaction history
+      await loadPaymentSummary()
+
+      // Notify parent component to refresh repair order data (including status)
+      if (onPaymentSuccess) {
+        onPaymentSuccess()
+      }
+
+      // Close dialog and reset
+      setShowPaymentPreview(false)
+      setPaymentPreview(null)
+      setCashPaymentData({
+        description: ""
+      })
+    } catch (error: any) {
+      console.error("Failed to process payment:", error)
+      toast({
+        title: "Payment Failed",
+        description: error.response?.data?.message || "Failed to process cash payment",
+        variant: "destructive",
+      })
+    } finally {
+      setProcessingPayment(false)
+    }
+  }
+
+  const handleCancelPaymentPreview = () => {
+    setShowPaymentPreview(false)
+    setPaymentPreview(null)
     setCashPaymentData({
-      date: new Date().toISOString().split('T')[0],
-      customerName: "Quan",
-      amount: "",
-      paidInFull: false
+      description: ""
     })
   }
 
-  const handleCashPaymentCancel = () => {
-    setShowCashPayment(false)
-    setCashPaymentData({
-      date: new Date().toISOString().split('T')[0],
-      customerName: "Quan",
-      amount: "",
-      paidInFull: false
-    })
+  const handleGenerateQRCode = async () => {
+    try {
+      setProcessingPayment(true)
+      const response = await paymentService.generateQRCode(orderId, {
+        method: "PayOs",
+        description: `PayOs payment for repair order ${orderId}`,
+      })
+
+      setQrCodeData(response.qrCodeData)
+      setShowQRCode(true)
+
+      toast({
+        title: "QR Code Generated",
+        description: response.message,
+      })
+    } catch (error: any) {
+      console.error("Failed to generate QR code:", error)
+      toast({
+        title: "QR Code Generation Failed",
+        description: error.response?.data?.message || "Failed to generate QR code",
+        variant: "destructive",
+      })
+    } finally {
+      setProcessingPayment(false)
+    }
+  }
+
+  if (!isRepairOrderCompleted) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <Card className="max-w-md">
+          <CardContent className="pt-6">
+            <div className="text-center space-y-4">
+              <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto">
+                <FileDown className="w-8 h-8 text-yellow-600" />
+              </div>
+              <h3 className="text-lg font-semibold">Repair Order Not Completed</h3>
+              <p className="text-gray-600">
+                Payment processing is only available for completed repair orders. 
+                Please complete the repair order first.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#154c79] mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading payment information...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -140,12 +267,7 @@ export default function PaymentTab({ orderId }: PaymentTabProps) {
                       ? "border-[#154c79] bg-blue-50"
                       : "border-gray-200 hover:border-gray-300"
                   }`}
-                  onClick={() => {
-                    setSelectedPaymentMethod(method.id)
-                    if (method.id === "cash") {
-                      handleCashPayment()
-                    }
-                  }}
+                  onClick={() => handlePaymentMethodSelect(method.id)}
                 >
                   <div className="flex flex-col items-center gap-3">
                     <div className={`p-3 rounded-full ${
@@ -163,122 +285,128 @@ export default function PaymentTab({ orderId }: PaymentTabProps) {
           </CardContent>
         </Card>
 
-        {/* Completed Transactions */}
+        {/* Payment History */}
         <Card>
           <CardHeader>
-            <CardTitle>Completed Transactions</CardTitle>
+            <CardTitle>Payment History</CardTitle>
           </CardHeader>
           <CardContent>
-            {completedTransactions.length > 0 ? (
+            {paymentSummary && paymentSummary.paymentHistory.length > 0 ? (
               <div className="space-y-4">
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
                       <tr className="border-b">
                         <th className="text-left py-2 text-sm font-medium text-gray-600">Date</th>
-                        <th className="text-left py-2 text-sm font-medium text-gray-600">Name</th>
                         <th className="text-left py-2 text-sm font-medium text-gray-600">Amount</th>
-                        <th className="text-left py-2 text-sm font-medium text-gray-600">Payment Method</th>
-                        <th className="text-left py-2 text-sm font-medium text-gray-600">Payment Info</th>
-                        <th className="text-right py-2 text-sm font-medium text-gray-600"></th>
+                        <th className="text-left py-2 text-sm font-medium text-gray-600">Method</th>
+                        <th className="text-left py-2 text-sm font-medium text-gray-600">Status</th>
+                        <th className="text-left py-2 text-sm font-medium text-gray-600">Description</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {completedTransactions.map((transaction) => (
-                        <tr key={transaction.id} className="border-b">
-                          <td className="py-3 text-sm">{transaction.date}</td>
-                          <td className="py-3 text-sm font-medium">{transaction.name}</td>
-                          <td className="py-3 text-sm">${transaction.amount.toFixed(2)} Payment</td>
-                          <td className="py-3 text-sm">{transaction.paymentMethod}</td>
-                          <td className="py-3 text-sm">{transaction.paymentInfo}</td>
-                          <td className="py-3 text-right">
-                            <Button variant="ghost" size="sm">
-                              <MoreHorizontal className="w-4 h-4" />
-                            </Button>
+                      {paymentSummary.paymentHistory.map((payment) => (
+                        <tr key={payment.paymentId} className="border-b">
+                          <td className="py-3 text-sm">{new Date(payment.createdAt).toLocaleDateString()}</td>
+                          <td className="py-3 text-sm font-medium">${payment.amount.toFixed(2)}</td>
+                          <td className="py-3 text-sm">{payment.method}</td>
+                          <td className="py-3 text-sm">
+                            <span className={`px-2 py-1 rounded-full text-xs ${
+                              payment.status === 'Paid' 
+                                ? 'bg-green-100 text-green-800' 
+                                : 'bg-yellow-100 text-yellow-800'
+                            }`}>
+                              {payment.status}
+                            </span>
                           </td>
+                          <td className="py-3 text-sm text-gray-600">{payment.description || '-'}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
-                <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded">
-                  RO #{orderId}: Quan 2011 Honda Element EX posted to A/R on Aug 27, 2021
-                </div>
               </div>
             ) : (
               <div className="text-center py-8 text-gray-500">
-                <p>No completed transactions yet</p>
+                <p>No payment history yet</p>
               </div>
             )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Right Side - Repair Order Summary */}
+      {/* Right Side - Payment Summary */}
       <div className="w-96">
         <Card className="h-fit">
           <CardHeader>
-            <CardTitle>Repair Order Summary</CardTitle>
+            <CardTitle>Payment Summary</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* View Invoice Button */}
-            <Button 
-              className="w-full bg-green-600 hover:bg-green-700 text-white"
-              onClick={() => setShowInvoice(true)}
-            >
-              <FileDown className="w-4 h-4 mr-2" />
-              VIEW & SHARE INVOICE
-            </Button>
+            {paymentSummary ? (
+              <>
+                {/* Customer & Vehicle Info */}
+                <div className="space-y-2 pb-4 border-b">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">{paymentSummary?.customerName || 'N/A'}</p>
+                    {paymentSummary?.customerPhone && (
+                      <p className="text-xs text-gray-600">{paymentSummary.customerPhone}</p>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-900">
+                      {paymentSummary?.vehicleYear} {paymentSummary?.vehicleMake} {paymentSummary?.vehicleModel}
+                    </p>
+                    <p className="text-xs text-gray-600">{paymentSummary?.vehicleLicensePlate || 'N/A'}</p>
+                  </div>
+                </div>
 
-            {/* Cost Breakdown */}
-            <div className="space-y-3">
-              <div className="flex justify-between">
-                <span className="text-sm">Total Labor:</span>
-                <span className="text-sm font-medium">${totalLabor.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm">Total Parts:</span>
-                <span className="text-sm font-medium">${totalParts.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm">Total Fees:</span>
-                <span className="text-sm font-medium">${totalFees.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm text-red-600">Discounts:</span>
-                <span className="text-sm font-medium text-red-600">-${discounts.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between border-t pt-2">
-                <span className="text-sm font-medium">Subtotal:</span>
-                <span className="text-sm font-medium">${subtotal.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm">Taxes:</span>
-                <span className="text-sm font-medium">${taxes.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between border-t pt-2 font-semibold">
-                <span>Grand Total:</span>
-                <span>${grandTotal.toFixed(2)}</span>
-              </div>
-            </div>
+                {/* Cost Breakdown */}
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-sm">Total Amount:</span>
+                    <span className="text-sm font-medium">${(paymentSummary?.totalAmount || 0).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-red-600">Discount:</span>
+                    <span className="text-sm font-medium text-red-600">-${(paymentSummary?.discountAmount || 0).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between border-t pt-2 font-semibold">
+                    <span>Amount to Pay:</span>
+                    <span>${(paymentSummary?.amountToPay || 0).toFixed(2)}</span>
+                  </div>
+                </div>
 
-            {/* Payment Status */}
-            <div className="space-y-2 pt-4 border-t">
-              <div className="flex justify-between">
-                <span className="text-sm">Paid To Date:</span>
-                <span className="text-sm font-medium">${paidToDate.toFixed(2)}</span>
+                {/* Payment Status */}
+                <div className="space-y-2 pt-4 border-t">
+                  <div className="flex justify-between">
+                    <span className="text-sm">Paid Amount:</span>
+                    <span className="text-sm font-medium text-green-600">${(paymentSummary?.paidAmount || 0).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm font-semibold">Balance Due:</span>
+                    <span className={`text-sm font-bold ${balanceDue > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                      ${balanceDue.toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center pt-2">
+                    <span className="text-sm">Status:</span>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      paymentSummary?.paymentStatus === 'Paid' 
+                        ? 'bg-green-100 text-green-800' 
+                        : paymentSummary?.paymentStatus === 'Partial'
+                        ? 'bg-yellow-100 text-yellow-800'
+                        : 'bg-red-100 text-red-800'
+                    }`}>
+                      {paymentSummary?.paymentStatus || 'Unknown'}
+                    </span>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-4 text-gray-500">
+                <p>No payment information available</p>
               </div>
-              <div className="flex justify-between">
-                <span className="text-sm font-semibold">BALANCE DUE:</span>
-                <span className="text-sm font-bold text-red-600">${balanceDue.toFixed(2)}</span>
-              </div>
-            </div>
-
-            {/* Unpost Button */}
-            <Button variant="outline" className="w-full mt-4 bg-gray-600 hover:bg-gray-700 text-white">
-              <FolderOpen className="w-4 h-4 mr-2" />
-              UNPOST REPAIR ORDER
-            </Button>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -436,20 +564,20 @@ export default function PaymentTab({ orderId }: PaymentTabProps) {
                 <div className="w-80">
                   <div className="space-y-2">
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Subtotal:</span>
-                      <span className="font-medium">${subtotal.toFixed(2)}</span>
+                      <span className="text-gray-600">Total Amount:</span>
+                      <span className="font-medium">${paymentSummary?.totalAmount.toFixed(2) || '0.00'}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Tax (8.5%):</span>
-                      <span className="font-medium">${taxes.toFixed(2)}</span>
+                      <span className="text-gray-600">Discount:</span>
+                      <span className="font-medium text-red-600">-${paymentSummary?.discountAmount.toFixed(2) || '0.00'}</span>
                     </div>
                     <div className="flex justify-between text-lg font-semibold border-t pt-2">
-                      <span>Total:</span>
-                      <span>${grandTotal.toFixed(2)}</span>
+                      <span>Amount to Pay:</span>
+                      <span>${paymentSummary?.amountToPay.toFixed(2) || '0.00'}</span>
                     </div>
                     <div className="flex justify-between text-sm text-gray-600">
                       <span>Paid:</span>
-                      <span>${paidToDate.toFixed(2)}</span>
+                      <span className="text-green-600">${paymentSummary?.paidAmount.toFixed(2) || '0.00'}</span>
                     </div>
                     <div className="flex justify-between text-lg font-bold text-red-600 border-t pt-2">
                       <span>Balance Due:</span>
@@ -471,17 +599,189 @@ export default function PaymentTab({ orderId }: PaymentTabProps) {
         </div>
       )}
 
-      {/* Cash Payment Modal */}
-      {showCashPayment && (
+      {/* Cash Payment Preview Modal */}
+      {showPaymentPreview && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-sm shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b">
+              <h2 className="text-xl font-semibold text-gray-900">Cash Payment Preview</h2>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCancelPaymentPreview}
+                disabled={processingPayment || loadingPreview}
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+
+            {/* Modal Content */}
+            {loadingPreview ? (
+              <div className="p-12 flex flex-col items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#154c79] mb-4"></div>
+                <p className="text-gray-600">Loading payment preview...</p>
+              </div>
+            ) : paymentPreview ? (
+              <div className="p-6 space-y-4 overflow-y-auto max-h-[calc(90vh-180px)]">
+                {/* Customer & Vehicle Info */}
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h4 className="font-medium text-gray-900 mb-2">Customer & Vehicle Information</h4>
+                  <div className="space-y-1 text-sm">
+                    <p className="font-medium">{paymentPreview.customerName}</p>
+                    <p className="text-gray-600">{paymentPreview.vehicleInfo}</p>
+                  </div>
+                </div>
+
+                {/* Services */}
+                {paymentPreview.services && paymentPreview.services.length > 0 && (
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <h4 className="font-medium text-gray-900 mb-3">Services</h4>
+                    <div className="space-y-2">
+                      {paymentPreview.services.map((service, index) => (
+                        <div key={`${service.serviceId}-${index}`} className="flex justify-between text-sm">
+                          <div className="flex-1">
+                            <p className="font-medium">{service.serviceName}</p>
+                            <p className="text-xs text-gray-600">Duration: {service.estimatedDuration}h</p>
+                          </div>
+                          <span className="font-medium">${service.price.toFixed(2)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Parts */}
+                {paymentPreview.parts && paymentPreview.parts.length > 0 && (
+                  <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                    <h4 className="font-medium text-gray-900 mb-3">Parts</h4>
+                    <div className="space-y-2">
+                      {paymentPreview.parts.map((part) => (
+                        <div key={part.partId} className="flex justify-between text-sm">
+                          <div className="flex-1">
+                            <p className="font-medium">{part.partName}</p>
+                            <p className="text-xs text-gray-600">Qty: {part.quantity} × ${part.unitPrice.toFixed(2)}</p>
+                          </div>
+                          <span className="font-medium">${part.totalPrice.toFixed(2)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Payment Summary */}
+                <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                  <h4 className="font-medium text-gray-900 mb-3">Payment Summary</h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span>Estimated Amount:</span>
+                      <span className="font-medium">${paymentPreview.estimatedAmount.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Repair Order Cost:</span>
+                      <span className="font-medium">${paymentPreview.repairOrderCost.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-red-600">
+                      <span>Discount:</span>
+                      <span className="font-medium">-${paymentPreview.discountAmount.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between border-t border-green-300 pt-2 font-semibold">
+                      <span>Total Amount:</span>
+                      <span>${paymentPreview.totalAmount.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-green-600">
+                      <span>Already Paid:</span>
+                      <span className="font-medium">${paymentPreview.paidAmount.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between border-t border-green-300 pt-2 font-bold text-lg">
+                      <span>Balance Due:</span>
+                      <span className="text-red-600">${(paymentPreview.totalAmount - paymentPreview.paidAmount).toFixed(2)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Payment Method */}
+                <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <DollarSign className="w-5 h-5 text-yellow-600" />
+                    <h4 className="font-medium text-gray-900">Payment Method: Cash</h4>
+                  </div>
+                  <p className="text-sm text-gray-600">
+                    This payment will be processed immediately and marked as paid.
+                  </p>
+                </div>
+
+                {/* Optional Description */}
+                <div>
+                  <Label htmlFor="payment-description">Description (Optional)</Label>
+                  <Input
+                    id="payment-description"
+                    value={cashPaymentData.description}
+                    onChange={(e) => setCashPaymentData(prev => ({ ...prev, description: e.target.value }))}
+                    className="mt-1"
+                    placeholder="e.g., Cash payment for repair services"
+                    disabled={processingPayment}
+                  />
+                </div>
+
+                {(paymentPreview.totalAmount - paymentPreview.paidAmount) <= 0 && (
+                  <div className="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
+                    <p className="text-sm text-yellow-800">
+                      This repair order has been fully paid. No additional payment is required.
+                    </p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="p-12 text-center text-gray-500">
+                <p>No preview data available</p>
+              </div>
+            )}
+
+            {/* Modal Footer */}
+            {!loadingPreview && paymentPreview && (
+              <div className="flex justify-end gap-3 p-6 border-t">
+                <Button
+                  variant="outline"
+                  onClick={handleCancelPaymentPreview}
+                  disabled={processingPayment}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleConfirmPayment}
+                  disabled={processingPayment || (paymentPreview.totalAmount - paymentPreview.paidAmount) <= 0}
+                  className="bg-[#154c79] hover:bg-[#123c66] text-white"
+                >
+                  {processingPayment ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4 mr-2" />
+                      Confirm Payment (${(paymentPreview.totalAmount - paymentPreview.paidAmount).toFixed(2)})
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* QR Code Modal */}
+      {showQRCode && (
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-sm shadow-xl max-w-md w-full">
             {/* Modal Header */}
             <div className="flex items-center justify-between p-6 border-b">
-              <h2 className="text-xl font-semibold text-gray-900">Cash Payment</h2>
+              <h2 className="text-xl font-semibold text-gray-900">PayOs Payment</h2>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleCashPaymentCancel}
+                onClick={() => setShowQRCode(false)}
               >
                 <X className="w-4 h-4" />
               </Button>
@@ -489,107 +789,49 @@ export default function PaymentTab({ orderId }: PaymentTabProps) {
 
             {/* Modal Content */}
             <div className="p-6 space-y-4">
-              {/* Payment Date */}
-              <div>
-                <Label htmlFor="payment-date">Date of Payment</Label>
-                <Input
-                  id="payment-date"
-                  type="date"
-                  value={cashPaymentData.date}
-                  onChange={(e) => setCashPaymentData(prev => ({ ...prev, date: e.target.value }))}
-                  className="mt-1"
-                />
-              </div>
+              <div className="text-center">
+                <p className="text-gray-600 mb-4">
+                  Scan the QR code below to complete payment
+                </p>
+                
+                {/* QR Code Display */}
+                <div className="bg-white p-4 rounded-lg border-2 border-gray-200 inline-block">
+                  {qrCodeData ? (
+                    <img 
+                      src={qrCodeData} 
+                      alt="Payment QR Code" 
+                      className="w-64 h-64 mx-auto"
+                    />
+                  ) : (
+                    <div className="w-64 h-64 flex items-center justify-center bg-gray-100">
+                      <QrCode className="w-16 h-16 text-gray-400" />
+                    </div>
+                  )}
+                </div>
 
-              {/* Customer Name */}
-              <div>
-                <Label htmlFor="customer-name">Customer Name</Label>
-                <Input
-                  id="customer-name"
-                  value={cashPaymentData.customerName}
-                  onChange={(e) => setCashPaymentData(prev => ({ ...prev, customerName: e.target.value }))}
-                  className="mt-1"
-                  placeholder="Enter customer name"
-                />
-              </div>
+                {/* Payment Amount */}
+                {paymentSummary && (
+                  <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                    <p className="text-sm text-gray-600">Amount to Pay</p>
+                    <p className="text-2xl font-bold text-[#154c79]">
+                      ${balanceDue.toFixed(2)}
+                    </p>
+                  </div>
+                )}
 
-              {/* Payment Amount */}
-              <div>
-                <Label htmlFor="payment-amount">Amount</Label>
-                <Input
-                  id="payment-amount"
-                  type="number"
-                  step="0.01"
-                  value={cashPaymentData.amount}
-                  onChange={(e) => setCashPaymentData(prev => ({ ...prev, amount: e.target.value }))}
-                  className="mt-1"
-                  placeholder="0.00"
-                />
-                <p className="text-sm text-gray-500 mt-1">
-                  Balance Due: ${balanceDue.toFixed(2)}
+                <p className="text-sm text-gray-500 mt-4">
+                  Payment will be automatically confirmed once completed
                 </p>
               </div>
-
-              {/* Paid in Full Checkbox */}
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="paid-in-full"
-                  checked={cashPaymentData.paidInFull}
-                  onChange={(e) => {
-                    setCashPaymentData(prev => ({ 
-                      ...prev, 
-                      paidInFull: e.target.checked,
-                      amount: e.target.checked ? balanceDue.toFixed(2) : prev.amount
-                    }))
-                  }}
-                  className="w-4 h-4 text-[#154c79] border-gray-300 rounded focus:ring-[#154c79]"
-                />
-                <Label htmlFor="paid-in-full" className="text-sm font-medium">
-                  Customer paid in full
-                </Label>
-              </div>
-
-              {/* Payment Summary */}
-              {cashPaymentData.amount && (
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h4 className="font-medium text-gray-900 mb-2">Payment Summary</h4>
-                  <div className="space-y-1 text-sm">
-                    <div className="flex justify-between">
-                      <span>Amount Received:</span>
-                      <span>${parseFloat(cashPaymentData.amount || "0").toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Balance Due:</span>
-                      <span>${balanceDue.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between font-medium border-t pt-1">
-                      <span>Change Due:</span>
-                      <span className={parseFloat(cashPaymentData.amount || "0") - balanceDue >= 0 ? "text-green-600" : "text-red-600"}>
-                        ${(parseFloat(cashPaymentData.amount || "0") - balanceDue).toFixed(2)}
-                        {parseFloat(cashPaymentData.amount || "0") - balanceDue < 0 && " (Insufficient)"}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
 
             {/* Modal Footer */}
             <div className="flex justify-end gap-3 p-6 border-t">
               <Button
                 variant="outline"
-                onClick={handleCashPaymentCancel}
+                onClick={() => setShowQRCode(false)}
               >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleCashPaymentSubmit}
-                disabled={!cashPaymentData.amount || parseFloat(cashPaymentData.amount) <= 0}
-                className="bg-[#154c79] hover:bg-[#123c66] text-white"
-              >
-                <Check className="w-4 h-4 mr-2" />
-                Process Payment
+                Close
               </Button>
             </div>
           </div>
