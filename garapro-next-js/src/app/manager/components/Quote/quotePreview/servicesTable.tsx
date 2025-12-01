@@ -1,3 +1,4 @@
+import React from "react"
 import { Lock } from "lucide-react"
 import { formatVND } from "@/lib/currency"
 
@@ -14,6 +15,7 @@ interface Service {
   price: number
   isRequired?: boolean // Add isRequired property
   isGood?: boolean // ✅ NEW - true = view only, no repair needed
+  inspectionFee?: number // ✅ NEW - inspection fee for this service
   parts: Part[]
 }
 
@@ -36,72 +38,131 @@ export default function ServicesTable({ services }: ServicesTableProps) {
             </tr>
           </thead>
           <tbody>
-            {services.map((service) => (
-              <tr key={service.id}>
-                <td
-                  rowSpan={Math.max(1, service.parts.length)} // Ensure at least 1 row
-                  className={`border-b border-border px-6 py-4 font-semibold align-top ${
-                    service.isGood ? 'text-green-700 bg-green-50' : 'text-card-foreground'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    {service.name}
-                    {service.isGood && (
-                      <span className="text-green-600">✓</span>
+            {services.map((service) => {
+              // Calculate total rows for this service
+              const partsCount = service.parts.length
+              const hasInspectionFee = service.isGood && service.inspectionFee && service.inspectionFee > 0
+              const inspectionFeeRows = hasInspectionFee ? 1 : 0
+              const totalRows = Math.max(1, partsCount + inspectionFeeRows)
+              
+              return (
+                <React.Fragment key={service.id}>
+                  <tr>
+                    <td
+                      rowSpan={totalRows}
+                      className={`border-b border-border px-6 py-4 font-semibold align-top ${
+                        service.isGood ? 'text-green-700 bg-green-50' : 'text-card-foreground'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        {service.name}
+                        {service.isGood && (
+                          <span className="text-green-600">✓</span>
+                        )}
+                        {!service.isGood && service.isRequired && (
+                          <Lock className="w-4 h-4 text-red-500" />
+                        )}
+                      </div>
+                      {service.isGood && (
+                        <span className="inline-block mt-1 text-xs bg-green-600 text-white px-2 py-1 rounded">
+                          Good Condition
+                        </span>
+                      )}
+                      {!service.isGood && service.isRequired && (
+                        <span className="inline-block mt-1 text-xs bg-red-100 text-red-800 px-2 py-1 rounded">
+                          Required
+                        </span>
+                      )}
+                      {!service.isGood && !service.isRequired && (
+                        <span className="inline-block mt-1 text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded">
+                          Optional
+                        </span>
+                      )}
+                    </td>
+                    {partsCount > 0 ? (
+                      <>
+                        <td className="border-b border-border px-6 py-3 text-sm text-card-foreground">
+                          {service.parts[0].name}
+                        </td>
+                        <td className="border-b border-border px-6 py-3 text-center text-sm text-card-foreground">
+                          {service.parts[0].quantity}
+                        </td>
+                        <td className="border-b border-border px-6 py-3 text-right text-sm text-card-foreground">
+                          {formatVND(service.parts[0].unitPrice)}
+                        </td>
+                        <td className="border-b border-border px-6 py-3 text-right text-sm font-medium text-card-foreground">
+                          {formatVND(service.parts[0].quantity * service.parts[0].unitPrice)}
+                        </td>
+                      </>
+                    ) : hasInspectionFee ? (
+                      <>
+                        <td className="border-b border-border px-6 py-3 text-sm text-green-700 italic">
+                          Inspection Fee
+                        </td>
+                        <td className="border-b border-border px-6 py-3 text-center text-sm text-card-foreground">
+                          1
+                        </td>
+                        <td className="border-b border-border px-6 py-3 text-right text-sm text-card-foreground">
+                          {formatVND(service.inspectionFee || 0)}
+                        </td>
+                        <td className="border-b border-border px-6 py-3 text-right text-sm font-medium text-green-600">
+                          {formatVND(service.inspectionFee || 0)}
+                        </td>
+                      </>
+                    ) : (
+                      <>
+                        <td className="border-b border-border px-6 py-3 text-sm text-muted-foreground">
+                          No parts
+                        </td>
+                        <td className="border-b border-border px-6 py-3 text-center text-sm text-card-foreground">
+                          -
+                        </td>
+                        <td className="border-b border-border px-6 py-3 text-right text-sm text-card-foreground">
+                          -
+                        </td>
+                        <td className="border-b border-border px-6 py-3 text-right text-sm font-medium text-card-foreground">
+                          {formatVND(0)}
+                        </td>
+                      </>
                     )}
-                    {!service.isGood && service.isRequired && (
-                      <Lock className="w-4 h-4 text-red-500" />
-                    )}
-                  </div>
-                  {service.isGood && (
-                    <span className="inline-block mt-1 text-xs bg-green-600 text-white px-2 py-1 rounded">
-                      Good Condition
-                    </span>
+                  </tr>
+                  {/* Additional rows for remaining parts */}
+                  {service.parts.slice(1).map((part, index) => (
+                    <tr key={`${service.id}-part-${index + 1}`}>
+                      <td className="border-b border-border px-6 py-3 text-sm text-card-foreground">
+                        {part.name}
+                      </td>
+                      <td className="border-b border-border px-6 py-3 text-center text-sm text-card-foreground">
+                        {part.quantity}
+                      </td>
+                      <td className="border-b border-border px-6 py-3 text-right text-sm text-card-foreground">
+                        {formatVND(part.unitPrice)}
+                      </td>
+                      <td className="border-b border-border px-6 py-3 text-right text-sm font-medium text-card-foreground">
+                        {formatVND(part.quantity * part.unitPrice)}
+                      </td>
+                    </tr>
+                  ))}
+                  {/* Inspection fee row for good services with parts */}
+                  {hasInspectionFee && partsCount > 0 && (
+                    <tr key={`${service.id}-inspection-fee`}>
+                      <td className="border-b border-border px-6 py-3 text-sm text-green-700 italic">
+                        Inspection Fee
+                      </td>
+                      <td className="border-b border-border px-6 py-3 text-center text-sm text-card-foreground">
+                        1
+                      </td>
+                      <td className="border-b border-border px-6 py-3 text-right text-sm text-card-foreground">
+                        {formatVND(service.inspectionFee || 0)}
+                      </td>
+                      <td className="border-b border-border px-6 py-3 text-right text-sm font-medium text-green-600">
+                        {formatVND(service.inspectionFee || 0)}
+                      </td>
+                    </tr>
                   )}
-                  {!service.isGood && service.isRequired && (
-                    <span className="inline-block mt-1 text-xs bg-red-100 text-red-800 px-2 py-1 rounded">
-                      Required
-                    </span>
-                  )}
-                  {!service.isGood && !service.isRequired && (
-                    <span className="inline-block mt-1 text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded">
-                      Optional
-                    </span>
-                  )}
-                </td>
-                {service.parts.length > 0 ? (
-                  <>
-                    <td className="border-b border-border px-6 py-3 text-sm text-card-foreground">
-                      {service.parts[0].name}
-                    </td>
-                    <td className="border-b border-border px-6 py-3 text-center text-sm text-card-foreground">
-                      {service.parts[0].quantity}
-                    </td>
-                    <td className="border-b border-border px-6 py-3 text-right text-sm text-card-foreground">
-                      {formatVND(service.parts[0].unitPrice)}
-                    </td>
-                    <td className="border-b border-border px-6 py-3 text-right text-sm font-medium text-card-foreground">
-                      {formatVND(service.parts[0].quantity * service.parts[0].unitPrice)}
-                    </td>
-                  </>
-                ) : (
-                  <>
-                    <td className="border-b border-border px-6 py-3 text-sm text-card-foreground">
-                      No parts
-                    </td>
-                    <td className="border-b border-border px-6 py-3 text-center text-sm text-card-foreground">
-                      0
-                    </td>
-                    <td className="border-b border-border px-6 py-3 text-right text-sm text-card-foreground">
-                      {formatVND(0)}
-                    </td>
-                    <td className="border-b border-border px-6 py-3 text-right text-sm font-medium text-card-foreground">
-                      {formatVND(0)}
-                    </td>
-                  </>
-                )}
-              </tr>
-            ))}
+                </React.Fragment>
+              )
+            })}
           </tbody>
         </table>
       </div>
@@ -161,11 +222,22 @@ export default function ServicesTable({ services }: ServicesTableProps) {
                   <div className="text-sm text-muted-foreground">No parts associated with this service</div>
                 )}
               </div>
-              <div className="mt-3 border-t border-border pt-3">
+              <div className="mt-3 border-t border-border pt-3 space-y-2">
+                {/* Show inspection fee if service is good */}
+                {service.isGood && service.inspectionFee && service.inspectionFee > 0 && (
+                  <div className="flex justify-between text-sm text-card-foreground">
+                    <span>Inspection Fee:</span>
+                    <span className="font-medium text-green-600">{formatVND(service.inspectionFee)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between font-semibold text-card-foreground">
                   <span>Service Total:</span>
                   <span className={service.isGood ? 'text-green-600' : 'text-primary'}>
-                    {service.isGood ? `${formatVND(0)} (No repair needed)` : formatVND(service.price)}
+                    {service.isGood 
+                      ? (service.inspectionFee && service.inspectionFee > 0 
+                          ? formatVND(service.inspectionFee) 
+                          : `${formatVND(0)} (No repair needed)`)
+                      : formatVND(service.price)}
                   </span>
                 </div>
               </div>

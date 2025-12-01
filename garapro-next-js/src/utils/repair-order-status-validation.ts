@@ -1,4 +1,4 @@
-// Utility for validating repair order status transitions
+
 import type { RepairOrder } from "@/types/manager/repair-order"
 import type { Job } from "@/types/job"
 import type { QuotationDto } from "@/types/manager/quotation"
@@ -8,39 +8,26 @@ export interface StatusTransitionValidation {
   message?: string
 }
 
-/**
- * Status IDs mapping (based on common conventions)
- * 1 = Pending
- * 2 = In Progress
- * 3 = Completed
- */
 const STATUS = {
   PENDING: "1",
   IN_PROGRESS: "2",
   COMPLETED: "3"
 } as const
 
-/**
- * Check if a quotation is "good" (approved with all services marked as IsGood = true)
- */
 export function hasGoodQuotation(quotations: QuotationDto[]): boolean {
-  // Find approved quotations
   const approvedQuotations = quotations.filter(q => q.status === "Approved")
   
   if (approvedQuotations.length === 0) {
     return false
   }
   
-  // Check if any approved quotation has ALL services with isGood = true
   return approvedQuotations.some(quotation => {
     const services = quotation.quotationServices || []
     
-    // Must have at least one service
     if (services.length === 0) {
       return false
     }
     
-    // ALL services must have isGood = true
     return services.every(service => service.isGood === true)
   })
 }

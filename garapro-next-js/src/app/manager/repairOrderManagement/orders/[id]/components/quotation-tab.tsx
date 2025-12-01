@@ -56,13 +56,14 @@ export default function QuotationTab({ orderId }: QuotationTabProps) {
   // ✨ Initialize SignalR connection for real-time customer response updates
   const { isConnected, connectionId } = useQuotationHub({
     userId: userId,
+    isManager: true, // Manager should receive all quotation updates
     onCustomerResponse: (event) => {
-      console.log("Customer response received in quotation tab:", event);
+      console.log("🔔 Customer response received in quotation tab:", event);
       // Reload quotations to show updated status
       loadQuotations();
     },
     onQuotationUpdate: (quotation) => {
-      console.log("Quotation updated in quotation tab:", quotation);
+      console.log("🔄 Quotation updated in quotation tab:", quotation);
       // Update the specific quotation in the list
       setQuotations(prev => 
         prev.map(q => q.quotationId === quotation.quotationId ? quotation : q)
@@ -128,6 +129,15 @@ export default function QuotationTab({ orderId }: QuotationTabProps) {
   };
   
   const handleCopyToJobs = async (quotationId: string) => {
+    // Check if jobs were already created
+    const quotation = quotations.find(q => q.quotationId === quotationId);
+    if (quotation?.jobsCreated) {
+      toast.error("Jobs Already Created", {
+        description: `Jobs were already created from this quotation on ${new Date(quotation.jobsCreatedAt || '').toLocaleDateString()}`
+      });
+      return;
+    }
+    
     setActionLoading(quotationId);
     try {
       await quotationService.copyQuotationToJobs(quotationId);
@@ -135,7 +145,18 @@ export default function QuotationTab({ orderId }: QuotationTabProps) {
       loadQuotations();
     } catch (err: any) {
       console.error("Failed to copy quotation to jobs:", err);
-      toast.error(err.message || "Failed to create jobs from quotation");
+      
+      // Extract error message from backend response
+      const errorMessage = err?.response?.data?.message || err?.message || "Failed to create jobs from quotation";
+      
+      // Check if it's a duplicate service error
+      const isDuplicateServiceError = errorMessage.toLowerCase().includes("already exist") || 
+                                      errorMessage.toLowerCase().includes("duplicate");
+      
+      toast.error(isDuplicateServiceError ? "Duplicate Services Detected" : "Failed to Create Jobs", {
+        description: errorMessage,
+        duration: isDuplicateServiceError ? 8000 : 5000, // Longer duration for duplicate errors
+      });
     } finally {
       setActionLoading(null);
     }
@@ -318,8 +339,21 @@ export default function QuotationTab({ orderId }: QuotationTabProps) {
                           
                           {/* Good status quotations are view-only, no actions needed */}
                           
-                          {/* Copy to Jobs button - only for Approved quotations */}
-                          {q.status.toLowerCase() === "approved" && (
+                          {/* Jobs Created Badge - show if jobs were already created */}
+                          {q.jobsCreated && (
+                            <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium bg-blue-100 text-blue-800">
+                              <Briefcase className="h-3 w-3" />
+                              Jobs Created
+                              {q.jobsCreatedAt && (
+                                <span className="text-blue-600">
+                                  • {new Date(q.jobsCreatedAt).toLocaleDateString()}
+                                </span>
+                              )}
+                            </span>
+                          )}
+                          
+                          {/* Copy to Jobs button - only for Approved quotations that haven't been converted yet */}
+                          {q.status.toLowerCase() === "approved" && !q.jobsCreated && (
                             <Button 
                               variant="default"
                               size="sm"

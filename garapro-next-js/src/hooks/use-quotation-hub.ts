@@ -7,6 +7,7 @@ import { toast } from "sonner";
 interface UseQuotationHubOptions {
   userId?: string;
   quotationId?: string;
+  isManager?: boolean;
   onCustomerResponse?: (event: QuotationCustomerResponseEvent) => void;
   onQuotationUpdate?: (quotation: QuotationDto) => void;
   autoConnect?: boolean;
@@ -16,6 +17,7 @@ export function useQuotationHub(options: UseQuotationHubOptions = {}) {
   const {
     userId,
     quotationId,
+    isManager = false,
     onCustomerResponse,
     onQuotationUpdate,
     autoConnect = true
@@ -78,6 +80,11 @@ export function useQuotationHub(options: UseQuotationHubOptions = {}) {
         }
 
         if (connected) {
+          // Join managers group if user is a manager
+          if (isManager) {
+            await quotationHubService.joinManagersGroup();
+          }
+          
           // Join user group if userId provided
           if (userId) {
             await quotationHubService.joinUserGroup(userId);
@@ -132,6 +139,8 @@ export function useQuotationHub(options: UseQuotationHubOptions = {}) {
   return {
     isConnected,
     connectionId,
+    joinManagersGroup: quotationHubService.joinManagersGroup.bind(quotationHubService),
+    leaveManagersGroup: quotationHubService.leaveManagersGroup.bind(quotationHubService),
     joinUserGroup: quotationHubService.joinUserGroup.bind(quotationHubService),
     leaveUserGroup: quotationHubService.leaveUserGroup.bind(quotationHubService),
     joinQuotationGroup: quotationHubService.joinQuotationGroup.bind(quotationHubService),

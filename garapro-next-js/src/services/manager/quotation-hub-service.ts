@@ -33,12 +33,13 @@ class QuotationHubService {
     }
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+      const { getHubBaseUrl, HUB_CONNECTION_OPTIONS, HUB_ENDPOINTS } = await import('./hub-config');
+      const hubUrl = `${getHubBaseUrl()}${HUB_ENDPOINTS.QUOTATION}`;
+      
+      console.log("🔌 Connecting to QuotationHub:", hubUrl);
       
       this.connection = new HubConnectionBuilder()
-        .withUrl(`${apiUrl}/quotationHub`, {
-          withCredentials: false,
-        })
+        .withUrl(hubUrl, HUB_CONNECTION_OPTIONS)
         .configureLogging(LogLevel.Information)
         .withAutomaticReconnect()
         .build();
@@ -48,11 +49,11 @@ class QuotationHubService {
 
       await this.connection.start();
       this.connectionId = this.connection.connectionId || null;
-      console.log("QuotationHub SignalR Connected. Connection ID:", this.connectionId);
+      console.log("✅ QuotationHub SignalR Connected. Connection ID:", this.connectionId);
 
       return true;
     } catch (err) {
-      console.warn("QuotationHub SignalR connection failed, falling back to polling:", err);
+      console.error("❌ QuotationHub SignalR connection failed:", err);
       this.connection = null;
       return false;
     }
@@ -111,14 +112,38 @@ class QuotationHubService {
     }
   }
 
+  // Join managers group to receive all quotation updates
+  public async joinManagersGroup(): Promise<void> {
+    if (this.connection && this.connection.state === "Connected") {
+      try {
+        await this.connection.invoke("JoinManagersGroup");
+        console.log("✅ Joined Managers group for quotation updates");
+      } catch (err) {
+        console.error("❌ Error joining managers group:", err);
+      }
+    }
+  }
+
+  // Leave managers group
+  public async leaveManagersGroup(): Promise<void> {
+    if (this.connection && this.connection.state === "Connected") {
+      try {
+        await this.connection.invoke("LeaveManagersGroup");
+        console.log("✅ Left Managers group");
+      } catch (err) {
+        console.error("❌ Error leaving managers group:", err);
+      }
+    }
+  }
+
   // Join a user group to receive notifications for their quotations
   public async joinUserGroup(userId: string): Promise<void> {
     if (this.connection && this.connection.state === "Connected") {
       try {
         await this.connection.invoke("JoinUserGroup", userId);
-        console.log(`Joined user group: User_${userId}`);
+        console.log(`✅ Joined user group: User_${userId}`);
       } catch (err) {
-        console.error("Error joining user group:", err);
+        console.error("❌ Error joining user group:", err);
       }
     }
   }

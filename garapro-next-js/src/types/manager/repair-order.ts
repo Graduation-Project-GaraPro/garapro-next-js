@@ -32,6 +32,8 @@ export interface RepairOrder {
   cancelReason?: string // Reason for cancellation
   cancelledAt?: string | null // When the RO was cancelled
   assignedLabels?: AssignedLabel[] // Labels assigned to this repair order
+  inOdometer?: number | null // Odometer reading when vehicle arrived
+  outOdometer?: number | null // Odometer reading when vehicle left
 }
 
 // Add the PaidStatus enum
@@ -108,6 +110,8 @@ export interface RepairOrderApiResponse {
   isCancelled?: boolean
   cancelReason?: string
   cancelledAt?: string | null
+  inOdometer?: number | null
+  outOdometer?: number | null
 }
 
 // Function to map API response to RepairOrder interface
@@ -147,7 +151,9 @@ export function mapApiToRepairOrder(apiResponse: RepairOrderApiResponse): Repair
     isCancelled: apiResponse.isCancelled || false,
     cancelReason: apiResponse.cancelReason,
     cancelledAt: apiResponse.cancelledAt,
-    assignedLabels: apiResponse.assignedLabels || []
+    assignedLabels: apiResponse.assignedLabels || [],
+    inOdometer: apiResponse.inOdometer,
+    outOdometer: apiResponse.outOdometer
   };
   
   console.log("Mapped repair order:", mappedOrder);
@@ -191,4 +197,30 @@ export interface ArchiveRepairOrderDto {
   repairOrderId: string
   archiveReason: string
   archivedByUserId: string
+}
+
+// Customer and Vehicle Information for Repair Order
+export interface CustomerVehicleInfo {
+  // Customer Information
+  customerId: string;
+  customerFirstName: string;
+  customerLastName: string;
+  customerFullName: string;
+  customerEmail: string;
+  customerPhone: string;
+  
+  // Vehicle Information
+  vehicleId: string;
+  licensePlate: string;
+  vin: string;
+  year: number;
+  odometer: number;
+  brandName: string;
+  modelName: string;
+  colorName: string;
+  
+  // Repair Order Info
+  repairOrderId: string;
+  receiveDate: string;
+  statusName: string;
 }

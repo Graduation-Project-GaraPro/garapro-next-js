@@ -99,27 +99,14 @@ class InspectionHubService {
     }
 
     try {
-      // Get the base URL from environment variables
-      const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "https://localhost:7113/api";
-      // Remove /api suffix and construct hub URL
-      const hubBaseUrl = baseUrl.replace(/\/api\/?$/, '');
-      const hubUrl = `${hubBaseUrl}/hubs/inspection`;
+      const { getHubBaseUrl, HUB_CONNECTION_OPTIONS, HUB_ENDPOINTS } = await import('./hub-config');
+      const hubUrl = `${getHubBaseUrl()}${HUB_ENDPOINTS.INSPECTION}`;
       
       console.log("🔌 Connecting to InspectionHub:", hubUrl);
-      
-      // Get the authentication token from localStorage
-      const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
-      
-      if (!token) {
-        console.warn("⚠️ No auth token found - connection may fail");
-      }
 
       // Configure the connection with authentication
       this.connection = new HubConnectionBuilder()
-        .withUrl(hubUrl, {
-          accessTokenFactory: () => token || "",
-          withCredentials: true, // Important for CORS with credentials
-        })
+        .withUrl(hubUrl, HUB_CONNECTION_OPTIONS)
         .configureLogging(LogLevel.Information)
         .withAutomaticReconnect({
           nextRetryDelayInMilliseconds: (retryContext) => {

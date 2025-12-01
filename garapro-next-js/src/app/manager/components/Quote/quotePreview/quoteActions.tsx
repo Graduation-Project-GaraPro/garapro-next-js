@@ -9,6 +9,8 @@ interface QuoteActionsProps {
   onDownloadPDF: () => void
   onCopyToJobs?: () => void // Add copy to jobs handler
   isApproved?: boolean // Add approved status flag
+  jobsCreated?: boolean // Add jobs created flag
+  jobsCreatedAt?: string | null // Add jobs created timestamp
 }
 
 export default function QuoteActions({ 
@@ -16,7 +18,9 @@ export default function QuoteActions({
   onDelete, 
   onDownloadPDF,
   onCopyToJobs, // Destructure new props
-  isApproved = false // Default to false
+  isApproved = false, // Default to false
+  jobsCreated = false,
+  jobsCreatedAt = null
 }: QuoteActionsProps) {
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
@@ -32,7 +36,17 @@ export default function QuoteActions({
         <Trash2 className="h-4 w-4" />
         Delete
       </Button>
-      {isApproved && onCopyToJobs && (
+      {jobsCreated ? (
+        <div className="flex items-center gap-2 rounded-md bg-blue-100 px-4 py-2 text-sm font-medium text-blue-800">
+          <Wrench className="h-4 w-4" />
+          Jobs Created
+          {jobsCreatedAt && (
+            <span className="text-blue-600">
+              • {new Date(jobsCreatedAt).toLocaleDateString()}
+            </span>
+          )}
+        </div>
+      ) : isApproved && onCopyToJobs ? (
         <Button
           onClick={onCopyToJobs}
           className="flex items-center gap-2 bg-green-600 text-white hover:bg-green-700"
@@ -40,7 +54,7 @@ export default function QuoteActions({
           <Wrench className="h-4 w-4" />
           Copy to Jobs
         </Button>
-      )}
+      ) : null}
       <Button
         onClick={onSend}
         className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90"

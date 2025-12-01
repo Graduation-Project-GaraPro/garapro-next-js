@@ -152,7 +152,7 @@ export default function RepairOrderCard({
             >
               {repairOrder.paidStatus}
             </Badge>
-            <span className="text-xs font-semibold text-blue-600">RO #{repairOrder.repairOrderId.substring(0, 8)}</span>
+            <span className="text-xs font-semibold text-blue-600">RO #{repairOrder.repairOrderId.substring(0, 4)}</span>
             <ExternalLink className="w-3 h-3 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
           </div>
           <DropdownMenu>
@@ -266,7 +266,7 @@ export default function RepairOrderCard({
               style={{ width: `${repairOrder.progressPercentage || 0}%` }}
             />
           </div>
-          <span className="text-xs font-medium text-gray-900">{repairOrder.progressPercentage || 0}%</span>
+          <span className="text-xs font-medium text-gray-900">{Math.round(repairOrder.progressPercentage || 0)}%</span>
         </div>
 
         <div className="flex items-center justify-between text-xs text-gray-500 pt-0.5">

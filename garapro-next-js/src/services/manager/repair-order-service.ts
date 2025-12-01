@@ -1,5 +1,5 @@
 import { apiClient } from "./api-client"
-import type { RepairOrder, CreateRepairOrderRequest, UpdateRepairOrderRequest, RepairOrderApiResponse, UpdateRepairOrderStatusRequest, CancelRepairOrderDto, ArchiveRepairOrderDto } from "@/types/manager/repair-order"
+import type { RepairOrder, CreateRepairOrderRequest, UpdateRepairOrderRequest, RepairOrderApiResponse, UpdateRepairOrderStatusRequest, CancelRepairOrderDto, ArchiveRepairOrderDto, CustomerVehicleInfo } from "@/types/manager/repair-order"
 import type { OrderStatus, OrderStatusResponse } from "@/types/manager/order-status"
 import { authService } from "@/services/authService"
 import { branchService } from "@/services/branch-service"
@@ -52,10 +52,67 @@ class RepairOrderService {
    */
   async getRepairOrderById(id: string): Promise<RepairOrder | null> {
     try {
-      const response = await apiClient.get<RepairOrder>(`${this.baseUrl}/${id}`)
-      return response.data || null
+      const response = await apiClient.get<any>(`${this.baseUrl}/${id}`)
+      const data = response.data
+      
+      if (!data) return null
+      
+      // Map the response to RepairOrder format
+      // The /RepairOrder/{id} endpoint returns a different structure than /branch/{id}
+      const repairOrder: RepairOrder = {
+        repairOrderId: data.repairOrderId,
+        receiveDate: data.receiveDate,
+        roType: data.roType,
+        roTypeName: data.roTypeName,
+        estimatedCompletionDate: data.estimatedCompletionDate,
+        completionDate: data.completionDate,
+        cost: data.cost,
+        estimatedAmount: data.estimatedAmount,
+        paidAmount: data.paidAmount,
+        paidStatus: data.paidStatus === 0 ? "Unpaid" as any : 
+                    data.paidStatus === 1 ? "Partial" as any : "Paid" as any,
+        estimatedRepairTime: data.estimatedRepairTime,
+        note: data.note,
+        createdAt: data.createdAt,
+        updatedAt: data.updatedAt,
+        isArchived: data.isArchived,
+        archivedAt: data.archivedAt,
+        archivedByUserId: data.archivedByUserId,
+        branchId: data.branchId,
+        statusId: data.statusId?.toString() || "1",
+        vehicleId: data.vehicleId,
+        userId: data.userId,
+        repairRequestId: data.repairRequestId || "",
+        customerName: data.customerName,
+        customerPhone: data.customerPhone,
+        technicianNames: data.technicianNames || [],
+        totalJobs: data.totalJobs || 0,
+        completedJobs: data.completedJobs || 0,
+        progressPercentage: data.progressPercentage || 0,
+        isCancelled: data.isCancelled || false,
+        cancelReason: data.cancelReason,
+        cancelledAt: data.cancelledAt,
+        assignedLabels: data.labels || data.assignedLabels || [], // Handle both field names
+        inOdometer: data.inOdometer,
+        outOdometer: data.outOdometer
+      }
+      
+      return repairOrder
     } catch (error) {
       console.error(`Failed to fetch repair order ${id}:`, error)
+      return null
+    }
+  }
+
+  /**
+   * Fetch customer and vehicle information for repair order
+   */
+  async getCustomerVehicleInfo(id: string): Promise<CustomerVehicleInfo | null> {
+    try {
+      const response = await apiClient.get<CustomerVehicleInfo>(`${this.baseUrl}/${id}/customer-vehicle-info`)
+      return response.data || null
+    } catch (error) {
+      console.error(`Failed to fetch customer and vehicle info for RO ${id}:`, error)
       return null
     }
   }
