@@ -14,6 +14,7 @@ import { formatVND } from "@/lib/currency"
 interface PaymentTabProps {
   orderId: string
   repairOrderStatus?: number
+  paidStatus?: string
   onPaymentSuccess?: () => void
 }
 
@@ -44,7 +45,7 @@ const paymentMethods: PaymentMethod[] = [
   }
 ]
 
-export default function PaymentTab({ orderId, repairOrderStatus, onPaymentSuccess }: PaymentTabProps) {
+export default function PaymentTab({ orderId, repairOrderStatus, paidStatus, onPaymentSuccess }: PaymentTabProps) {
   const { toast } = useToast()
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>("")
   const [showInvoice, setShowInvoice] = useState<boolean>(false)
@@ -115,21 +116,11 @@ export default function PaymentTab({ orderId, repairOrderStatus, onPaymentSucces
       return
     }
 
-    // Validate: Cannot pay if already fully paid
-    if (paymentSummary?.paymentStatus === 'Paid') {
+    // Validate: Cannot pay if already fully paid (check from RO paidStatus)
+    if (paidStatus === 'Paid') {
       toast({
         title: "Payment Not Allowed",
         description: "This repair order is already fully paid. No additional payment is needed.",
-        variant: "destructive",
-      })
-      return
-    }
-
-    // Validate: Cannot pay if balance due is 0 or negative
-    if (balanceDue <= 0) {
-      toast({
-        title: "Payment Not Allowed",
-        description: "There is no outstanding balance for this repair order.",
         variant: "destructive",
       })
       return
@@ -164,21 +155,11 @@ export default function PaymentTab({ orderId, repairOrderStatus, onPaymentSucces
   }
 
   const handleConfirmPayment = async () => {
-    // Validate: Cannot pay if already fully paid
-    if (paymentSummary?.paymentStatus === 'Paid') {
+    // Validate: Cannot pay if already fully paid (check from RO paidStatus)
+    if (paidStatus === 'Paid') {
       toast({
         title: "Payment Not Allowed",
         description: "This repair order is already fully paid. No additional payment is needed.",
-        variant: "destructive",
-      })
-      return
-    }
-
-    // Validate: Cannot pay if balance due is 0 or negative
-    if (balanceDue <= 0) {
-      toast({
-        title: "Payment Not Allowed",
-        description: "There is no outstanding balance for this repair order.",
         variant: "destructive",
       })
       return
@@ -342,7 +323,7 @@ export default function PaymentTab({ orderId, repairOrderStatus, onPaymentSucces
             <CardTitle>Select payment method</CardTitle>
           </CardHeader>
           <CardContent>
-            {paymentSummary?.paymentStatus === 'Paid' ? (
+            {paidStatus === 'Paid' ? (
               <div className="text-center py-8">
                 <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Check className="w-8 h-8 text-green-600" />
@@ -483,13 +464,11 @@ export default function PaymentTab({ orderId, repairOrderStatus, onPaymentSucces
                   <div className="flex justify-between items-center pt-2">
                     <span className="text-sm">Status:</span>
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      paymentSummary?.paymentStatus === 'Paid' 
+                      paidStatus === 'Paid' 
                         ? 'bg-green-100 text-green-800' 
-                        : paymentSummary?.paymentStatus === 'Partial'
-                        ? 'bg-yellow-100 text-yellow-800'
                         : 'bg-red-100 text-red-800'
                     }`}>
-                      {paymentSummary?.paymentStatus || 'Unknown'}
+                      {paidStatus || 'Unknown'}
                     </span>
                   </div>
                 </div>

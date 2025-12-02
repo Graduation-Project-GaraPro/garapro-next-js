@@ -39,7 +39,6 @@ export interface RepairOrder {
 // Add the PaidStatus enum
 export enum PaidStatus {
   Unpaid = "Unpaid",
-  Partial = "Partial",
   Paid = "Paid"
 }
 
@@ -129,7 +128,7 @@ export function mapApiToRepairOrder(apiResponse: RepairOrderApiResponse): Repair
     estimatedAmount: apiResponse.estimatedAmount,
     paidAmount: apiResponse.paidAmount,
     paidStatus: apiResponse.paidStatus === 0 ? PaidStatus.Unpaid : 
-                apiResponse.paidStatus === 1 ? PaidStatus.Partial : PaidStatus.Paid,
+                 PaidStatus.Paid ,
     estimatedRepairTime: apiResponse.estimatedRepairTime,
     note: apiResponse.note,
     createdAt: apiResponse.createdAt,

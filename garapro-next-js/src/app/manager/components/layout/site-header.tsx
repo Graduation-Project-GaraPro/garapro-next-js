@@ -17,7 +17,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
-import TechnicianAssignmentNotification from "@/components/manager/technician-assignment-notification"
+// import TechnicianAssignmentNotification from "@/components/manager/technician-assignment-notification"
 
 export function SiteHeader() {
   const { toggleSidebar } = useSidebar()
@@ -63,8 +63,8 @@ export function SiteHeader() {
             <Settings className="h-4 w-4" />
           </Button>
 
-          {/* Technician Assignment Notifications */}
-          <TechnicianAssignmentNotification />
+          {/* Technician Assignment Notifications - Disabled (endpoint not available) */}
+          {/* <TechnicianAssignmentNotification /> */}
 
           {/* General Notifications Button with Badge */}
           <div className="relative">

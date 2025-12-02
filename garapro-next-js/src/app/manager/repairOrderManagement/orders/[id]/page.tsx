@@ -148,7 +148,7 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
       inspections: <InspectionsTab orderId={orderId} highlightInspectionId={highlightInspectionId} />,
       quotation: <QuotationTab orderId={orderId} />,
       jobs: <JobsTab orderId={orderId} branchId={userBranchId || undefined} />,
-      payment: <PaymentTab orderId={orderId} repairOrderStatus={repairOrder ? parseInt(repairOrder.statusId) : undefined} onPaymentSuccess={handleOrderUpdated} />
+      payment: <PaymentTab orderId={orderId} repairOrderStatus={repairOrder ? parseInt(repairOrder.statusId) : undefined} paidStatus={repairOrder?.paidStatus} onPaymentSuccess={handleOrderUpdated} />
     }
 
     return tabComponents[activeTab as keyof typeof tabComponents] || null
