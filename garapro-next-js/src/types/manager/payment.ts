@@ -25,7 +25,7 @@ export interface PaymentSummaryResponse {
   // paidAmount: number; // DEPRECATED - Removed from backend
   balanceDue: number;
   paymentHistory: PaymentHistoryItem[];
-  paymentStatus: 'Unpaid' | 'Partial' | 'Paid';
+  paymentStatus: 'Unpaid' | 'Paid';
 }
 
 // Create Payment Request (POST /api/payments/manager-create/{repairOrderId})

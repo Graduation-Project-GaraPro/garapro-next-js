@@ -82,17 +82,13 @@ export default function RepairOrderCard({
     ? [defaultLabel]
     : []
 
-  // Show archive icon only for:
-  // 1. Cancelled ROs, OR
-  // 2. Completed ROs that are fully paid
+  console.log("paidstatus",repairOrder.paidStatus)
   const canArchive = repairOrder.isCancelled || (isCompleted && repairOrder.paidStatus === PaidStatus.Paid)
 
   const getPaidStatusColor = (status: PaidStatus) => {
     switch (status) {
       case PaidStatus.Paid:
         return "bg-green-100 text-green-700 border-green-200"
-      case PaidStatus.Partial:
-        return "bg-yellow-100 text-yellow-700 border-yellow-200"
       case PaidStatus.Unpaid:
         return "bg-red-100 text-red-700 border-red-200"
       default:

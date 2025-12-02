@@ -69,8 +69,7 @@ class RepairOrderService {
         cost: data.cost,
         estimatedAmount: data.estimatedAmount,
         paidAmount: data.paidAmount,
-        paidStatus: data.paidStatus === 0 ? "Unpaid" as any : 
-                    data.paidStatus === 1 ? "Partial" as any : "Paid" as any,
+        paidStatus: data.paidStatus === 0 ? "Unpaid" as any : "Paid" as any,
         estimatedRepairTime: data.estimatedRepairTime,
         note: data.note,
         createdAt: data.createdAt,
@@ -262,7 +261,6 @@ class RepairOrderService {
       const response = await apiClient.get<RepairOrderApiResponse[]>(`${this.baseUrl}/archived`)
       console.log("Archived repair orders API response:", response);
       
-      // Map API response to RepairOrder interface
       if (response.data) {
         return response.data.map(mapApiToRepairOrder);
       }
