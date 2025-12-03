@@ -141,17 +141,17 @@ export default function TaskManagement() {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  const shouldHideCompletedTask = useCallback((task: Task): boolean => {
-    if (task.status !== "completed") return false;
-    const today = new Date();
-    try {
-      const [d, m, y] = task.time.split("/");
-      const taskDate = new Date(Number(y), Number(m) - 1, Number(d));
-      return today > taskDate;
-    } catch {
-      return false;
-    }
-  }, []);
+  // const shouldHideCompletedTask = useCallback((task: Task): boolean => {
+  //   if (task.status !== "completed") return false;
+  //   const today = new Date();
+  //   try {
+  //     const [d, m, y] = task.time.split("/");
+  //     const taskDate = new Date(Number(y), Number(m) - 1, Number(d));
+  //     return today > taskDate;
+  //   } catch {
+  //     return false;
+  //   }
+  // }, []);
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -440,19 +440,17 @@ useEffect(() => {
   }), []);
 
   // Optimized filtering with useMemo
-  const {filteredTasks } = useMemo(() => {
-    const visible = tasks.filter(task => !shouldHideCompletedTask(task));
-    
+    const { filteredTasks } = useMemo(() => {
     const searchLower = debouncedSearchTerm.toLowerCase();
-    const filtered = (filter === "all" ? visible : visible.filter(task => task.status === filter))
+    const filtered = (filter === "all" ? tasks : tasks.filter(task => task.status === filter))
       .filter(task => 
         task.vehicle.toLowerCase().includes(searchLower) ||
         task.owner.toLowerCase().includes(searchLower) ||
         task.licensePlate.toLowerCase().includes(searchLower)
       );
 
-    return { visibleTasks: visible, filteredTasks: filtered };
-  }, [tasks, filter, debouncedSearchTerm, shouldHideCompletedTask]);
+    return { filteredTasks: filtered };
+  }, [tasks, filter, debouncedSearchTerm]);
 
   // Pagination handlers
   const handlePageChange = useCallback((newPage: number) => {
