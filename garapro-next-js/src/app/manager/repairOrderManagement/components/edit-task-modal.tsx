@@ -134,8 +134,8 @@ export default function EditTaskModal({ repairOrder, isOpen, onClose, onSubmit, 
                 </SelectTrigger>
                 <SelectContent>
                   {labels.map((l) => (
-                    <SelectItem key={l.id} value={String(l.id)}>
-                      {l.name}
+                    <SelectItem key={l.labelId} value={String(l.labelId)}>
+                      {l.labelName}
                     </SelectItem>
                   ))}
                 </SelectContent>
