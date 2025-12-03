@@ -8,7 +8,6 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { repairOrderService } from "@/services/manager/repair-order-service"
 import { serviceCatalog, type GarageServiceCatalogItem } from "@/services/service-catalog"
-import { jobService } from "@/services/manager/job-service"
 import { useToast } from "@/hooks/use-toast"
 import type { UpdateRepairOrderStatusRequest } from "@/types/manager/repair-order"
 import type { OrderStatus } from "@/types/manager/order-status"
@@ -53,21 +52,21 @@ export default function EditRepairOrderDialog({
     setIsLoadingData(true)
     setError(null)
     try {
-      // Fetch statuses, services, and existing jobs in parallel
-      const [statusesData, servicesData, jobsData] = await Promise.all([
+      // Fetch statuses, services, and repair order details in parallel
+      const [statusesData, servicesData, repairOrderData] = await Promise.all([
         repairOrderService.fetchOrderStatuses(),
         serviceCatalog.list({ status: true }),
-        jobService.getJobsByRepairOrderId(orderId)
+        repairOrderService.getRepairOrderById(orderId)
       ])
       
       setStatuses(statusesData)
       setServices(servicesData)
       
-      // Extract unique service IDs from existing jobs
-      const existingServiceIds = [...new Set(jobsData.map(job => job.serviceId).filter(Boolean))]
+      // Extract service IDs from the repair order
+      const existingServiceIds = repairOrderData?.serviceIds || []
       setSelectedServiceIds(existingServiceIds)
       
-      console.log("Loaded existing services:", existingServiceIds)
+      console.log("Loaded existing services from RO:", existingServiceIds)
     } catch (err) {
       console.error("Failed to load data:", err)
       setError("Failed to load statuses and services")
