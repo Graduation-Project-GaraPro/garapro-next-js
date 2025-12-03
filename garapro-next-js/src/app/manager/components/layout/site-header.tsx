@@ -22,6 +22,19 @@ import { Badge } from "@/components/ui/badge"
 export function SiteHeader() {
   const { toggleSidebar } = useSidebar();
 
+  const handleLogout = async () => {
+      try {
+        
+        await authService.logout();
+        
+        
+        window.location.href = "/login";
+        
+      } catch (error) {
+        console.error("Logout error:", error);
+        window.location.href = "/login";
+      }
+    };
   return (
     <header
       className="flex sticky top-0 z-50 w-full items-center border-b"
@@ -112,17 +125,23 @@ export function SiteHeader() {
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <User className="mr-2 h-4 w-4" />
-                Profile
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Settings className="mr-2 h-4 w-4" />
-                Settings
-              </DropdownMenuItem>
+              <DropdownMenuItem className="flex items-center gap-3 py-2">
+                  <User className="h-5 w-5 text-muted-foreground" />
+
+                  <div className="flex flex-col leading-tight">
+                    <span className="font-medium">
+                      {authService.getCurrentFullName() || "Unknown User"}
+                    </span>
+                    <span className="text-sm text-muted-foreground">
+                      {authService.getCurrentUserEmail() || "No email"}
+                    </span>
+                  </div>
+                </DropdownMenuItem>
+
+              
               <DropdownMenuSeparator />
               <DropdownMenuItem
-                onClick={() => authService.logout()}
+                onClick={() => handleLogout()}
                 className="text-red-600"
               >
                 Log out
