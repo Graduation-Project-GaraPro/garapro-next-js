@@ -4,12 +4,6 @@ import { usePathname } from "next/navigation"
 
 const navigationTabs = [
   { id: "garage-profile", label: "GARAGE PROFILE", href: "/manager/garageSetting" },
-  { id: "ro-settings", label: "RO SETTINGS", href: "/manager/garageSetting/ro-settings" },
-  { id: "appointments", label: "APPOINTMENTS", href: "/manager/garageSetting/appointments" },
-  { id: "markups", label: "MARKUPS", href: "/manager/garageSetting/markups" },
-  { id: "estimates-invoices", label: "ESTIMATES/INVOICES", href: "/manager/garageSetting/estimates-invoices" },
-  { id: "marketing", label: "MARKETING", href: "/manager/garageSetting/marketing" },
-  { id: "employees", label: "EMPLOYEES", href: "/manager/garageSetting/employees" },
   { id: "ro-label", label: "RO LABELS", href: "/manager/garageSetting/ro-label" },
 ]
 

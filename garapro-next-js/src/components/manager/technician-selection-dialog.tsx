@@ -12,10 +12,9 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Search, User, MapPin, Wrench, Clock, RefreshCw } from "lucide-react"
+import { Search, User, MapPin, Wrench, RefreshCw } from "lucide-react"
 import { technicianService } from "@/services/manager/technician-service"
 import type { Technician } from "@/types/manager/tech-schedule"
-import type { TechnicianWorkload } from "@/services/manager/technician-service"
 import { branchService } from "@/services/branch-service"
 
 interface TechnicianSelectionDialogProps {
@@ -39,7 +38,6 @@ export function TechnicianSelectionDialog({
   const [selectedTechnician, setSelectedTechnician] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [workloads, setWorkloads] = useState<Record<string, TechnicianWorkload>>({})
   const [branchName, setBranchName] = useState<string | null>(null)
   const hasLoadedRef = useRef(false)
 
@@ -90,31 +88,11 @@ export function TechnicianSelectionDialog({
       
       setTechnicians(data)
       setFilteredTechnicians(data)
-      
-      // Load workload information for all technicians
-      loadWorkloads()
     } catch (error) {
       console.error("Failed to load technicians:", error)
       setError("Failed to load technicians. Please try again later.")
     } finally {
       setLoading(false)
-    }
-  }
-
-  const loadWorkloads = async () => {
-    try {
-      // Load workload information for all technicians
-      const workloadData = await technicianService.getAllTechnicianWorkloads()
-      
-      // Create a map of technician ID to workload
-      const workloadMap: Record<string, TechnicianWorkload> = {}
-      workloadData.forEach(workload => {
-        workloadMap[workload.technicianId] = workload
-      })
-      
-      setWorkloads(workloadMap)
-    } catch (error) {
-      console.error("Failed to load technician workloads:", error)
     }
   }
 
@@ -188,48 +166,36 @@ export function TechnicianSelectionDialog({
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {filteredTechnicians.map((technician: Technician) => {
-                    const workload = workloads[technician.id]
-                    
-                    return (
-                      <div
-                        key={technician.id}
-                        className={`flex items-center p-3 rounded-lg border cursor-pointer transition-colors ${
-                          selectedTechnician === technician.id
-                            ? "border-blue-500 bg-blue-50"
-                            : "border-gray-200 hover:bg-gray-50"
-                        }`}
-                        onClick={() => handleSelectTechnician(technician.id)}
-                      >
-                        <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-medium">
-                          {technician.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2)}
+                  {filteredTechnicians.map((technician: Technician) => (
+                    <div
+                      key={technician.id}
+                      className={`flex items-center p-3 rounded-lg border cursor-pointer transition-colors ${
+                        selectedTechnician === technician.id
+                          ? "border-blue-500 bg-blue-50"
+                          : "border-gray-200 hover:bg-gray-50"
+                      }`}
+                      onClick={() => handleSelectTechnician(technician.id)}
+                    >
+                      <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-medium">
+                        {technician.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2)}
+                      </div>
+                      <div className="ml-3 flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-medium truncate">{technician.name}</p>
                         </div>
-                        <div className="ml-3 flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <p className="text-sm font-medium truncate">{technician.name}</p>
-                          </div>
-                          <div className="flex items-center text-xs text-gray-500 mt-1">
-                            <MapPin className="w-3 h-3 mr-1" />
-                            <span className="truncate">{technician.location}</span>
-                          </div>
-                          {workload && (
-                            <div className="flex items-center text-xs text-gray-500 mt-1">
-                              <Clock className="w-3 h-3 mr-1" />
-                              <span>
-                                {workload.inProgressJobs} in progress, {workload.pendingJobs} pending
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex items-center">
-                          <Wrench className="w-4 h-4 text-gray-400 mr-1" />
-                          <span className="text-xs text-gray-500">
-                            {technician.skills.length}
-                          </span>
+                        <div className="flex items-center text-xs text-gray-500 mt-1">
+                          <MapPin className="w-3 h-3 mr-1" />
+                          <span className="truncate">{technician.location}</span>
                         </div>
                       </div>
-                    )
-                  })}
+                      <div className="flex items-center">
+                        <Wrench className="w-4 h-4 text-gray-400 mr-1" />
+                        <span className="text-xs text-gray-500">
+                          {technician.skills.length}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </ScrollArea>

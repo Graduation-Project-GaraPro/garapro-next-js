@@ -65,7 +65,7 @@ export default function EmergencyList() {
           cache: "no-store",
         });
 
-        const json = await res.json();
+        const json = (await res.json()) as EmergencyRequest[];
         setData(json);
       } catch (err) {
         console.error(err);
@@ -89,7 +89,8 @@ export default function EmergencyList() {
       const res = await apiClient.get(`/Branch/${branchId}/technicians`);
 
       if (res.success) {
-        setTechnicians(res.data as any[]);
+        const json = res.data as any[];
+        setTechnicians(json);
       } else {
         console.error("Failed to load technicians");
         setTechnicians([]);

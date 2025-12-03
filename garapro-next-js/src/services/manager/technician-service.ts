@@ -7,6 +7,9 @@ import type {
   TechnicianJob 
 } from "@/types/manager/technician"
 
+// Re-export types for external use
+export type { TechnicianWorkload, TechnicianSchedule, TechnicianJob }
+
 class TechnicianService {
   private baseUrl = '/users/technicians'
 
@@ -350,6 +353,23 @@ class TechnicianService {
     } catch (error) {
       console.error(`Failed to fetch workload for technician ${technicianId}:`, error)
       return null
+    }
+  }
+
+  // Get all technician workloads
+  // Endpoint: GET /api/Technician/workloads
+  async getAllTechnicianWorkloads(): Promise<TechnicianWorkload[]> {
+    try {
+      const endpoint = `/Technician/workloads`
+      console.log(`Fetching all technician workloads at endpoint: ${endpoint}`)
+      
+      const response = await apiClient.get<TechnicianWorkload[]>(endpoint)
+      console.log(`All technician workloads response:`, response)
+      
+      return response.data || []
+    } catch (error) {
+      console.error('Failed to fetch all technician workloads:', error)
+      return []
     }
   }
 

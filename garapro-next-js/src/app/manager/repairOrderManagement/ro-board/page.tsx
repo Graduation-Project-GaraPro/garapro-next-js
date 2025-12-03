@@ -5,7 +5,6 @@ import { Plus, Filter, LayoutGrid, List, Link } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import RoDragDropBoard from "./ro-drag-drop-board"
 import ListView from "./ro-list-view"
-import EditTaskModal from "@/app/manager/repairOrderManagement/components/edit-task-modal"
 import CreateTask from "@/app/manager/repairOrderManagement/components/create-task"
 import CancelRODialog from "./cancel-ro-dialog"
 import ArchiveRODialog from "./archive-ro-dialog"
@@ -503,14 +502,6 @@ export default function BoardPage() {
         </>
       )}
 
-      {/* Edit Modal */}
-      <EditTaskModal
-        repairOrder={editingRepairOrder}
-        isOpen={!!editingRepairOrder}
-        onClose={() => setEditingRepairOrder(null)}
-        onSubmit={handleUpdateRepairOrder}
-        onDelete={handleDeleteRepairOrder}
-      />
 
       {/* Cancel Dialog */}
       <CancelRODialog
