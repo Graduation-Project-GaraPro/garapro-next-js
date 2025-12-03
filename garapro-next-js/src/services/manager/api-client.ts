@@ -71,19 +71,7 @@ class ApiClient {
     });
 
     try {
-      // Log request details for debugging
-      console.log("=== API CLIENT REQUEST ===");
-      console.log("URL:", url);
-      console.log("Method:", config.method);
-      console.log("Headers:", config.headers);
-      console.log("Body:", config.body);
-      
       const response = await fetch(url, config);
-      
-      console.log("=== API CLIENT RESPONSE ===");
-      console.log("Status:", response.status);
-      console.log("Status Text:", response.statusText);
-      console.log("OK:", response.ok);
 
       // Apply response interceptors
       let processedResponse = response;
@@ -93,8 +81,6 @@ class ApiClient {
 
       if (!processedResponse.ok) {
         const errorData = await this.parseErrorResponse(processedResponse);
-        console.log("=== API CLIENT ERROR DATA ===");
-        console.log("Error Data:", errorData);
         
         // Create error object with full error data
         const error = new Error(errorData.message || `HTTP error! status: ${processedResponse.status}`) as Error & ApiError;

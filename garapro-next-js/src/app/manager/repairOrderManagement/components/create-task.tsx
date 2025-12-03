@@ -88,7 +88,7 @@ export default function CreateTask({ onClose, onSubmit }: CreateTaskProps) {
       .then((ls) => {
         setLabels(ls)
         const def = ls.find((l) => l.isDefault)
-        if (def) setSelectedLabelId(String(def.id))
+        if (def) setSelectedLabelId(String(def.labelId))
       })
       .catch((e) => console.error("Failed to load labels", e))
   }, [])
@@ -262,11 +262,10 @@ export default function CreateTask({ onClose, onSubmit }: CreateTaskProps) {
         firstName,
         lastName,
         phoneNumber: customerData.phone,
-        email: customerData.email,
-        birthday: birthdayValue
+        email: customerData.email
       }
       
-      const newApiCustomer = await customerService.createCustomer(apiCustomerData)
+      const newApiCustomer = await customerService.quickCreateCustomer(apiCustomerData)
       
       // Convert back to our format with proper name handling
       // Ensure we don't show "undefined undefined" in the name
@@ -289,81 +288,58 @@ export default function CreateTask({ onClose, onSubmit }: CreateTaskProps) {
       
       // Show success toast with properly formatted name
       toast.success(`Customer "${newCustomer.name}" created and selected successfully`)
-    } catch (error) {
-      console.error("Failed to create customer:", error)
-      toast.error("Failed to create customer. Please try again.")
+    } catch (error: unknown) {
+      // Extract detailed error message from API response
+      let errorMessage = "Failed to create customer. Please try again."
+      
+      if (error && typeof error === 'object') {
+        // Check for details.details (nested error message from API)
+        if ('details' in error && error.details && typeof error.details === 'object' && 'details' in error.details) {
+          errorMessage = (error.details as any).details
+        }
+        // Check for message property
+        else if ('message' in error && typeof error.message === 'string') {
+          errorMessage = error.message
+        }
+      } else if (error instanceof Error) {
+        errorMessage = error.message
+      }
+      
+      toast.error(errorMessage)
     }
   }
 
-  // Handle adding a new vehicle
-  const handleAddVehicle = async (vehicleData: Omit<Vehicle, "id">) => {
+  // Handle adding a new vehicle - called after successful vehicle creation
+  const handleAddVehicle = async () => {
     if (!selectedCustomer) {
-      toast.error("Please select a customer first")
       return
     }
     
     try {
-      // Convert to API format with proper validation
-      // For now, we'll use default GUIDs for required fields
-      // In a real implementation, these would come from dropdown selections
-      const apiVehicleData = {
-        brandID: "00000000-0000-0000-0000-000000000000", // Placeholder - would need actual brand ID
-        userID: selectedCustomer.id,
-        modelID: "00000000-0000-0000-0000-000000000000", // Placeholder - would need actual model ID
-        colorID: "00000000-0000-0000-0000-000000000000", // Placeholder - would need actual color ID
-        licensePlate: vehicleData.licensePlate,
-        vin: vehicleData.vin || "00000000000000000", // Default VIN if not provided
-        year: vehicleData.year,
-        odometer: null // Odometer not in current form
+      console.log('Refreshing vehicle list after adding new vehicle...');
+      // Refresh the vehicle list for the selected customer
+      const vehicleData = await vehicleService.getVehiclesByCustomerId(selectedCustomer.id)
+      const formattedVehicles: Vehicle[] = vehicleData.map(v => ({
+        id: v.vehicle.vehicleID,
+        licensePlate: v.vehicle.licensePlate,
+        brand: v.vehicle.brandName,
+        model: v.vehicle.modelName,
+        year: v.vehicle.year,
+        color: v.vehicle.colorName
+      }))
+      
+      console.log('Updated vehicle list:', formattedVehicles);
+      setVehicleOptions(formattedVehicles)
+      
+      // Auto-select the newly added vehicle (last one in the list)
+      if (formattedVehicles.length > 0) {
+        const newVehicle = formattedVehicles[formattedVehicles.length - 1]
+        console.log('Auto-selecting new vehicle:', newVehicle);
+        setSelectedVehicle(newVehicle)
       }
-      
-      // Validate required fields before sending
-      if (!apiVehicleData.licensePlate) {
-        toast.error("License plate is required")
-        return
-      }
-      
-      if (!apiVehicleData.vin) {
-        toast.error("VIN is required")
-        return
-      }
-      
-      // Validate VIN format (17 characters, excluding I, O, Q)
-      const vinRegex = /^[A-HJ-NPR-Z0-9]{17}$/
-      if (!vinRegex.test(apiVehicleData.vin)) {
-        toast.error("VIN must be 17 characters and exclude I, O, Q")
-        return
-      }
-      
-      // Validate license plate format
-      const licensePlateRegex = /^[0-9]{2}[A-Z]{1,2}-[0-9]{4,5}$/
-      if (!licensePlateRegex.test(apiVehicleData.licensePlate)) {
-        toast.error("Invalid license plate format (e.g., 51F-12345)")
-        return
-      }
-      
-      const newApiVehicle = await vehicleService.createVehicle(apiVehicleData)
-      
-      // Convert back to our format
-      const newVehicle: Vehicle = {
-        id: newApiVehicle.vehicleID,
-        licensePlate: newApiVehicle.licensePlate,
-        brand: newApiVehicle.brandName,
-        model: newApiVehicle.modelName,
-        year: newApiVehicle.year,
-        color: newApiVehicle.colorName,
-        vin: newApiVehicle.vin
-      }
-      
-      // Add to vehicle options and select it
-      setVehicleOptions(prev => [...prev, newVehicle])
-      setSelectedVehicle(newVehicle)
-      
-      // Show success toast
-      toast.success(`Vehicle "${newVehicle.licensePlate}" added successfully`)
     } catch (error) {
-      console.error("Failed to create vehicle:", error)
-      toast.error("Failed to create vehicle. Please check the form data and try again.")
+      console.error("Failed to refresh vehicles:", error)
+      // Don't show error toast here since the vehicle was already created successfully
     }
   }
 
@@ -411,13 +387,12 @@ export default function CreateTask({ onClose, onSubmit }: CreateTaskProps) {
                   className="whitespace-nowrap bg-transparent"
                   onClick={() => setIsAddCustomerDialogOpen(true)}
                 >
-                  <Plus className="w-4 h-4 mr-2" />
                   ADD NEW CUSTOMER
                 </Button>
               </div>
               
               {/* Customer search results */}
-              {customerSearch && (
+              {customerSearch && !selectedCustomer && (
                 <div className="mt-2 border rounded-md max-h-60 overflow-y-auto hide-scrollbar">
                   {isLoadingCustomers ? (
                     <div className="p-3 text-center text-gray-500">
@@ -429,6 +404,10 @@ export default function CreateTask({ onClose, onSubmit }: CreateTaskProps) {
                         key={customer.id}
                         className="p-3 border-b last:border-b-0 hover:bg-gray-50 cursor-pointer"
                         onClick={() => {
+                          console.log('=== CUSTOMER SELECTED ===');
+                          console.log('Customer Data:', customer);
+                          console.log('Customer ID (userId):', customer.id);
+                          console.log('Customer Name:', customer.name);
                           setSelectedCustomer(customer)
                           // Ensure we don't set undefined value
                           setCustomerSearch(customer.name || "")
@@ -491,16 +470,16 @@ export default function CreateTask({ onClose, onSubmit }: CreateTaskProps) {
                   <SelectContent>
                     {selectedCustomer && vehicleOptions.length > 0 ? (
                       vehicleOptions.map((vehicle) => (
-                        <SelectItem key={vehicle.id} value={vehicle.id}>
+                        <SelectItem key={`vehicle-${vehicle.id}`} value={vehicle.id}>
                           {vehicle.licensePlate} - {vehicle.brand} {vehicle.model} ({vehicle.year})
                         </SelectItem>
                       ))
                     ) : selectedCustomer ? (
-                      <SelectItem value="__no-vehicles__" disabled>
+                      <SelectItem key="no-vehicles" value="__no-vehicles__" disabled>
                         No vehicles found. Add a new vehicle.
                       </SelectItem>
                     ) : (
-                      <SelectItem value="__select-customer-first__" disabled>
+                      <SelectItem key="select-customer-first" value="__select-customer-first__" disabled>
                         Select a customer first
                       </SelectItem>
                     )}
@@ -510,7 +489,14 @@ export default function CreateTask({ onClose, onSubmit }: CreateTaskProps) {
                   type="button" 
                   variant="outline" 
                   className="whitespace-nowrap bg-transparent"
-                  onClick={() => selectedCustomer && setIsAddVehicleDialogOpen(true)}
+                  onClick={() => {
+                    if (selectedCustomer) {
+                      console.log('=== OPENING ADD VEHICLE DIALOG ===');
+                      console.log('Selected Customer ID:', selectedCustomer.id);
+                      console.log('Selected Customer Name:', selectedCustomer.name);
+                      setIsAddVehicleDialogOpen(true)
+                    }
+                  }}
                   disabled={!selectedCustomer || isLoadingVehicles}
                 >
                   <Plus className="w-4 h-4 mr-2" />
@@ -595,8 +581,8 @@ export default function CreateTask({ onClose, onSubmit }: CreateTaskProps) {
                   </SelectTrigger>
                   <SelectContent>
                     {labels.map((l) => (
-                      <SelectItem key={l.id} value={String(l.id)}>
-                        {l.name}
+                      <SelectItem key={`label-${l.labelId}`} value={String(l.labelId)}>
+                        {l.labelName}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -612,9 +598,9 @@ export default function CreateTask({ onClose, onSubmit }: CreateTaskProps) {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="walkin">Walk-in</SelectItem>
-                    <SelectItem value="scheduled">Scheduled</SelectItem>
-                    <SelectItem value="breakdown">Breakdown</SelectItem>
+                    <SelectItem key="ro-type-walkin" value="walkin">Walk-in</SelectItem>
+                    <SelectItem key="ro-type-scheduled" value="scheduled">Scheduled</SelectItem>
+                    <SelectItem key="ro-type-breakdown" value="breakdown">Breakdown</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -663,8 +649,9 @@ export default function CreateTask({ onClose, onSubmit }: CreateTaskProps) {
         <AddVehicleDialog
           open={isAddVehicleDialogOpen}
           onOpenChange={setIsAddVehicleDialogOpen}
+          customerId={selectedCustomer.id}
           customerName={selectedCustomer.name}
-          onVehicleAdd={handleAddVehicle}
+          onVehicleAdded={handleAddVehicle}
         />
       )}
       

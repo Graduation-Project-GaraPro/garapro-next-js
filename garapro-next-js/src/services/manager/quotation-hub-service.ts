@@ -74,11 +74,10 @@ class QuotationHubService {
       this.notifyListeners(quotation);
     });
 
-    // ✨ NEW: Listen for customer responses (approve/reject)
+    // listen for customer responses
     this.connection.on("CustomerResponseReceived", (event: QuotationCustomerResponseEvent) => {
       console.log("Customer response received:", event);
       this.notifyCustomerResponseListeners(event);
-      // Also notify general listeners with the updated quotation
       this.notifyListeners(event.quotation);
     });
 
@@ -112,31 +111,30 @@ class QuotationHubService {
     }
   }
 
-  // Join managers group to receive all quotation updates
+
   public async joinManagersGroup(): Promise<void> {
     if (this.connection && this.connection.state === "Connected") {
       try {
         await this.connection.invoke("JoinManagersGroup");
         console.log("✅ Joined Managers group for quotation updates");
       } catch (err) {
-        console.error("❌ Error joining managers group:", err);
+        console.log("ℹ️ JoinManagersGroup not available on QuotationHub (auto-send enabled)");
       }
     }
   }
 
-  // Leave managers group
   public async leaveManagersGroup(): Promise<void> {
     if (this.connection && this.connection.state === "Connected") {
       try {
         await this.connection.invoke("LeaveManagersGroup");
         console.log("✅ Left Managers group");
       } catch (err) {
-        console.error("❌ Error leaving managers group:", err);
+        console.log("ℹ️ LeaveManagersGroup not available on QuotationHub");
       }
     }
   }
 
-  // Join a user group to receive notifications for their quotations
+
   public async joinUserGroup(userId: string): Promise<void> {
     if (this.connection && this.connection.state === "Connected") {
       try {
@@ -148,7 +146,6 @@ class QuotationHubService {
     }
   }
 
-  // Leave a user group
   public async leaveUserGroup(userId: string): Promise<void> {
     if (this.connection && this.connection.state === "Connected") {
       try {
@@ -160,7 +157,6 @@ class QuotationHubService {
     }
   }
 
-  // Join a specific quotation group to receive updates for that quotation
   public async joinQuotationGroup(quotationId: string): Promise<void> {
     if (this.connection && this.connection.state === "Connected") {
       try {
@@ -197,7 +193,6 @@ class QuotationHubService {
     this.listeners.forEach(listener => listener(quotation));
   }
 
-  // ✨ NEW: Customer response listeners
   public addCustomerResponseListener(callback: (event: QuotationCustomerResponseEvent) => void): void {
     this.customerResponseListeners.push(callback);
   }
@@ -219,7 +214,6 @@ class QuotationHubService {
     return this.connectionId;
   }
 
-  // Send a message to the hub (example)
   public async sendQuotationUpdate(quotationId: string, status: string): Promise<void> {
     if (this.connection && this.connection.state === "Connected") {
       try {

@@ -263,7 +263,6 @@ export default function QuotationTab({ orderId }: QuotationTabProps) {
             Refresh
           </Button>
           <Button onClick={() => setIsCreateFormOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" />
             Create Quotation
           </Button>
         </div>

@@ -1,7 +1,8 @@
 // src/app/manager/repairOrderManagement/orders/[id]/components/jobs-tab.tsx
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
+import { useJobHub } from "@/hooks/use-job-hub"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -25,10 +26,12 @@ import type { Job } from "@/types/job"
 interface JobsTabProps {
   orderId: string
   branchId?: string // Optional branch ID for branch-specific technician filtering
+  isArchived?: boolean // Flag to indicate if the RO is archived (read-only mode)
 }
 
-export default function JobsTab({ orderId, branchId }: JobsTabProps) {
+export default function JobsTab({ orderId, branchId, isArchived }: JobsTabProps) {
   const { toast } = useToast()
+  const { isConnected, onJobStatusUpdated, onRepairCreated } = useJobHub()
   const [jobs, setJobs] = useState<Job[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -50,6 +53,39 @@ export default function JobsTab({ orderId, branchId }: JobsTabProps) {
   useEffect(() => {
     loadJobs()
   }, [orderId])
+
+  // Listen for real-time job status updates
+  useEffect(() => {
+    if (!isConnected) return;
+
+    // Handle job status updates (technician starts/finishes work)
+    const unsubscribeStatus = onJobStatusUpdated((notification) => {
+      console.log("📋 Job status updated:", notification);
+      
+      // Only update if it's for a job in this RO
+      if (notification.repairOrderId === orderId) {
+        // Silently refresh jobs list to show updated status
+        loadJobs();
+      }
+    });
+
+    // Handle repair created (technician starts work)
+    const unsubscribeRepair = onRepairCreated((notification) => {
+      console.log("🚀 Technician started work:", notification);
+      
+      // Check if this repair is for a job in this RO
+      const job = jobs.find(j => j.jobId === notification.jobId);
+      if (job) {
+        // Silently refresh jobs list
+        loadJobs();
+      }
+    });
+
+    return () => {
+      unsubscribeStatus();
+      unsubscribeRepair();
+    };
+  }, [isConnected, orderId, jobs, onJobStatusUpdated, onRepairCreated])
 
   const loadJobs = async () => {
     try {
@@ -237,7 +273,7 @@ export default function JobsTab({ orderId, branchId }: JobsTabProps) {
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold">Jobs</h2>
         <div className="flex gap-2">
-          {hasAssignableJobs && (
+          {!isArchived && hasAssignableJobs && (
             <Button onClick={handleBatchAssignTech} variant="outline" size="sm">
               <Users className="w-4 h-4 mr-2" />
               Assign All
@@ -281,11 +317,10 @@ export default function JobsTab({ orderId, branchId }: JobsTabProps) {
                 <div className="flex justify-between items-start">
                   <div>
                     <CardTitle className="text-lg">{job.jobName}</CardTitle>
-                    <p className="text-sm text-gray-500">Job ID: {job.jobId}</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    {/* Edit Job Button - Hide for completed jobs */}
-                    {job.status !== 3 && ( // 3 = Completed
+                    {/* Edit Job Button - Hide for completed jobs or archived ROs */}
+                    {!isArchived && job.status !== 3 && ( // 3 = Completed
                       <Button
                         variant="outline"
                         size="sm"
@@ -297,8 +332,8 @@ export default function JobsTab({ orderId, branchId }: JobsTabProps) {
                       </Button>
                     )}
 
-                    {/* Technician Assignment - Only for Pending (0) or New (1) status */}
-                    {(job.status === 0 || job.status === 1) ? (
+                    {/* Technician Assignment - Only for Pending (0) or New (1) status and not archived */}
+                    {!isArchived && (job.status === 0 || job.status === 1) ? (
                       <Button
                         variant="outline"
                         size="sm"
@@ -363,17 +398,14 @@ export default function JobsTab({ orderId, branchId }: JobsTabProps) {
                       Parts ({job.parts.length})
                     </h4>
                     <div className="border rounded-md divide-y">
-                      {job.parts.map((part) => (
+                      {job.parts.map((part, index) => (
                         <div
-                          key={part.jobPartId}
+                          key={part.jobPartId || `${job.jobId}-part-${index}`}
                           className="p-3 flex justify-between items-center"
                         >
                           <div>
                             <p className="text-sm font-medium">
                               {part.partName}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              ID: {part.partId}
                             </p>
                           </div>
                           <div className="text-right">

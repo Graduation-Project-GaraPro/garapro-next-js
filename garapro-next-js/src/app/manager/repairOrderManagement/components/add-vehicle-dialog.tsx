@@ -64,12 +64,15 @@ export function AddVehicleDialog({
   // Load brands when dialog opens
   useEffect(() => {
     if (open) {
+      console.log('=== ADD VEHICLE DIALOG OPENED ===');
+      console.log('Received customerId prop:', customerId);
+      console.log('Received customerName prop:', customerName);
       loadBrands()
     } else {
       // Reset form when dialog closes
       resetForm()
     }
-  }, [open])
+  }, [open, customerId, customerName])
 
   // Load models when brand changes
   useEffect(() => {
@@ -203,7 +206,11 @@ export function AddVehicleDialog({
     setIsSubmitting(true)
     
     try {
-      await vehicleService.createVehicle({
+      console.log('=== ADD VEHICLE DIALOG ===');
+      console.log('Customer ID:', customerId);
+      console.log('Customer Name:', customerName);
+      
+      const vehicleData = {
         brandID: formData.brandID,
         modelID: formData.modelID,
         colorID: formData.colorID,
@@ -212,7 +219,11 @@ export function AddVehicleDialog({
         year: formData.year,
         vin: formData.vin || "",
         odometer: formData.odometer,
-      })
+      };
+      
+      console.log('Vehicle Data to Send:', vehicleData);
+      
+      await vehicleService.createVehicle(vehicleData)
       
       toast.success("Vehicle added successfully")
       onVehicleAdded()
