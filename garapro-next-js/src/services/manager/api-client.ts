@@ -147,15 +147,45 @@ class ApiClient {
         };
       }
       
-      const errorData = await response.json();
+      // Clone the response to read it multiple times if needed
+      const clonedResponse = response.clone();
+      const contentType = response.headers.get('content-type');
       
-      // Store the full response data in details for later access
-      return {
-        message: errorData.message || 'An error occurred',
-        status: response.status,
-        code: errorData.code,
-        details: errorData // Store full response data
-      };
+      // Try to parse as JSON first
+      if (contentType && contentType.includes('application/json')) {
+        try {
+          const errorData = await response.json();
+          
+          // Handle different error response formats
+          const message = errorData.message || 
+                         errorData.error || 
+                         errorData.title ||
+                         errorData.Message ||
+                         'An error occurred';
+          
+          // Store the full response data in details for later access
+          return {
+            message,
+            status: response.status,
+            code: errorData.code || errorData.type,
+            details: errorData // Store full response data
+          };
+        } catch (jsonError) {
+          // If JSON parsing fails, try to read as text
+          const text = await clonedResponse.text();
+          return {
+            message: text || `HTTP ${response.status}: ${response.statusText}`,
+            status: response.status
+          };
+        }
+      } else {
+        // Not JSON, try to read as text
+        const text = await response.text();
+        return {
+          message: text || `HTTP ${response.status}: ${response.statusText}`,
+          status: response.status
+        };
+      }
     } catch {
       return {
         message: `HTTP ${response.status}: ${response.statusText}`,

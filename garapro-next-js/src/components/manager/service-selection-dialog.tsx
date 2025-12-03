@@ -9,6 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Search, Check, X } from "lucide-react"
 import { serviceCatalog } from "@/services/service-catalog"
 import type { GarageServiceCatalogItem } from "@/services/service-catalog"
+import { formatVND } from "@/lib/currency"
 
 interface ServiceSelectionDialogProps {
   open: boolean
@@ -206,7 +207,7 @@ export function ServiceSelectionDialog({
                             </div>
                           </div>
                           <div className="text-right ml-2">
-                            <div className="font-medium">${service.price.toFixed(2)}</div>
+                            <div className="font-medium">{formatVND(service.price)}</div>
                             <div className="text-sm text-gray-500">
                               {service.estimatedDuration} min
                             </div>
@@ -228,7 +229,7 @@ export function ServiceSelectionDialog({
                   <span className="font-medium">{selectedServiceIds.length}</span> service(s) selected
                 </div>
                 <div className="text-right">
-                  <div className="font-medium">Total: ${totalAmount.toFixed(2)}</div>
+                  <div className="font-medium">Total: {formatVND(totalAmount)}</div>
                   <div className="text-sm text-gray-600">
                     Estimated time: {Math.floor(totalTimeInMinutes / 60)}h {totalTimeInMinutes % 60}m
                   </div>

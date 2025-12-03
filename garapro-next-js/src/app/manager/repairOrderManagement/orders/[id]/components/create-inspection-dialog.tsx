@@ -17,6 +17,7 @@ import { Loader2, AlertCircle, Info, Search, X } from "lucide-react"
 import { inspectionService } from "@/services/manager/inspection-service"
 import { serviceCatalog } from "@/services/service-catalog"
 import type { GarageServiceCatalogItem } from "@/services/service-catalog"
+import { formatVND } from "@/lib/currency"
 
 interface CreateInspectionDialogProps {
   open: boolean
@@ -308,7 +309,7 @@ export function CreateInspectionDialog({
                               <p className="text-sm text-gray-500 mt-1">{service.description}</p>
                             )}
                             <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
-                              <span>${service.price?.toFixed(2) || "0.00"}</span>
+                              <span>{formatVND(service.price || 0)}</span>
                               {service.estimatedDuration && (
                                 <span>{service.estimatedDuration} min</span>
                               )}

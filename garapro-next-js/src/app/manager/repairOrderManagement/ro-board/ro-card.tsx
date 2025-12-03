@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { MoreHorizontal, Edit, Trash2, Clock, DollarSign, User, ExternalLink, Calendar, XCircle, Archive, Tag } from "lucide-react"
+import { MoreHorizontal, Clock, DollarSign, User, ExternalLink, Calendar, XCircle, Archive, Tag } from "lucide-react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -158,20 +158,12 @@ export default function RepairOrderCard({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={onEdit}>
-                <Edit className="w-4 h-4 mr-2" />
-                Edit
-              </DropdownMenuItem>
               {isPending && onCancel && (
                 <DropdownMenuItem onClick={onCancel} className="text-orange-600">
                   <XCircle className="w-4 h-4 mr-2" />
                   Cancel
                 </DropdownMenuItem>
               )}
-              <DropdownMenuItem onClick={onDelete} className="text-red-600">
-                <Trash2 className="w-4 h-4 mr-2" />
-                Delete
-              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

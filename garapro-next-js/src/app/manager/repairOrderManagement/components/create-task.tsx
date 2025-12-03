@@ -9,8 +9,6 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Search, Plus, X, Edit3 } from "lucide-react"
 import type { Job } from "@/types/job"
-import { labelService } from "@/services/manager/label-service"
-import type { Label as LabelType } from "@/types/manager/label"
 import { AddCustomerDialog } from "./add-customer-dialog"
 import { AddVehicleDialog } from "./add-vehicle-dialog"
 import { customerService } from "@/services/manager/customer-service"
@@ -65,8 +63,6 @@ export default function CreateTask({ onClose, onSubmit }: CreateTaskProps) {
   const [customerSearch, setCustomerSearch] = useState("")
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null)
-  const [labels, setLabels] = useState<LabelType[]>([])
-  const [selectedLabelId, setSelectedLabelId] = useState<string>("")
   
   // Service selection state
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([])
@@ -82,16 +78,7 @@ export default function CreateTask({ onClose, onSubmit }: CreateTaskProps) {
   const [customerResults, setCustomerResults] = useState<Customer[]>([])
   const [vehicleOptions, setVehicleOptions] = useState<Vehicle[]>([])
 
-  useEffect(() => {
-    labelService
-      .getAllLabels()
-      .then((ls) => {
-        setLabels(ls)
-        const def = ls.find((l) => l.isDefault)
-        if (def) setSelectedLabelId(String(def.labelId))
-      })
-      .catch((e) => console.error("Failed to load labels", e))
-  }, [])
+
 
   // Search customers when search term changes
   useEffect(() => {
@@ -182,11 +169,6 @@ export default function CreateTask({ onClose, onSubmit }: CreateTaskProps) {
       return
     }
     
-    if (selectedServiceIds.length === 0) {
-      toast.error("Please select at least one service")
-      return
-    }
-    
     // Prepare data to match backend request structure
     const requestData: RepairOrderProperties = {
       customerId: selectedCustomer.id,
@@ -230,7 +212,6 @@ export default function CreateTask({ onClose, onSubmit }: CreateTaskProps) {
     setCustomerSearch("")
     setSelectedCustomer(null)
     setSelectedVehicle(null)
-    setSelectedLabelId("")
     setCustomerResults([])
     setSelectedServiceIds([])
   }
@@ -530,7 +511,8 @@ export default function CreateTask({ onClose, onSubmit }: CreateTaskProps) {
 
           {/* Service Selection */}
           <div className="space-y-2">
-            <h3 className="text-base font-medium text-gray-700">Select services:</h3>
+            <h3 className="text-base font-medium text-gray-700">Select services (Optional):</h3>
+            <p className="text-sm text-gray-500">Services can be added later if the customer is unsure</p>
             <div>
               <div className="mt-1">
                 <Button 
@@ -543,7 +525,7 @@ export default function CreateTask({ onClose, onSubmit }: CreateTaskProps) {
                     <span className="font-medium">
                       {selectedServiceIds.length > 0 
                         ? `${selectedServiceIds.length} service(s) selected` 
-                        : "Select services..."}
+                        : "Select services (optional)..."}
                     </span>
                     {selectedServiceIds.length > 0 && (
                       <span className="text-sm text-gray-500">
@@ -568,42 +550,26 @@ export default function CreateTask({ onClose, onSubmit }: CreateTaskProps) {
                 type="date"
                 value={formData.estimatedCompletionDate}
                 onChange={(e) => setFormData((prev) => ({ ...prev, estimatedCompletionDate: e.target.value }))}
+                min={new Date().toISOString().split('T')[0]}
               />
             </div>
             
-            {/* Label and Repair Order Type */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label className="text-sm text-gray-600">RO Label</Label>
-                <Select value={selectedLabelId} onValueChange={setSelectedLabelId}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Select label (optional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {labels.map((l) => (
-                      <SelectItem key={`label-${l.labelId}`} value={String(l.labelId)}>
-                        {l.labelName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label className="text-sm text-gray-600">Repair Order Type</Label>
-                <Select
-                  value={formData.repairOrderType}
-                  onValueChange={(value) => setFormData((prev) => ({ ...prev, repairOrderType: value }))}
-                >
-                  <SelectTrigger className="mt-1">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem key="ro-type-walkin" value="walkin">Walk-in</SelectItem>
-                    <SelectItem key="ro-type-scheduled" value="scheduled">Scheduled</SelectItem>
-                    <SelectItem key="ro-type-breakdown" value="breakdown">Breakdown</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            {/* Repair Order Type */}
+            <div>
+              <Label className="text-sm text-gray-600">Repair Order Type</Label>
+              <Select
+                value={formData.repairOrderType}
+                onValueChange={(value) => setFormData((prev) => ({ ...prev, repairOrderType: value }))}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem key="ro-type-walkin" value="walkin">Walk-in</SelectItem>
+                  <SelectItem key="ro-type-scheduled" value="scheduled">Scheduled</SelectItem>
+                  <SelectItem key="ro-type-breakdown" value="breakdown">Breakdown</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             
             {/* Vehicle Concern/Note */}
@@ -629,7 +595,7 @@ export default function CreateTask({ onClose, onSubmit }: CreateTaskProps) {
             <Button 
               type="submit" 
               className="bg-[#154c79] hover:bg-[#123c66]"
-              disabled={!selectedCustomer || !selectedVehicle || selectedServiceIds.length === 0}
+              disabled={!selectedCustomer || !selectedVehicle}
             >
               Create Repair Order
             </Button>

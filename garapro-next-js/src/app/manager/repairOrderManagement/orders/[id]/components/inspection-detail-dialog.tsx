@@ -26,9 +26,9 @@ import {
   AlertCircle
 } from "lucide-react"
 import { inspectionService, InspectionDto, InspectionServiceDto } from "@/services/manager/inspection-service"
-import { serviceCatalog, GarageServiceCatalogItem, Part } from "@/services/service-catalog"
-import { formatVND } from "@/lib/currency"
+import { serviceCatalog, Part } from "@/services/service-catalog"
 import { ConditionStatus } from "@/types/manager/inspection"
+import { quotationService } from "@/services/manager/quotation-service"
 
 interface InspectionDetailDialogProps {
   inspectionId: string | null
@@ -203,50 +203,21 @@ export function InspectionDetailDialog({
       setConverting(true)
       setConversionError(null)
       
-      // Call the API to convert inspection to quotation
-      // Use the backend API URL instead of the Next.js API route
-      const backendApiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://localhost:7113';
-      const response = await fetch(`${backendApiUrl}/api/Inspection/convert-to-quotation`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          // Include authorization header if needed
-          // 'Authorization': `Bearer ${authToken}`
-        },
-        body: JSON.stringify({
-          inspectionId: inspectionId,
-          note: 'Converted from inspection'
-        })
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to convert inspection to quote')
-      }
-
-      // Handle successful conversion
-      const result = await response.json()
-      console.log('Successfully converted to quote:', result)
+      // Use the quotation service to convert inspection
+      await quotationService.convertInspectionToQuotation(inspectionId)
       
       // Show success toast message
-      toast.success('Inspection successfully converted to quotation!', {
-        description: `Quotation ${result.quotationId} has been created.`,
-        duration: 5000,
-      });
+      toast.success('Inspection converted to quotation successfully')
       
       // Close the dialog after successful conversion
       onOpenChange(false)
-      
-      // You might want to show a success message or redirect to the quote
-      // For now, we'll just close the dialog
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to convert inspection to quote:', err)
-      setConversionError('Failed to convert inspection to quote. Please try again.')
+      const errorMessage = err?.message || 'Failed to convert inspection to quotation'
+      setConversionError(errorMessage)
       
       // Show error toast message
-      toast.error('Failed to convert inspection to quotation', {
-        description: 'Please try again or contact support if the problem persists.',
-        duration: 5000,
-      });
+      toast.error(errorMessage)
     } finally {
       setConverting(false)
     }
@@ -320,10 +291,6 @@ export function InspectionDetailDialog({
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-gray-500">Inspection ID</p>
-                  <p className="font-medium">{inspection.inspectionId}</p>
-                </div>
-                <div>
                   <p className="text-sm text-gray-500">Status</p>
                   <Badge className={getStatusBadgeClass(inspection.status)}>
                     {getStatusDisplayName(inspection.status)}
@@ -381,7 +348,7 @@ export function InspectionDetailDialog({
                   <Button 
                     onClick={convertToQuote}
                     disabled={converting}
-                    className="w-full"
+                    className="w-full bg-green-600 hover:bg-green-700"
                   >
                     {converting ? (
                       <>
@@ -389,7 +356,7 @@ export function InspectionDetailDialog({
                         Converting...
                       </>
                     ) : (
-                      "CONVERT TO QUOTE"
+                      "Convert to Quotation"
                     )}
                   </Button>
                   {conversionError && (
@@ -403,58 +370,81 @@ export function InspectionDetailDialog({
          
          
           
-          {/* Services and Parts */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Package className="w-5 h-5" />
-                Services & Parts
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {services.length === 0 ? (
-                <p className="text-gray-500 text-center py-4">No services found for this inspection</p>
-              ) : (
-                <div className="space-y-4">
-                  {services.map((service) => (
-                    <div key={service.serviceId} className="border rounded-lg">
-                      <div className="p-4 border-b">
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <h3 className="font-medium">{service.serviceName}</h3>
-                            {service.description && (
-                              <p className="text-sm text-gray-500 mt-1">{service.description}</p>
-                            )}
-                          </div>
-                          <div className="text-right">
-                            <Badge className={getConditionStatusBadge(service.conditionStatus)}>
-                              {getConditionStatusName(service.conditionStatus)}
-                            </Badge>
+          {/* Services and Parts - Only show for InProgress or Completed inspections */}
+          {(inspection.status.toLowerCase() === "inprogress" || inspection.status.toLowerCase() === "completed") && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Package className="w-5 h-5" />
+                  Services & Parts
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {services.length === 0 ? (
+                  <p className="text-gray-500 text-center py-4">No services found for this inspection</p>
+                ) : (
+                  <div className="space-y-4">
+                    {services.map((service) => (
+                      <div key={service.serviceId} className="border rounded-lg">
+                        <div className="p-4 border-b">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <h3 className="font-medium">{service.serviceName}</h3>
+                              {service.description && (
+                                <p className="text-sm text-gray-500 mt-1">{service.description}</p>
+                              )}
+                            </div>
+                            <div className="text-right">
+                              <Badge className={getConditionStatusBadge(service.conditionStatus)}>
+                                {getConditionStatusName(service.conditionStatus)}
+                              </Badge>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      
-                      {parts[service.serviceId] && parts[service.serviceId].length > 0 && (
-                        <div className="p-4 bg-gray-50">
-                          <h4 className="font-medium text-sm mb-2">Parts</h4>
-                          <div className="space-y-2">
-                            {parts[service.serviceId].map((part) => (
-                              <div key={part.partId} className="flex justify-between text-sm">
-                                <div className="flex-1">
-                                  <span>{part.name}</span>
-                                  <span className="text-gray-500 ml-2">Qty: {part.quantity}</span>
+                        
+                        {parts[service.serviceId] && parts[service.serviceId].length > 0 && (
+                          <div className="p-4 bg-gray-50">
+                            <h4 className="font-medium text-sm mb-2">Parts</h4>
+                            <div className="space-y-2">
+                              {parts[service.serviceId].map((part) => (
+                                <div key={part.partId} className="flex justify-between text-sm">
+                                  <div className="flex-1">
+                                    <span>{part.name}</span>
+                                    <span className="text-gray-500 ml-2">Qty: {part.quantity}</span>
+                                  </div>
                                 </div>
-                              </div>
-                            ))}
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+          
+          {/* Empty state for pending/new inspections */}
+          {(inspection.status.toLowerCase() === "pending" || inspection.status.toLowerCase() === "new") && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Package className="w-5 h-5" />
+                  Services & Parts
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-8">
+                  <Clock className="w-12 h-12 mx-auto text-gray-400 mb-3" />
+                  <p className="text-gray-500 font-medium">Inspection Not Started</p>
+                  <p className="text-sm text-gray-400 mt-1">
+                    Services and parts will be available once the technician starts working on this inspection.
+                  </p>
                 </div>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </DialogContent>
     </Dialog>

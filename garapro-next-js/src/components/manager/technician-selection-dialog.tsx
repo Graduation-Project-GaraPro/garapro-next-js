@@ -16,13 +16,14 @@ import { Search, User, MapPin, Wrench, Clock, RefreshCw } from "lucide-react"
 import { technicianService } from "@/services/manager/technician-service"
 import type { Technician } from "@/types/manager/tech-schedule"
 import type { TechnicianWorkload } from "@/services/manager/technician-service"
+import { branchService } from "@/services/branch-service"
 
 interface TechnicianSelectionDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onAssign: (technicianId: string) => void
   jobIds: string[]
-  branchId?: string // Optional branch ID for branch-specific filtering
+  branchId?: string 
 }
 
 export function TechnicianSelectionDialog({ 
@@ -39,11 +40,15 @@ export function TechnicianSelectionDialog({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [workloads, setWorkloads] = useState<Record<string, TechnicianWorkload>>({})
+  const [branchName, setBranchName] = useState<string | null>(null)
   const hasLoadedRef = useRef(false)
 
   useEffect(() => {
     if (open && (!hasLoadedRef.current || branchId)) {
       loadTechnicians()
+      if (branchId) {
+        loadBranchName()
+      }
       hasLoadedRef.current = true
     }
   }, [open, branchId])
@@ -113,6 +118,18 @@ export function TechnicianSelectionDialog({
     }
   }
 
+  const loadBranchName = async () => {
+    if (!branchId) return
+    
+    try {
+      const branch = await branchService.getBranchById(branchId)
+      setBranchName(branch.branchName)
+    } catch (error) {
+      console.error("Failed to load branch name:", error)
+      setBranchName(null)
+    }
+  }
+
   const handleAssign = () => {
     if (selectedTechnician) {
       onAssign(selectedTechnician)
@@ -130,8 +147,8 @@ export function TechnicianSelectionDialog({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Select Technician</DialogTitle>
-          {branchId && (
-            <p className="text-sm text-gray-500">Branch ID: {branchId}</p>
+          {branchId && branchName && (
+            <p className="text-sm text-gray-500">Branch: {branchName}</p>
           )}
         </DialogHeader>
         
