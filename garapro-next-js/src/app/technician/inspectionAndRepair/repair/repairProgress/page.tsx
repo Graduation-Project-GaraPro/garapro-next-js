@@ -831,7 +831,7 @@ const handleSaveProgress = async () => {
 
         <div className="space-y-2 mb-5">
           {repairSteps.map((step, index) => {
-            const StatusIcon = statusConfig[step.status].icon;         
+            const StatusIcon = statusConfig[step.status]?.icon;         
             const isMyJob = myJobIds.includes(step.jobId);
             const isEditable = !step.description && isMyJob;
             const isUpdatable = step.description && isMyJob && step.status !== "Completed";
@@ -839,7 +839,7 @@ const handleSaveProgress = async () => {
             return (
               <div
                 key={step.jobId}
-                className={`bg-white/90 rounded-xl shadow-lg border-2 border-gray-200 overflow-hidden ${statusConfig[step.status].bgColor}/30 ${!isMyJob ? "opacity-50 cursor-not-allowed" : ""}`}
+                className={`bg-white/90 rounded-xl shadow-lg border-2 border-gray-200 overflow-hidden ${statusConfig[step?.status]?.bgColor}/30 ${!isMyJob ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 <div className="p-4">
                   <div className="flex flex-col md:flex-row items-start justify-between mb-2 min-h-[100px]">

@@ -389,7 +389,7 @@ useEffect(() => {
     if (technicianId) {
       jobSignalRService.leaveTechnicianGroup(technicianId);
     }
-    jobSignalRService.offAllEvents();
+    jobSignalRService.offAllEvents();      
   };
 }, [connectionRetryCount, currentPage, pageSize]);
 // Monitor connection status
