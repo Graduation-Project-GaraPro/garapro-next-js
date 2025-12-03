@@ -2,13 +2,21 @@ import * as signalR from "@microsoft/signalr";
 
 const API_URL = process.env.NEXT_PUBLIC_HUB_BASE_URL+ "/hubs/inspection" || 'http://localhost:7113/hubs/inspection';
 
-class InspectionSignalRService {
+
+ class InspectionSignalRService {
   private connection: signalR.HubConnection | null = null;
   private isConnecting = false;
+  private reconnectAttempts = 0;
+  private maxReconnectAttempts = 5;
 
   public async startConnection(): Promise<void> {
-    if (this.connection || this.isConnecting) {
+    if (this.connection?.state === signalR.HubConnectionState.Connected) {
       console.log("InspectionSignalR: Already connected");
+      return;
+    }
+
+    if (this.isConnecting) {
+      console.log("InspectionSignalR: Connection in progress");
       return;
     }
 
@@ -22,19 +30,30 @@ class InspectionSignalRService {
       }
 
       this.connection = new signalR.HubConnectionBuilder()
-       .withUrl(API_URL, {
+        .withUrl(API_URL, {
           accessTokenFactory: () => token,
+          skipNegotiation: true,
+          transport: signalR.HttpTransportType.WebSockets,
         })
-        .withAutomaticReconnect([0, 2000, 5000, 10000])
+        .withAutomaticReconnect({
+          nextRetryDelayInMilliseconds: (retryContext) => {
+            if (retryContext.previousRetryCount >= this.maxReconnectAttempts) {
+              return null; 
+            }
+            return Math.min(1000 * Math.pow(2, retryContext.previousRetryCount), 30000);
+          }
+        })
         .configureLogging(signalR.LogLevel.Information)
         .build();
 
       this.connection.onreconnecting((error) => {
         console.warn("InspectionSignalR: Reconnecting...", error);
+        this.reconnectAttempts++;
       });
 
       this.connection.onreconnected((connectionId) => {
         console.log("InspectionSignalR: Reconnected", connectionId);
+        this.reconnectAttempts = 0;
       });
 
       this.connection.onclose((error) => {
@@ -45,6 +64,7 @@ class InspectionSignalRService {
 
       await this.connection.start();
       console.log("InspectionSignalR: Connected successfully");
+      this.reconnectAttempts = 0;
     } catch (error) {
       console.error("InspectionSignalR: Connection failed", error);
       this.connection = null;
@@ -53,6 +73,13 @@ class InspectionSignalRService {
       this.isConnecting = false;
     }
   }
+
+  public isConnected(): boolean {
+    return this.connection?.state === signalR.HubConnectionState.Connected;
+  }
+  
+  // ... rest of the code remains the same
+
 
 
   public async joinTechnicianGroup(technicianId: string): Promise<void> {

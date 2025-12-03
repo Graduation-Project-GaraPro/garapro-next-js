@@ -1,7 +1,8 @@
 // src/app/manager/repairOrderManagement/orders/[id]/components/jobs-tab.tsx
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
+import { useJobHub } from "@/hooks/use-job-hub"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -25,10 +26,12 @@ import type { Job } from "@/types/job"
 interface JobsTabProps {
   orderId: string
   branchId?: string // Optional branch ID for branch-specific technician filtering
+  isArchived?: boolean // Flag to indicate if the RO is archived (read-only mode)
 }
 
-export default function JobsTab({ orderId, branchId }: JobsTabProps) {
+export default function JobsTab({ orderId, branchId, isArchived }: JobsTabProps) {
   const { toast } = useToast()
+  const { isConnected, onJobStatusUpdated, onRepairCreated } = useJobHub()
   const [jobs, setJobs] = useState<Job[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -50,6 +53,39 @@ export default function JobsTab({ orderId, branchId }: JobsTabProps) {
   useEffect(() => {
     loadJobs()
   }, [orderId])
+
+  // Listen for real-time job status updates
+  useEffect(() => {
+    if (!isConnected) return;
+
+    // Handle job status updates (technician starts/finishes work)
+    const unsubscribeStatus = onJobStatusUpdated((notification) => {
+      console.log("📋 Job status updated:", notification);
+      
+      // Only update if it's for a job in this RO
+      if (notification.repairOrderId === orderId) {
+        // Silently refresh jobs list to show updated status
+        loadJobs();
+      }
+    });
+
+    // Handle repair created (technician starts work)
+    const unsubscribeRepair = onRepairCreated((notification) => {
+      console.log("🚀 Technician started work:", notification);
+      
+      // Check if this repair is for a job in this RO
+      const job = jobs.find(j => j.jobId === notification.jobId);
+      if (job) {
+        // Silently refresh jobs list
+        loadJobs();
+      }
+    });
+
+    return () => {
+      unsubscribeStatus();
+      unsubscribeRepair();
+    };
+  }, [isConnected, orderId, jobs, onJobStatusUpdated, onRepairCreated])
 
   const loadJobs = async () => {
     try {
@@ -84,13 +120,13 @@ export default function JobsTab({ orderId, branchId }: JobsTabProps) {
   }
 
   const handleAssignTech = (jobId: string) => {
-    // Check if job is in progress
+    // Only allow assignment for Pending (0) or New (1) status
     const job = jobs.find(j => j.jobId === jobId)
-    if (job && job.status === 2) { // 2 = In Progress
+    if (job && job.status !== 0 && job.status !== 1) {
       toast({
         variant: "destructive",
-        title: "Cannot Reassign Technician",
-        description: "This job is currently in progress. Please wait until it's completed or ask the technician to pause it.",
+        title: "Cannot Assign/Reassign Technician",
+        description: "Technician can only be assigned to jobs with Pending or New status.",
       })
       return
     }
@@ -100,19 +136,19 @@ export default function JobsTab({ orderId, branchId }: JobsTabProps) {
   }
 
   const handleBatchAssignTech = () => {
-    // Get all pending jobs for batch assignment (exclude in-progress jobs)
-    const pendingJobs = jobs.filter(job => job.status === 0) // 0 = Pending
+    // Get all pending or new jobs for batch assignment
+    const assignableJobs = jobs.filter(job => job.status === 0 || job.status === 1) // 0 = Pending, 1 = New
     
-    if (pendingJobs.length === 0) {
+    if (assignableJobs.length === 0) {
       toast({
         variant: "destructive",
-        title: "No Pending Jobs",
-        description: "There are no pending jobs available for assignment.",
+        title: "No Assignable Jobs",
+        description: "There are no pending or new jobs available for assignment.",
       })
       return
     }
     
-    setSelectedJobIds(pendingJobs.map(job => job.jobId))
+    setSelectedJobIds(assignableJobs.map(job => job.jobId))
     setIsTechSelectionOpen(true)
   }
 
@@ -206,8 +242,8 @@ export default function JobsTab({ orderId, branchId }: JobsTabProps) {
     }
   }
 
-  // Check if there are pending jobs that can be assigned
-  const hasPendingJobs = jobs.some(job => job.status === 0)
+  // Check if there are pending or new jobs that can be assigned
+  const hasAssignableJobs = jobs.some(job => job.status === 0 || job.status === 1)
 
   if (loading) {
     return (
@@ -237,10 +273,10 @@ export default function JobsTab({ orderId, branchId }: JobsTabProps) {
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold">Jobs</h2>
         <div className="flex gap-2">
-          {hasPendingJobs && (
+          {!isArchived && hasAssignableJobs && (
             <Button onClick={handleBatchAssignTech} variant="outline" size="sm">
               <Users className="w-4 h-4 mr-2" />
-              Assign All Pending
+              Assign All
             </Button>
           )}
           <Button onClick={loadJobs} variant="outline" size="sm">
@@ -281,11 +317,10 @@ export default function JobsTab({ orderId, branchId }: JobsTabProps) {
                 <div className="flex justify-between items-start">
                   <div>
                     <CardTitle className="text-lg">{job.jobName}</CardTitle>
-                    <p className="text-sm text-gray-500">Job ID: {job.jobId}</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    {/* Edit Job Button - Hide for completed jobs */}
-                    {job.status !== 3 && ( // 3 = Completed
+                    {/* Edit Job Button - Hide for completed jobs or archived ROs */}
+                    {!isArchived && job.status !== 3 && ( // 3 = Completed
                       <Button
                         variant="outline"
                         size="sm"
@@ -297,22 +332,20 @@ export default function JobsTab({ orderId, branchId }: JobsTabProps) {
                       </Button>
                     )}
 
-                    {/* Assign Tech Button - Show for all non-completed jobs */}
-                    {job.status !== 3 && ( // 3 = Completed
+                    {/* Technician Assignment - Only for Pending (0) or New (1) status and not archived */}
+                    {!isArchived && (job.status === 0 || job.status === 1) ? (
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => handleAssignTech(job.jobId)}
-                        disabled={job.status === 2} // 2 = In Progress
-                        className="flex items-center gap-2"
-                        title={job.status === 2 ? "Cannot reassign while in progress" : ""}
+                        className="flex items-center gap-2 hover:bg-blue-50 hover:border-blue-300 transition-colors"
                       >
                         {assignedTechs[job.jobId] ? (
                           <>
-                            <div className="flex items-center justify-center w-5 h-5 rounded-full bg-blue-100 text-blue-800 font-medium text-xs">
+                            <div className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-500 text-white font-medium text-xs">
                               {assignedTechs[job.jobId]?.monogram}
                             </div>
-                            <span>{assignedTechs[job.jobId]?.name}</span>
+                            <span className="font-medium">{assignedTechs[job.jobId]?.name}</span>
                           </>
                         ) : (
                           <>
@@ -321,6 +354,20 @@ export default function JobsTab({ orderId, branchId }: JobsTabProps) {
                           </>
                         )}
                       </Button>
+                    ) : assignedTechs[job.jobId] ? (
+                      // Display assigned technician for non-assignable statuses (read-only)
+                      <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-md border border-gray-200">
+                        <div className="flex items-center justify-center w-6 h-6 rounded-full bg-gray-400 text-white font-medium text-xs">
+                          {assignedTechs[job.jobId]?.monogram}
+                        </div>
+                        <span className="text-sm text-gray-700">{assignedTechs[job.jobId]?.name}</span>
+                      </div>
+                    ) : (
+                      // No technician assigned and status doesn't allow assignment
+                      <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-md border border-gray-200">
+                        <User className="h-4 w-4 text-gray-400" />
+                        <span className="text-sm text-gray-500">Not Assigned</span>
+                      </div>
                     )}
                     <Badge className={getJobStatusColor(job.status)}>
                       {getJobStatusText(job.status)}
@@ -351,17 +398,14 @@ export default function JobsTab({ orderId, branchId }: JobsTabProps) {
                       Parts ({job.parts.length})
                     </h4>
                     <div className="border rounded-md divide-y">
-                      {job.parts.map((part) => (
+                      {job.parts.map((part, index) => (
                         <div
-                          key={part.jobPartId}
+                          key={part.jobPartId || `${job.jobId}-part-${index}`}
                           className="p-3 flex justify-between items-center"
                         >
                           <div>
                             <p className="text-sm font-medium">
                               {part.partName}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              ID: {part.partId}
                             </p>
                           </div>
                           <div className="text-right">

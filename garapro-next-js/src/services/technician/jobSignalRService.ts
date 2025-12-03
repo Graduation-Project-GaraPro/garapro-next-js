@@ -5,10 +5,17 @@ const API_URL = process.env.NEXT_PUBLIC_HUB_BASE_URL+ "/hubs/job" || 'http://loc
 class JobSignalRService {
   private connection: signalR.HubConnection | null = null;
   private isConnecting = false;
+  private reconnectAttempts = 0;
+  private maxReconnectAttempts = 5;
 
   public async startConnection(): Promise<void> {
-    if (this.connection || this.isConnecting) {
+    if (this.connection?.state === signalR.HubConnectionState.Connected) {
       console.log("JobSignalR: Already connected");
+      return;
+    }
+
+    if (this.isConnecting) {
+      console.log("JobSignalR: Connection in progress");
       return;
     }
 
@@ -22,19 +29,30 @@ class JobSignalRService {
       }
 
       this.connection = new signalR.HubConnectionBuilder()
-        .withUrl(API_URL, { 
+        .withUrl(API_URL, {
           accessTokenFactory: () => token,
+          skipNegotiation: true,
+          transport: signalR.HttpTransportType.WebSockets,
         })
-        .withAutomaticReconnect([0, 2000, 5000, 10000])
+        .withAutomaticReconnect({
+          nextRetryDelayInMilliseconds: (retryContext) => {
+            if (retryContext.previousRetryCount >= this.maxReconnectAttempts) {
+              return null; // Stop reconnecting
+            }
+            return Math.min(1000 * Math.pow(2, retryContext.previousRetryCount), 30000);
+          }
+        })
         .configureLogging(signalR.LogLevel.Information)
         .build();
 
       this.connection.onreconnecting((error) => {
         console.warn("JobSignalR: Reconnecting...", error);
+        this.reconnectAttempts++;
       });
 
       this.connection.onreconnected((connectionId) => {
         console.log("JobSignalR: Reconnected", connectionId);
+        this.reconnectAttempts = 0;
       });
 
       this.connection.onclose((error) => {
@@ -45,6 +63,7 @@ class JobSignalRService {
 
       await this.connection.start();
       console.log("JobSignalR: Connected successfully");
+      this.reconnectAttempts = 0;
     } catch (error) {
       console.error("JobSignalR: Connection failed", error);
       this.connection = null;
@@ -52,6 +71,10 @@ class JobSignalRService {
     } finally {
       this.isConnecting = false;
     }
+  }
+
+  public isConnected(): boolean {
+    return this.connection?.state === signalR.HubConnectionState.Connected;
   }
 
   public async joinTechnicianGroup(technicianId: string): Promise<void> {

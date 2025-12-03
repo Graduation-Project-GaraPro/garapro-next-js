@@ -149,101 +149,124 @@ export default function RepairProgressPage() {
   };
 
   useEffect(() => {
-    const fetchRepairDetails = async () => {
-      if (!jobId) {
-        setError("Job ID is missing");
-        setLoading(false);
-        return;
-      }
-      try {
-        setLoading(true);
-        setError("");
-        const authToken = typeof window !== "undefined" ? localStorage.getItem("authToken") : "";
-        
-        const jobResponse = await fetch(API_URL+`/odata/JobTechnician/my-jobs/${jobId}`, {
-          headers: {
-            Authorization: `Bearer ${authToken}`,
-          },
-        });
-        if (!jobResponse.ok) {
-          throw new Error("Failed to fetch job details");
-        }
-        const jobData = await jobResponse.json();
-        const repairOrderId = jobData.repairOrderId;
-        if (!repairOrderId) {
-          throw new Error("Repair order ID not found in job details");
-        }
-        
-        try {
-          const myJobsResponse = await fetch(API_URL+`/odata/JobTechnician/my-jobs`, {
-            headers: {
-              Authorization: `Bearer ${authToken}`,
-            },
-          });
-          if (myJobsResponse.ok) {
-            const myJobsData: JobResponseDto[] = await myJobsResponse.json();
-            const jobsInSameOrder = myJobsData.filter((job: JobResponseDto) => job.repairOrderId === repairOrderId);
-            const jobIdsArray = jobsInSameOrder.map((job: JobResponseDto) => job.jobId);
-            console.log("My job IDs in this repair order:", jobIdsArray);
-            setMyJobIds(jobIdsArray);
-          }
-        } catch (err) {
-          console.warn("Could not fetch all jobs, using current job only:", err);
-          setMyJobIds([jobId]);
-        }
-        const data: RepairDetailDto = await getRepairOrderDetails(repairOrderId);
-        const vehicleName = data.vehicle?.brand?.brandName && data.vehicle?.model?.modelName
-          ? `${data.vehicle.brand.brandName} ${data.vehicle.model.modelName} ${data.vehicle.model.manufacturingYear || ''}`
-          : data.vin || "Unknown Vehicle";
-        
-        setVehicleInfo({
-          repairOrderId: data.repairOrderId,
-          vehicle: vehicleName.trim(),
-          licensePlate: data.vehicleLicensePlate || "N/A",
-          owner: data.customerName || "Unknown",
-          phone: data.customerPhone || "N/A",
-          issue: data.jobs.map(j => j.jobName).join(", ") || "N/A",
-          result: data.note || "No diagnostic results available"
-        });
-        
-        const steps: RepairStep[] = data.jobs.map((job: JobDetailDto) => {
-  const repair = job.repairs;
-  let estimatedHours = 0;
-  let estimatedMinutes = 0;
-  
-  if (repair?.estimatedTimeShort) {
-    const match = repair.estimatedTimeShort.match(/(\d+)h\s*(\d+)m/);
-    if (match) {
-      estimatedHours = parseInt(match[1]) || 0;
-      estimatedMinutes = parseInt(match[2]) || 0;
-    }
-  }
+   const MAX_RETRIES = 3;
 
-  return {
-    jobId: job.jobId,
-    title: job.jobName,
-    description: repair?.description || null,
-    status: job.status as RepairStep["status"],
-    startTime: repair?.startTime,
-    endTime: repair?.endTime,
-    notes: repair?.notes || "",
-    estimatedHours,
-    estimatedMinutes,
-    actualTimeShort: repair?.actualTimeShort, 
-    estimatedTimeShort: repair?.estimatedTimeShort, 
-    repairId: repair?.repairId,
-    serviceName: job.serviceName,
-    parts: job.parts || []
-  };
-});
-        setRepairSteps(steps);
-      } catch (err: unknown) {
-        console.error("Error fetching repair details:", err);
-        setError("Failed to load repair details");
-      } finally {
-        setLoading(false);
+const fetchRepairDetails = async (retryCount: number = 0) => {
+  if (!jobId) {
+    setError("Job ID is missing");
+    setLoading(false);
+    return;
+  }
+  try {
+    setLoading(true);
+    setError("");
+    const authToken = typeof window !== "undefined" ? localStorage.getItem("authToken") : "";
+    
+    const jobResponse = await fetch(API_URL+`/odata/JobTechnician/my-jobs/${jobId}`, {
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+      },
+    });
+    if (!jobResponse.ok) {
+      throw new Error("Failed to fetch job details");
+    }
+    const jobData = await jobResponse.json();
+    const repairOrderId = jobData.repairOrderId;
+    if (!repairOrderId) {
+      throw new Error("Repair order ID not found in job details");
+    }
+    
+    try {
+      const myJobsResponse = await fetch(API_URL+`/odata/JobTechnician/my-jobs`, {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      });
+      if (myJobsResponse.ok) {
+        const myJobsData: JobResponseDto[] = await myJobsResponse.json();
+        const jobsInSameOrder = myJobsData.filter((job: JobResponseDto) => job.repairOrderId === repairOrderId);
+        const jobIdsArray = jobsInSameOrder.map((job: JobResponseDto) => job.jobId);
+        console.log("My job IDs in this repair order:", jobIdsArray);
+        setMyJobIds(jobIdsArray);
       }
-    };
+    } catch (err) {
+      console.warn("Could not fetch all jobs, using current job only:", err);
+      setMyJobIds([jobId]);
+    }
+    
+    const data: RepairDetailDto = await getRepairOrderDetails(repairOrderId);
+    const vehicleName = data.vehicle?.brand?.brandName && data.vehicle?.model?.modelName
+      ? `${data.vehicle.brand.brandName} ${data.vehicle.model.modelName} ${data.vehicle.model.manufacturingYear || ''}`
+      : data.vin || "Unknown Vehicle";
+    
+    setVehicleInfo({
+      repairOrderId: data.repairOrderId,
+      vehicle: vehicleName.trim(),
+      licensePlate: data.vehicleLicensePlate || "N/A",
+      owner: data.customerName || "Unknown",
+      phone: data.customerPhone || "N/A",
+      issue: data.jobs.map(j => j.jobName).join(", ") || "N/A",
+      result: data.note || "No diagnostic results available"
+    });
+    
+    const steps: RepairStep[] = data.jobs.map((job: JobDetailDto) => {
+      const repair = job.repairs;
+      let estimatedHours = 0;
+      let estimatedMinutes = 0;
+      
+      if (repair?.estimatedTimeShort) {
+        const match = repair.estimatedTimeShort.match(/(\d+)h\s*(\d+)m/);
+        if (match) {
+          estimatedHours = parseInt(match[1]) || 0;
+          estimatedMinutes = parseInt(match[2]) || 0;
+        }
+      }
+
+      return {
+        jobId: job.jobId,
+        title: job.jobName,
+        description: repair?.description || null,
+        status: job.status as RepairStep["status"],
+        startTime: repair?.startTime,
+        endTime: repair?.endTime,
+        notes: repair?.notes || "",
+        estimatedHours,
+        estimatedMinutes,
+        actualTimeShort: repair?.actualTimeShort, 
+        estimatedTimeShort: repair?.estimatedTimeShort, 
+        repairId: repair?.repairId,
+        serviceName: job.serviceName,
+        parts: job.parts || []
+      };
+    });
+    setRepairSteps(steps);
+  } catch (err: unknown) {
+    console.error("Error fetching repair details:", err);
+    
+    // Check if it's a network error and should retry
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    const isNetworkError =
+      errorMessage.includes("Failed to fetch") ||
+      errorMessage.includes("NetworkError") ||
+      errorMessage.includes("ERR_HTTP2") ||
+      errorMessage.includes("HTTP2") ||
+      errorMessage.includes("stream") ||
+      errorMessage.includes("ECONNRESET") ||
+      errorMessage.includes("network") ||
+      errorMessage.includes("timeout");
+    
+    if (isNetworkError && retryCount < MAX_RETRIES) {
+      const delay = 150 + retryCount * 150;
+      console.log(`Network error detected. Retrying in ${delay}ms... (Attempt ${retryCount + 1}/${MAX_RETRIES})`);
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      return fetchRepairDetails(retryCount + 1);
+    }
+    
+    setError("Failed to load repair details. Please check your connection and try again.");
+  } finally {
+    setLoading(false);
+  }
+};
     fetchRepairDetails();
   }, [jobId]);
   
@@ -808,7 +831,7 @@ const handleSaveProgress = async () => {
 
         <div className="space-y-2 mb-5">
           {repairSteps.map((step, index) => {
-            const StatusIcon = statusConfig[step.status].icon;         
+          const StatusIcon = statusConfig?.[step?.status]?.icon;        
             const isMyJob = myJobIds.includes(step.jobId);
             const isEditable = !step.description && isMyJob;
             const isUpdatable = step.description && isMyJob && step.status !== "Completed";
@@ -816,7 +839,7 @@ const handleSaveProgress = async () => {
             return (
               <div
                 key={step.jobId}
-                className={`bg-white/90 rounded-xl shadow-lg border-2 border-gray-200 overflow-hidden ${statusConfig[step.status].bgColor}/30 ${!isMyJob ? "opacity-50 cursor-not-allowed" : ""}`}
+                className={`bg-white/90 rounded-xl shadow-lg border-2 border-gray-200 overflow-hidden ${statusConfig[step?.status]?.bgColor}/30 ${!isMyJob ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 <div className="p-4">
                   <div className="flex flex-col md:flex-row items-start justify-between mb-2 min-h-[100px]">

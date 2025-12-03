@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { MoreHorizontal, Edit, Trash2, Clock, DollarSign, User, ExternalLink, Calendar, XCircle, Archive, Tag } from "lucide-react"
+import { MoreHorizontal, Clock, DollarSign, User, ExternalLink, Calendar, XCircle, Archive, Tag } from "lucide-react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -82,17 +82,13 @@ export default function RepairOrderCard({
     ? [defaultLabel]
     : []
 
-  // Show archive icon only for:
-  // 1. Cancelled ROs, OR
-  // 2. Completed ROs that are fully paid
+  console.log("paidstatus",repairOrder.paidStatus)
   const canArchive = repairOrder.isCancelled || (isCompleted && repairOrder.paidStatus === PaidStatus.Paid)
 
   const getPaidStatusColor = (status: PaidStatus) => {
     switch (status) {
       case PaidStatus.Paid:
         return "bg-green-100 text-green-700 border-green-200"
-      case PaidStatus.Partial:
-        return "bg-yellow-100 text-yellow-700 border-yellow-200"
       case PaidStatus.Unpaid:
         return "bg-red-100 text-red-700 border-red-200"
       default:
@@ -162,20 +158,12 @@ export default function RepairOrderCard({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={onEdit}>
-                <Edit className="w-4 h-4 mr-2" />
-                Edit
-              </DropdownMenuItem>
               {isPending && onCancel && (
                 <DropdownMenuItem onClick={onCancel} className="text-orange-600">
                   <XCircle className="w-4 h-4 mr-2" />
                   Cancel
                 </DropdownMenuItem>
               )}
-              <DropdownMenuItem onClick={onDelete} className="text-red-600">
-                <Trash2 className="w-4 h-4 mr-2" />
-                Delete
-              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

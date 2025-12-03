@@ -1,10 +1,9 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { 
   FaCar, FaSearch, FaChevronDown, FaChevronUp, 
   FaRuler, FaCog, FaRoad, FaShieldAlt, FaTachometerAlt,
-  FaWrench, FaEye, FaTimes, FaSpinner, FaExclamationTriangle
+  FaWrench, FaEye, FaTimes, FaSpinner
 } from "react-icons/fa";
 import { IconType } from "react-icons";
 import { getAllSpecifications, VehicleSpecificationDto } from "@/services/technician/specificationService";
@@ -25,7 +24,6 @@ interface Vehicle {
   sections: VehicleSection[];
 }
 
-// Icon mapping for categories
 const getCategoryIcon = (categoryName: string): IconType => {
   const lowerCategory = categoryName.toLowerCase();
   if (lowerCategory.includes("dimension") || lowerCategory.includes("weight")) return FaRuler;
@@ -39,7 +37,6 @@ const getCategoryIcon = (categoryName: string): IconType => {
   return FaCog;
 };
 
-// Color mapping for categories
 const getCategoryColor = (index: number): { color: string; iconBg: string } => {
   const colors = [
     { color: "bg-blue-50 border-blue-200", iconBg: "bg-blue-600" },
@@ -55,14 +52,11 @@ const getCategoryColor = (index: number): { color: string; iconBg: string } => {
 };
 
 export default function VehicleInformation() {
-  const router = useRouter();
   const [vehicleSearch, setVehicleSearch] = useState<string>("");
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const [showModal, setShowModal] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  const [showErrorModal, setShowErrorModal] = useState<boolean>(false);
   const [vehicleData, setVehicleData] = useState<Vehicle[]>([]);
 
   useEffect(() => {
@@ -72,12 +66,9 @@ export default function VehicleInformation() {
   const fetchSpecifications = async () => {
     try {
       setLoading(true);
-      setError(null);
-      setShowErrorModal(false);
 
       const data = await getAllSpecifications();
       
-      // Transform API data to UI format
       const transformedData: Vehicle[] = data.map((vehicle: VehicleSpecificationDto) => ({
         id: vehicle.lookupID,
         name: vehicle.nameCar,
@@ -103,13 +94,10 @@ export default function VehicleInformation() {
 
       setVehicleData(transformedData);
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'An error occurred while loading vehicle specifications';
-      setError(errorMessage);
-      setShowErrorModal(true);
-      
-      if (errorMessage.includes("authentication") || errorMessage.includes("token")) {
-        setTimeout(() => router.push('/login'), 2000);
-      }
+      console.error('Error fetching specifications:', err);
+         if (typeof window !== "undefined") {
+      window.location.href = "/login";
+    }
     } finally {
       setLoading(false);
     }
@@ -164,47 +152,6 @@ export default function VehicleInformation() {
 
   return (
     <>
-      {/* Error Modal */}
-      {showErrorModal && error && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 animate-fade-in">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center">
-                <div className="bg-red-100 rounded-full p-2 mr-3">
-                  <FaExclamationTriangle className="text-red-600 text-xl" />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900">Error</h3>
-              </div>
-              <button
-                onClick={() => setShowErrorModal(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <FaTimes className="text-xl" />
-              </button>
-            </div>
-            
-            <p className="text-gray-700 mb-6">{error}</p>
-            
-            <div className="flex gap-3 justify-end">
-              <button
-                onClick={() => setShowErrorModal(false)}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
-              >
-                Close
-              </button>
-              <button
-                onClick={() => {
-                  setShowErrorModal(false);
-                  fetchSpecifications();
-                }}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Retry
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       <div className="flex-col h-full bg-gradient-to-br from-blue-400 via-white to-indigo-400 rounded-xl">
         <div className="max-w-7xl mx-auto p-6">

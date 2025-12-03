@@ -16,6 +16,7 @@ export interface GarageServiceCatalogItem {
   isAdvanced: boolean
   createdAt: string
   updatedAt: string
+  categoryName?: string // Optional - populated when fetching with category info
 }
 
 export interface ServiceCategory {
@@ -140,6 +141,31 @@ class ServiceCatalogService {
       return await this.list({ serviceTypeId: categoryId });
     } catch (error) {
       console.error(`Failed to fetch services for category ${categoryId}:`, error);
+      return [];
+    }
+  }
+
+  // New method to get all active services with category names
+  async getAllServices(): Promise<GarageServiceCatalogItem[]> {
+    try {
+      // Fetch all services and categories in parallel
+      const [services, categories] = await Promise.all([
+        this.list({ status: true }), // Only active services
+        this.getCategories()
+      ]);
+      
+      // Create a map of category IDs to names
+      const categoryMap = new Map(
+        categories.map(cat => [cat.serviceCategoryId, cat.categoryName])
+      );
+      
+      // Add category names to services
+      return services.map(service => ({
+        ...service,
+        categoryName: categoryMap.get(service.serviceCategoryId) || 'Other'
+      }));
+    } catch (error) {
+      console.error('Failed to fetch all services:', error);
       return [];
     }
   }

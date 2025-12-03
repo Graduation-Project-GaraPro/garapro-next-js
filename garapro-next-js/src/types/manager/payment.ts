@@ -13,41 +13,101 @@ export interface PaymentHistoryItem {
 export interface PaymentSummaryResponse {
   repairOrderId: string;
   customerName: string;
-  customerPhone?: string;
-  customerEmail?: string;
-  vehicleMake: string;
-  vehicleModel: string;
-  vehicleYear: number;
-  vehicleLicensePlate: string;
-  totalAmount: number;
-  discountAmount: number;
-  amountToPay: number;
-  // paidAmount: number; // DEPRECATED - Removed from backend
-  balanceDue: number;
+  vehicleInfo: string;
+  repairOrderCost: number; 
+  totalDiscount: number; 
+  amountToPay: number; 
+  paidStatus: number;
   paymentHistory: PaymentHistoryItem[];
-  paymentStatus: 'Unpaid' | 'Partial' | 'Paid';
+  totalAmount?: number;
+  discountAmount?: number;
+  paymentStatus?: 'Unpaid' | 'Paid'; 
 }
 
-// Create Payment Request (POST /api/payments/manager-create/{repairOrderId})
 export type PaymentMethod = 'Cash' | 'PayOs';
 
-// Payment method enum values (backend expects numbers)
 export enum PaymentMethodEnum {
-  Cash = 0,
-  PayOs = 1
+    PayOs = 0,
+    Cash = 1
+
+}
+
+export enum PaymentStatusEnum {
+  Paid = 0,
+  Unpaid = 1,
+  Cancelled = 2,
+  Failed = 3
+}
+
+// Helper functions to map enums to display names
+export function getPaymentMethodName(method: string | number): string {
+  if (typeof method === 'string') return method;
+  
+  switch (method) {
+    case 0:
+    case PaymentMethodEnum.Cash:
+      return 'Cash';
+    case 1:
+    case PaymentMethodEnum.PayOs:
+      return 'PayOs';
+    default:
+      return 'Unknown';
+  }
+}
+
+export function getPaymentStatusName(status: string | number): string {
+  if (typeof status === 'string') return status;
+  
+  switch (status) {
+    case 0:
+    case PaymentStatusEnum.Paid:
+      return 'Paid';
+    case 1:
+    case PaymentStatusEnum.Unpaid:
+      return 'Unpaid';
+    case 2:
+    case PaymentStatusEnum.Cancelled:
+      return 'Cancelled';
+    case 3:
+    case PaymentStatusEnum.Failed:
+      return 'Failed';
+    default:
+      return 'Unknown';
+  }
+}
+
+// Helper function to get status badge color
+export function getPaymentStatusColor(status: string | number): {
+  bg: string;
+  text: string;
+} {
+  const statusName = typeof status === 'string' ? status : getPaymentStatusName(status);
+  
+  switch (statusName) {
+    case 'Paid':
+      return { bg: 'bg-green-100', text: 'text-green-800' };
+    case 'Unpaid':
+      return { bg: 'bg-yellow-100', text: 'text-yellow-800' };
+    case 'Cancelled':
+      return { bg: 'bg-gray-100', text: 'text-gray-800' };
+    case 'Failed':
+      return { bg: 'bg-red-100', text: 'text-red-800' };
+    default:
+      return { bg: 'bg-gray-100', text: 'text-gray-600' };
+  }
 }
 
 export interface CreatePaymentRequest {
-  method: number; // Backend expects numeric enum (0 = Cash, 1 = PayOs)
+  method: number;
   description: string;
 }
 
 export interface CreatePaymentResponse {
   message: string;
   paymentId: number;
-  method: PaymentMethod | number; // Backend returns enum as number
+  method: PaymentMethod | number; 
   amount: number;
-  status: string | number; // Backend returns enum as number
+  status: string | number; 
   qrCodeData: string | null;
 }
 
@@ -59,12 +119,15 @@ export interface GenerateQRCodeRequest {
 
 export interface GenerateQRCodeResponse {
   message: string;
-  qrCodeData: string;
-  repairOrderId: string;
-  amount: number;
+  paymentId: number;
+  orderCode: number;
+  checkoutUrl: string;
+  qrCodeUrl: string;
+  qrCodeData?: string;
+  repairOrderId?: string;
+  amount?: number;
 }
 
-// Payment Preview Response (GET /api/Payments/preview/{repairOrderId})
 export interface PaymentPreviewService {
   serviceId: string;
   serviceName: string;
@@ -84,7 +147,6 @@ export interface PaymentPreviewResponse {
   repairOrderId: string;
   repairOrderCost: number;
   estimatedAmount: number;
-  // paidAmount: number; // DEPRECATED - Removed from backend
   discountAmount: number;
   totalAmount: number;
   customerName: string;
@@ -93,7 +155,6 @@ export interface PaymentPreviewResponse {
   parts: PaymentPreviewPart[];
 }
 
-// Legacy types for backward compatibility
 export interface PaymentService {
   serviceId: string;
   serviceName: string;
@@ -120,7 +181,6 @@ export interface RepairOrderPaymentSummary {
   repairOrderId: string;
   repairOrderCost: number;
   estimatedAmount: number;
-  // paidAmount: number; // DEPRECATED - Removed from backend
   discountAmount: number;
   totalAmount: number;
   services: PaymentService[];

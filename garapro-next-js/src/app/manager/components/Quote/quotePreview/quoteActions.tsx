@@ -11,6 +11,8 @@ interface QuoteActionsProps {
   isApproved?: boolean // Add approved status flag
   jobsCreated?: boolean // Add jobs created flag
   jobsCreatedAt?: string | null // Add jobs created timestamp
+  quoteSent?: boolean // Add quote sent flag
+  sentAt?: string | null // Add sent timestamp
 }
 
 export default function QuoteActions({ 
@@ -20,7 +22,9 @@ export default function QuoteActions({
   onCopyToJobs, // Destructure new props
   isApproved = false, // Default to false
   jobsCreated = false,
-  jobsCreatedAt = null
+  jobsCreatedAt = null,
+  quoteSent = false,
+  sentAt = null
 }: QuoteActionsProps) {
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
@@ -55,13 +59,27 @@ export default function QuoteActions({
           Copy to Jobs
         </Button>
       ) : null}
-      <Button
-        onClick={onSend}
-        className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
-      >
-        <Send className="h-4 w-4" />
-        Send Quote
-      </Button>
+      {!isApproved && (
+        quoteSent ? (
+          <div className="flex items-center gap-2 rounded-md bg-green-100 px-4 py-2 text-sm font-medium text-green-800">
+            <Send className="h-4 w-4" />
+            Quote Sent
+            {sentAt && (
+              <span className="text-green-600">
+                • {new Date(sentAt).toLocaleDateString()}
+              </span>
+            )}
+          </div>
+        ) : (
+          <Button
+            onClick={onSend}
+            className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
+          >
+            <Send className="h-4 w-4" />
+            Send Quote
+          </Button>
+        )
+      )}
     </div>
   )
 }

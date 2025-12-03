@@ -16,13 +16,14 @@ import { Search, User, MapPin, Wrench, Clock, RefreshCw } from "lucide-react"
 import { technicianService } from "@/services/manager/technician-service"
 import type { Technician } from "@/types/manager/tech-schedule"
 import type { TechnicianWorkload } from "@/services/manager/technician-service"
+import { branchService } from "@/services/branch-service"
 
 interface TechnicianSelectionDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onAssign: (technicianId: string) => void
   jobIds: string[]
-  branchId?: string // Optional branch ID for branch-specific filtering
+  branchId?: string 
 }
 
 export function TechnicianSelectionDialog({ 
@@ -39,11 +40,15 @@ export function TechnicianSelectionDialog({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [workloads, setWorkloads] = useState<Record<string, TechnicianWorkload>>({})
+  const [branchName, setBranchName] = useState<string | null>(null)
   const hasLoadedRef = useRef(false)
 
   useEffect(() => {
     if (open && (!hasLoadedRef.current || branchId)) {
       loadTechnicians()
+      if (branchId) {
+        loadBranchName()
+      }
       hasLoadedRef.current = true
     }
   }, [open, branchId])
@@ -113,6 +118,18 @@ export function TechnicianSelectionDialog({
     }
   }
 
+  const loadBranchName = async () => {
+    if (!branchId) return
+    
+    try {
+      const branch = await branchService.getBranchById(branchId)
+      setBranchName(branch.branchName)
+    } catch (error) {
+      console.error("Failed to load branch name:", error)
+      setBranchName(null)
+    }
+  }
+
   const handleAssign = () => {
     if (selectedTechnician) {
       onAssign(selectedTechnician)
@@ -123,61 +140,15 @@ export function TechnicianSelectionDialog({
     setSelectedTechnician(technicianId)
   }
 
-  const getAvailabilityStatus = (tech: Technician) => {
-    const workload = workloads[tech.id]
-    
-    // If we have workload data, use it to determine availability
-    if (workload) {
-      const totalActiveJobs = workload.inProgressJobs + workload.pendingJobs
-      // Consider busy if they have more than 3 active jobs
-      if (totalActiveJobs > 3) {
-        return { status: "busy", label: "Busy" }
-      } else if (totalActiveJobs > 0) {
-        return { status: "moderate", label: "Moderate" }
-      } else {
-        return { status: "free", label: "Free" }
-      }
-    }
-    
-    // Fallback to technician status
-    switch (tech.status) {
-      case "available":
-        return { status: "free", label: "Free" }
-      case "busy":
-        return { status: "busy", label: "Busy" }
-      case "break":
-        return { status: "break", label: "Break" }
-      case "offline":
-        return { status: "offline", label: "Offline" }
-      default:
-        return { status: "unknown", label: "Unknown" }
-    }
-  }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "free":
-        return "text-green-600 bg-green-100"
-      case "moderate":
-        return "text-yellow-600 bg-yellow-100"
-      case "busy":
-        return "text-red-600 bg-red-100"
-      case "break":
-        return "text-orange-600 bg-orange-100"
-      case "offline":
-        return "text-gray-600 bg-gray-100"
-      default:
-        return "text-gray-600 bg-gray-100"
-    }
-  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Select Technician</DialogTitle>
-          {branchId && (
-            <p className="text-sm text-gray-500">Branch ID: {branchId}</p>
+          {branchId && branchName && (
+            <p className="text-sm text-gray-500">Branch: {branchName}</p>
           )}
         </DialogHeader>
         
@@ -218,7 +189,6 @@ export function TechnicianSelectionDialog({
               ) : (
                 <div className="space-y-2">
                   {filteredTechnicians.map((technician: Technician) => {
-                    const availability = getAvailabilityStatus(technician)
                     const workload = workloads[technician.id]
                     
                     return (
@@ -237,9 +207,6 @@ export function TechnicianSelectionDialog({
                         <div className="ml-3 flex-1 min-w-0">
                           <div className="flex items-center justify-between">
                             <p className="text-sm font-medium truncate">{technician.name}</p>
-                            <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(availability.status)}`}>
-                              {availability.label}
-                            </span>
                           </div>
                           <div className="flex items-center text-xs text-gray-500 mt-1">
                             <MapPin className="w-3 h-3 mr-1" />

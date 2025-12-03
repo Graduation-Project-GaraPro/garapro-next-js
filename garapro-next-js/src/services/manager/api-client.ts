@@ -71,19 +71,7 @@ class ApiClient {
     });
 
     try {
-      // Log request details for debugging
-      console.log("=== API CLIENT REQUEST ===");
-      console.log("URL:", url);
-      console.log("Method:", config.method);
-      console.log("Headers:", config.headers);
-      console.log("Body:", config.body);
-      
       const response = await fetch(url, config);
-      
-      console.log("=== API CLIENT RESPONSE ===");
-      console.log("Status:", response.status);
-      console.log("Status Text:", response.statusText);
-      console.log("OK:", response.ok);
 
       // Apply response interceptors
       let processedResponse = response;
@@ -93,8 +81,6 @@ class ApiClient {
 
       if (!processedResponse.ok) {
         const errorData = await this.parseErrorResponse(processedResponse);
-        console.log("=== API CLIENT ERROR DATA ===");
-        console.log("Error Data:", errorData);
         
         // Create error object with full error data
         const error = new Error(errorData.message || `HTTP error! status: ${processedResponse.status}`) as Error & ApiError;
@@ -161,15 +147,45 @@ class ApiClient {
         };
       }
       
-      const errorData = await response.json();
+      // Clone the response to read it multiple times if needed
+      const clonedResponse = response.clone();
+      const contentType = response.headers.get('content-type');
       
-      // Store the full response data in details for later access
-      return {
-        message: errorData.message || 'An error occurred',
-        status: response.status,
-        code: errorData.code,
-        details: errorData // Store full response data
-      };
+      // Try to parse as JSON first
+      if (contentType && contentType.includes('application/json')) {
+        try {
+          const errorData = await response.json();
+          
+          // Handle different error response formats
+          const message = errorData.message || 
+                         errorData.error || 
+                         errorData.title ||
+                         errorData.Message ||
+                         'An error occurred';
+          
+          // Store the full response data in details for later access
+          return {
+            message,
+            status: response.status,
+            code: errorData.code || errorData.type,
+            details: errorData // Store full response data
+          };
+        } catch (jsonError) {
+          // If JSON parsing fails, try to read as text
+          const text = await clonedResponse.text();
+          return {
+            message: text || `HTTP ${response.status}: ${response.statusText}`,
+            status: response.status
+          };
+        }
+      } else {
+        // Not JSON, try to read as text
+        const text = await response.text();
+        return {
+          message: text || `HTTP ${response.status}: ${response.statusText}`,
+          status: response.status
+        };
+      }
     } catch {
       return {
         message: `HTTP ${response.status}: ${response.statusText}`,

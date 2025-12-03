@@ -38,30 +38,42 @@ class CustomerService {
   }
 
   async createCustomer(customerData: CreateCustomerDto): Promise<Customer> {
-    try {
-      console.log('Sending customer data:', JSON.stringify(customerData, null, 2));
-      const response = await apiClient.post<Customer>(this.baseUrl, customerData);
-      console.log('Customer API response:', response);
+    const response = await apiClient.post<Customer>(this.baseUrl, customerData);
+    
+    // The API client returns { data, status, success }
+    // Check if we have data or if the response itself is the customer object
+    if (response.data) {
       return response.data;
-    } catch (error) {
-      console.error('Failed to create customer - Error details:', error);
-      
-      // Try to get more details about the error response
-      if (error && typeof error === 'object') {
-        if ('status' in error) {
-          console.error('Error status:', error.status);
-        }
-        if ('message' in error) {
-          console.error('Error message:', error.message);
-        }
-      }
-      
-      // Re-throw the error with more details
-      if (error instanceof Error) {
-        throw new Error(`Failed to create customer: ${error.message}`);
-      }
-      throw error;
     }
+    
+    // Some APIs return the data directly in the response
+    if (response && 'userId' in response) {
+      return response as unknown as Customer;
+    }
+    
+    throw new Error('No data returned from API');
+  }
+
+  async quickCreateCustomer(customerData: { 
+    firstName: string; 
+    lastName: string; 
+    phoneNumber: string;
+    email?: string;
+  }): Promise<Customer> {
+    const response = await apiClient.post<Customer>(`${this.baseUrl}/quick`, customerData);
+    
+    // The API client returns { data, status, success }
+    // Check if we have data or if the response itself is the customer object
+    if (response.data) {
+      return response.data;
+    }
+    
+    // Some APIs return the data directly in the response
+    if (response && 'userId' in response) {
+      return response as unknown as Customer;
+    }
+    
+    throw new Error('No data returned from API');
   }
 }
 

@@ -97,6 +97,17 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
     }
   }, [searchParams])
 
+  // Force switch to vehicle-info tab if RO is cancelled and user is on a disabled tab
+  useEffect(() => {
+    if (repairOrder?.isCancelled) {
+      const disabledTabs = ["inspections", "quotation", "jobs", "payment"]
+      if (disabledTabs.includes(activeTab)) {
+        console.log("RO is cancelled, switching to vehicle-info tab")
+        setActiveTab("vehicle-info")
+      }
+    }
+  }, [repairOrder?.isCancelled, activeTab])
+
   // Show loading while params are being resolved
   if (!orderId || loadingBranch || isLoadingOrder) {
     return (
@@ -132,12 +143,14 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
   
   const orderData = getOrderDisplayData()
 
+  const isCancelled = repairOrder?.isCancelled || false
+
   const tabs = [
-    { id: "vehicle-info", label: "VEHICLE INFO", icon: FileText },
-    { id: "inspections", label: "INSPECTIONS", icon: Clipboard },
-    { id: "quotation", label: "QUOTATION", icon: Clipboard },
-    { id: "jobs", label: "JOBS", icon: Calculator },
-    { id: "payment", label: "PAYMENT", icon: CreditCard },
+    { id: "vehicle-info", label: "VEHICLE INFO", icon: FileText, disabled: false },
+    { id: "inspections", label: "INSPECTIONS", icon: Clipboard, disabled: isCancelled },
+    { id: "quotation", label: "QUOTATION", icon: Clipboard, disabled: isCancelled },
+    { id: "jobs", label: "JOBS", icon: Calculator, disabled: isCancelled },
+    { id: "payment", label: "PAYMENT", icon: CreditCard, disabled: isCancelled },
   ]
 
   const renderTabContent = () => {
@@ -147,8 +160,8 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
       "vehicle-info": <VehicleInformation orderId={orderId} />,
       inspections: <InspectionsTab orderId={orderId} highlightInspectionId={highlightInspectionId} />,
       quotation: <QuotationTab orderId={orderId} />,
-      jobs: <JobsTab orderId={orderId} branchId={userBranchId || undefined} />,
-      payment: <PaymentTab orderId={orderId} repairOrderStatus={repairOrder ? parseInt(repairOrder.statusId) : undefined} onPaymentSuccess={handleOrderUpdated} />
+      jobs: <JobsTab orderId={orderId} branchId={userBranchId || undefined} isArchived={repairOrder?.isArchived} />,
+      payment: <PaymentTab orderId={orderId} repairOrderStatus={repairOrder ? parseInt(repairOrder.statusId) : undefined} paidStatus={repairOrder?.paidStatus} isArchived={repairOrder?.isArchived} onPaymentSuccess={handleOrderUpdated} />
     }
 
     return tabComponents[activeTab as keyof typeof tabComponents] || null
@@ -174,11 +187,21 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
                 RO #{orderData.shortId} • {orderData.customer} • {orderData.vehicle}
               </h1>
               <div className="flex items-center gap-3 mt-1 flex-wrap">
+                {repairOrder?.isCancelled && (
+                  <Badge variant="secondary" className="bg-red-500 text-white">
+                    Cancelled
+                  </Badge>
+                )}
+                {repairOrder?.isArchived && (
+                  <Badge variant="secondary" className="bg-gray-500 text-white">
+                    Archived
+                  </Badge>
+                )}
                 {orderData.labels.length > 0 && (
                   <div className="flex items-center gap-2">
-                    {orderData.labels.map((label) => (
+                    {orderData.labels.map((label, index) => (
                       <Badge 
-                        key={label.labelId}
+                        key={`label-${label.labelId}-${index}`}
                         variant="secondary"
                         style={{ backgroundColor: label.hexCode, color: '#fff' }}
                         className="text-xs"
@@ -193,26 +216,25 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
           </div>
 
           <div className="flex items-center space-x-2">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="text-white hover:bg-opacity-80" 
-              style={{ backgroundColor: "rgba(255, 255, 255, 0.1)" }}
-              onClick={() => setIsEditDialogOpen(true)}
-              title="Edit Repair Order"
-            >
-              <Edit className="w-4 h-4" />
-            </Button>
+            {!repairOrder?.isArchived && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-white hover:bg-opacity-80" 
+                style={{ backgroundColor: "rgba(255, 255, 255, 0.1)" }}
+                onClick={() => setIsEditDialogOpen(true)}
+                title="Edit Repair Order"
+              >
+                <Edit className="w-4 h-4" />
+              </Button>
+            )}
             <Button variant="ghost" size="sm" className="text-white hover:bg-opacity-80" style={{ backgroundColor: "rgba(255, 255, 255, 0.1)" }}>
               <FileText className="w-4 h-4" />
             </Button>
-            <Button variant="ghost" size="sm" className="text-white hover:bg-opacity-80" style={{ backgroundColor: "rgba(255, 255, 255, 0.1)" }}>
+            <Button variant="ghost" size="sm" className="text-white hover:bg-opacity-80" style={{ backgroundColor: "rgba(255, 255, 255, 0.1)" }} disabled={repairOrder?.isArchived}>
               <MessageSquare className="w-4 h-4" />
             </Button>
-            <Button variant="ghost" size="sm" className="text-white hover:bg-opacity-80" style={{ backgroundColor: "rgba(255, 255, 255, 0.1)" }}>
-              <Calculator className="w-4 h-4" />
-            </Button>
-            <Button variant="ghost" size="sm" className="text-white hover:bg-opacity-80" style={{ backgroundColor: "rgba(255, 255, 255, 0.1)" }}>
+            <Button variant="ghost" size="sm" className="text-white hover:bg-opacity-80" style={{ backgroundColor: "rgba(255, 255, 255, 0.1)" }} disabled={repairOrder?.isArchived}>
               <Settings className="w-4 h-4" />
             </Button>
           </div>
@@ -223,28 +245,33 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
           <div className="flex space-x-0 px-6">
             {tabs.map((tab) => {
               const Icon = tab.icon
+              const isDisabled = tab.disabled
               return (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
+                  onClick={() => !isDisabled && setActiveTab(tab.id)}
+                  disabled={isDisabled}
                   className={`flex items-center space-x-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                    activeTab === tab.id
+                    isDisabled
+                      ? "border-transparent text-blue-300 opacity-50 cursor-not-allowed"
+                      : activeTab === tab.id
                       ? "border-white text-white"
                       : "border-transparent text-blue-200 hover:text-white"
                   }`}
                   style={{
-                    backgroundColor: activeTab === tab.id ? "rgba(255, 255, 255, 0.1)" : "transparent"
+                    backgroundColor: activeTab === tab.id && !isDisabled ? "rgba(255, 255, 255, 0.1)" : "transparent"
                   }}
                   onMouseEnter={(e) => {
-                    if (activeTab !== tab.id) {
+                    if (activeTab !== tab.id && !isDisabled) {
                       e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.05)"
                     }
                   }}
                   onMouseLeave={(e) => {
-                    if (activeTab !== tab.id) {
+                    if (activeTab !== tab.id && !isDisabled) {
                       e.currentTarget.style.backgroundColor = "transparent"
                     }
                   }}
+                  title={isDisabled ? "This tab is disabled for cancelled repair orders" : ""}
                 >
                   <Icon className="w-4 h-4" />
                   <span>{tab.label}</span>

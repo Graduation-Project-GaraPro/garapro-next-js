@@ -11,9 +11,9 @@ import type {
 class VehicleService {
   private baseUrl = "/VehicleIntegration";
   private vehiclesBaseUrl = "/Vehicles";
-  private brandBaseUrl = "/VehicleBrand";
-  private modelBaseUrl = "/VehicleModel";
-  private colorBaseUrl = "/VehicleColor";
+  private brandBaseUrl = "/VehicleBrands";
+  private modelBaseUrl = "/VehicleModels";
+  private colorBaseUrl = "/VehicleColors";
 
 
   async getVehiclesByCustomerId(userId: string): Promise<VehicleWithCustomerDto[]> {
@@ -50,13 +50,39 @@ class VehicleService {
    */
   async createVehicle(vehicleData: CreateVehicleDto): Promise<VehicleDto> {
     try {
-      const response = await apiClient.post<VehicleDto>(this.vehiclesBaseUrl, vehicleData);
+      console.log('=== CREATE VEHICLE REQUEST ===');
+      
+      // Use the manager endpoint for creating vehicles for customers
+      const endpoint = `${this.vehiclesBaseUrl}/customer`;
+      console.log('Endpoint:', endpoint);
+      
+      // Transform the request to match the manager endpoint structure
+      const requestData = {
+        customerUserId: vehicleData.userID,
+        brandID: vehicleData.brandID,
+        modelID: vehicleData.modelID,
+        colorID: vehicleData.colorID,
+        licensePlate: vehicleData.licensePlate,
+        vin: vehicleData.vin,
+        year: vehicleData.year,
+        odometer: vehicleData.odometer
+      };
+      
+      console.log('Request Data:', JSON.stringify(requestData, null, 2));
+      
+      const response = await apiClient.post<VehicleDto>(endpoint, requestData);
+      
+      console.log('=== CREATE VEHICLE RESPONSE ===');
+      console.log('Response Data:', response.data);
+      
       if (!response.data) {
         throw new Error('No data returned from create vehicle API');
       }
+      
       return response.data;
     } catch (error) {
-      console.error('Failed to create vehicle:', error);
+      console.error('=== CREATE VEHICLE ERROR ===');
+      console.error('Error:', error);
       
       // Re-throw the error with more details
       if (error instanceof Error) {
@@ -80,14 +106,10 @@ class VehicleService {
     }
   }
 
-  /**
-   * Get models by brand ID
-   * @param brandId - The brand ID
-   * @returns List of models for the brand
-   */
+
   async getModelsByBrand(brandId: string): Promise<VehicleModel[]> {
     try {
-      const response = await apiClient.get<VehicleModel[]>(`${this.modelBaseUrl}/brand/${brandId}`);
+      const response = await apiClient.get<VehicleModel[]>(`${this.modelBaseUrl}/bybrand/${brandId}`);
       return response.data || [];
     } catch (error) {
       console.error(`Failed to fetch models for brand ${brandId}:`, error);
@@ -95,14 +117,12 @@ class VehicleService {
     }
   }
 
-  /**
-   * Get colors by model ID
-   * @param modelId - The model ID
-   * @returns List of colors for the model
-   */
+
   async getColorsByModel(modelId: string): Promise<VehicleColor[]> {
     try {
-      const response = await apiClient.get<VehicleColor[]>(`${this.colorBaseUrl}/model/${modelId}`);
+      console.log(`Fetching colors for model: ${modelId}`);
+      const response = await apiClient.get<VehicleColor[]>(`${this.colorBaseUrl}/bymodel/${modelId}`);
+      console.log(`Colors response:`, response.data);
       return response.data || [];
     } catch (error) {
       console.error(`Failed to fetch colors for model ${modelId}:`, error);
@@ -110,10 +130,7 @@ class VehicleService {
     }
   }
 
-  /**
-   * Get all colors (alternative if not filtering by model)
-   * @returns List of all colors
-   */
+
   async getAllColors(): Promise<VehicleColor[]> {
     try {
       const response = await apiClient.get<VehicleColor[]>(this.colorBaseUrl);

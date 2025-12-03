@@ -142,13 +142,9 @@ export default function InspectionsTab({ orderId, highlightInspectionId }: Inspe
         return updated
       })
       
-      // Show success toast with action button
+      // Show success toast
       toast.success(notification.message || "Inspection completed successfully", {
         description: `${notification.serviceCount || 0} services, ${notification.partCount || 0} parts identified`,
-        action: {
-          label: "Convert to Quotation",
-          onClick: () => handleConvertToQuotation(notification.inspectionId)
-        },
         duration: 10000
       })
       
@@ -481,8 +477,7 @@ export default function InspectionsTab({ orderId, highlightInspectionId }: Inspe
           <div className="flex justify-between items-center">
             <CardTitle className="text-lg">Inspection Forms</CardTitle>
             <Button onClick={() => setIsCreateDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Create Inspection
+              Create New Inspection
             </Button>
           </div>
         </CardHeader>
@@ -583,12 +578,6 @@ export default function InspectionsTab({ orderId, highlightInspectionId }: Inspe
                         onClick={() => handleViewDetails(task.inspectionId)}
                       >
                         <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm">
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm">
-                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>

@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Archive, Eye, Search, Calendar, User, Car, DollarSign } from "lucide-react"
+import { Archive, Eye, Search, Calendar, User, Car, DollarSign, FileText } from "lucide-react"
+import ArchivedRODetailDialog from "./archived-ro-detail-dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -23,6 +24,8 @@ export default function ArchivedOrdersPage() {
   const [filteredOrders, setFilteredOrders] = useState<RepairOrder[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -86,6 +89,11 @@ export default function ArchivedOrdersPage() {
   }
 
   const handleViewDetails = (orderId: string) => {
+    setSelectedOrderId(orderId)
+    setIsDetailDialogOpen(true)
+  }
+
+  const handleViewFullPage = (orderId: string) => {
     router.push(`/manager/repairOrderManagement/orders/${orderId}`)
   }
 
@@ -150,22 +158,19 @@ export default function ArchivedOrdersPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Order ID</TableHead>
                       <TableHead>Customer</TableHead>
                       <TableHead>Phone</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Created Date</TableHead>
                       <TableHead>Archived Date</TableHead>
                       <TableHead className="text-right">Cost</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
+                      <TableHead className="text-right">Details</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredOrders.map((order) => (
                       <TableRow key={order.repairOrderId}>
-                        <TableCell className="font-medium">
-                          {order.repairOrderId}
-                        </TableCell>
+
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <User className="h-4 w-4 text-muted-foreground" />
@@ -201,14 +206,17 @@ export default function ArchivedOrdersPage() {
                           </div>
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleViewDetails(order.repairOrderId)}
-                          >
-                            <Eye className="h-4 w-4 mr-2" />
-                            View
-                          </Button>
+                          <div className="flex items-center justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleViewDetails(order.repairOrderId)}
+                              title="View Details"
+                            >
+                              <FileText className="h-4 w-4 mr-1" />
+                              View
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -219,6 +227,15 @@ export default function ArchivedOrdersPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Archived RO Detail Dialog */}
+      {selectedOrderId && (
+        <ArchivedRODetailDialog
+          open={isDetailDialogOpen}
+          onOpenChange={setIsDetailDialogOpen}
+          repairOrderId={selectedOrderId}
+        />
+      )}
     </div>
   )
 }

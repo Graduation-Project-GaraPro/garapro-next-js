@@ -1,6 +1,6 @@
 
 import axios from "axios";
-
+import { handleApiError } from "@/utils/authUtils";
 const API_URL = process.env.NEXT_PUBLIC_BASE_URL+ "/odata/Statisticals" || 'https://localhost:7113/odata/Statisticals';
 
 export interface TechnicianStatistic {
@@ -38,10 +38,7 @@ export const getMyStatistics = async (): Promise<TechnicianStatistic> => {
     
     return response.data;
   } catch (error) {
-    console.error("Error fetching statistics:", error);
-    if (axios.isAxiosError(error)) {
-      throw new Error(error.response?.data?.message || "Không thể tải thống kê");
-    }
-    throw error;
+    console.error("Error fetching statistics:", error);   
+   return handleApiError(error);
   }
 };

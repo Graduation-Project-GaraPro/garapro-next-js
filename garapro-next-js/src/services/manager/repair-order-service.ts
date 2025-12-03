@@ -37,7 +37,12 @@ class RepairOrderService {
       
       // Map API response to RepairOrder interface
       if (response.data) {
-        return response.data.map(mapApiToRepairOrder);
+        const mappedOrders = response.data.map(mapApiToRepairOrder);
+        // Log progress info for debugging
+        mappedOrders.forEach(order => {
+          console.log(`RO ${order.repairOrderId.substring(0, 4)}: Progress=${order.progressPercentage}%, Jobs=${order.completedJobs}/${order.totalJobs}`);
+        });
+        return mappedOrders;
       }
       
       return [];
@@ -52,13 +57,64 @@ class RepairOrderService {
    */
   async getRepairOrderById(id: string): Promise<RepairOrder | null> {
     try {
+      // First, try to get basic info to check if archived
       const response = await apiClient.get<any>(`${this.baseUrl}/${id}`)
       const data = response.data
       
       if (!data) return null
       
-      // Map the response to RepairOrder format
-      // The /RepairOrder/{id} endpoint returns a different structure than /branch/{id}
+      // If archived, use the dedicated archived endpoint for complete details
+      if (data.isArchived) {
+        try {
+          const archivedResponse = await apiClient.get<any>(`${this.baseUrl}/archived/${id}`)
+          const archivedData = archivedResponse.data
+          
+          if (archivedData) {
+            // Map archived response to RepairOrder format
+            return {
+              repairOrderId: archivedData.repairOrderId,
+              receiveDate: archivedData.receiveDate,
+              roType: archivedData.roType,
+              roTypeName: archivedData.roTypeName,
+              estimatedCompletionDate: archivedData.estimatedCompletionDate,
+              completionDate: archivedData.completionDate,
+              cost: archivedData.cost,
+              estimatedAmount: archivedData.estimatedAmount,
+              paidAmount: archivedData.paidAmount,
+              paidStatus: archivedData.paidStatus === 0 ? "Unpaid" as any : "Paid" as any,
+              estimatedRepairTime: archivedData.estimatedRepairTime || 0,
+              note: archivedData.note || archivedData.archiveReason || "",
+              createdAt: archivedData.createdAt,
+              updatedAt: archivedData.updatedAt,
+              isArchived: archivedData.isArchived,
+              archivedAt: archivedData.archivedAt,
+              archivedByUserId: archivedData.archivedByUserId,
+              branchId: archivedData.branchId || "",
+              statusId: archivedData.statusId?.toString() || "3",
+              vehicleId: archivedData.vehicle?.vehicleId || "",
+              userId: archivedData.userId || "",
+              repairRequestId: archivedData.repairRequestId || "",
+              customerName: archivedData.customerName,
+              customerPhone: archivedData.customerPhone,
+              technicianNames: archivedData.technicianNames || [],
+              totalJobs: archivedData.totalJobs || 0,
+              completedJobs: archivedData.completedJobs || 0,
+              progressPercentage: archivedData.progressPercentage || 100,
+              isCancelled: archivedData.isCancelled || false,
+              cancelReason: archivedData.cancelReason,
+              cancelledAt: archivedData.cancelledAt,
+              assignedLabels: archivedData.labels || archivedData.assignedLabels || [],
+              inOdometer: archivedData.inOdometer,
+              outOdometer: archivedData.outOdometer
+            }
+          }
+        } catch (archivedError) {
+          console.warn(`Failed to fetch from archived endpoint, falling back to regular data:`, archivedError)
+          // Fall through to use regular data
+        }
+      }
+      
+      // Map the regular response to RepairOrder format
       const repairOrder: RepairOrder = {
         repairOrderId: data.repairOrderId,
         receiveDate: data.receiveDate,
@@ -69,8 +125,7 @@ class RepairOrderService {
         cost: data.cost,
         estimatedAmount: data.estimatedAmount,
         paidAmount: data.paidAmount,
-        paidStatus: data.paidStatus === 0 ? "Unpaid" as any : 
-                    data.paidStatus === 1 ? "Partial" as any : "Paid" as any,
+        paidStatus: data.paidStatus === 0 ? "Unpaid" as any : "Paid" as any,
         estimatedRepairTime: data.estimatedRepairTime,
         note: data.note,
         createdAt: data.createdAt,
@@ -92,7 +147,7 @@ class RepairOrderService {
         isCancelled: data.isCancelled || false,
         cancelReason: data.cancelReason,
         cancelledAt: data.cancelledAt,
-        assignedLabels: data.labels || data.assignedLabels || [], // Handle both field names
+        assignedLabels: data.labels || data.assignedLabels || [],
         inOdometer: data.inOdometer,
         outOdometer: data.outOdometer
       }
@@ -255,18 +310,123 @@ class RepairOrderService {
   }
 
   /**
-   * Fetch all archived repair orders
+   * Fetch repair orders for list view with pagination
    */
-  async getArchivedRepairOrders(): Promise<RepairOrder[]> {
+  async getRepairOrdersListView(
+    page: number = 1,
+    pageSize: number = 50,
+    sortBy: string = 'ReceiveDate',
+    sortOrder: 'Asc' | 'Desc' = 'Desc'
+  ): Promise<{ items: RepairOrder[], totalPages: number, totalCount: number, currentPage: number, pageSize: number }> {
     try {
-      const response = await apiClient.get<RepairOrderApiResponse[]>(`${this.baseUrl}/archived`)
+      // Build query parameters
+      const params = {
+        page,
+        pageSize,
+        sortBy,
+        sortOrder
+      };
+
+      // Call the list view endpoint
+      const response = await apiClient.get<{ 
+        items: RepairOrderApiResponse[], 
+        pagination: { 
+          totalPages: number, 
+          totalCount: number, 
+          currentPage: number, 
+          pageSize: number 
+        } 
+      }>(`${this.baseUrl}/listview`, params);
+      
+      console.log("List view API response:", response);
+      
+      // Check if response has the expected structure
+      if (response.data && response.data.items && Array.isArray(response.data.items)) {
+        return {
+          items: response.data.items.map(mapApiToRepairOrder),
+          totalPages: response.data.pagination?.totalPages || 1,
+          totalCount: response.data.pagination?.totalCount || response.data.items.length,
+          currentPage: response.data.pagination?.currentPage || page,
+          pageSize: response.data.pagination?.pageSize || pageSize
+        };
+      }
+      
+      // Fallback for unexpected structure
+      console.warn("List view response has unexpected structure:", response.data);
+      return {
+        items: [],
+        totalPages: 1,
+        totalCount: 0,
+        currentPage: page,
+        pageSize: pageSize
+      };
+    } catch (error) {
+      console.error("Failed to fetch repair orders list view:", error)
+      return {
+        items: [],
+        totalPages: 1,
+        totalCount: 0,
+        currentPage: page,
+        pageSize: pageSize
+      };
+    }
+  }
+
+  /**
+   * Fetch all archived repair orders for a specific branch
+   */
+  async getArchivedRepairOrders(
+    branchId?: string,
+    page: number = 1,
+    pageSize: number = 50,
+    sortBy: string = 'ArchivedAt',
+    sortOrder: 'Asc' | 'Desc' = 'Desc'
+  ): Promise<RepairOrder[]> {
+    try {
+      // Get current user's branch if not provided
+      let targetBranchId = branchId;
+      if (!targetBranchId) {
+        const currentUser = authService.getCurrentUser();
+        const userId = currentUser.userId;
+        
+        if (userId) {
+          const userBranch = await branchService.getCurrentUserBranch(userId);
+          if (userBranch) {
+            targetBranchId = userBranch.branchId;
+          }
+        }
+      }
+
+      if (!targetBranchId) {
+        console.error("Unable to determine branch ID for archived repair orders");
+        return [];
+      }
+
+      // Build query parameters
+      const params = {
+        branchId: targetBranchId,
+        page,
+        pageSize,
+        sortBy,
+        sortOrder
+      };
+
+      // The API returns a paginated response with structure: { items: [], pagination: {}, ... }
+      const response = await apiClient.get<{ items: RepairOrderApiResponse[] }>(`${this.baseUrl}/archived`, params);
       console.log("Archived repair orders API response:", response);
       
-      // Map API response to RepairOrder interface
-      if (response.data) {
+      // Check if response.data.items exists and is an array
+      if (response.data && response.data.items && Array.isArray(response.data.items)) {
+        return response.data.items.map(mapApiToRepairOrder);
+      }
+      
+      // Fallback: check if response.data itself is an array (for backward compatibility)
+      if (response.data && Array.isArray(response.data)) {
         return response.data.map(mapApiToRepairOrder);
       }
       
+      // If neither structure matches, log warning and return empty array
+      console.warn("Archived repair orders response has unexpected structure:", response.data);
       return [];
     } catch (error) {
       console.error("Failed to fetch archived repair orders:", error)

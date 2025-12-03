@@ -81,7 +81,7 @@ export default function TechnicianHomePage() {
            alt={`Slide ${index + 1}`}
            fill
            priority={index === 0} // load nhanh ảnh đầu tiên
-           sizes="100vw"
+           sizes="200vw"
            className="object-cover"
           onError={() => {
            console.warn(`Image ${index + 1} failed to load.`);
