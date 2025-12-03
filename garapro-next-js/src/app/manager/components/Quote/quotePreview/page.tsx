@@ -86,7 +86,7 @@ export default function QuotePage() {
       id: stringIdToNumber(service.quotationServiceId),
       name: service.serviceName,
       price: service.totalPrice,
-      parts: service.quotationServiceParts.map((part) => ({
+      parts: service.parts.map((part: any) => ({
         id: stringIdToNumber(part.quotationServicePartId),
         name: part.partName,
         quantity: part.quantity,
@@ -97,11 +97,22 @@ export default function QuotePage() {
 
   const totalPrice = quotation?.totalAmount || 0
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!quotation) return
     
-    // In a real implementation, you would call an API to send the quote
-    alert(`Quote ${quotation.quotationId} sent to customer`)
+    try {
+      // Update quotation status to "Sent"
+      await quotationService.updateQuotationStatus(quotation.quotationId, "Sent")
+      
+      // Refresh quotation data to get updated status
+      const updatedQuotation = await quotationService.getQuotationById(quotation.quotationId)
+      setQuotation(updatedQuotation)
+      
+      alert(`Quote ${quotation.quotationId} sent to customer`)
+    } catch (err) {
+      console.error("Failed to send quote:", err)
+      alert("Failed to send quote. Please try again.")
+    }
   }
 
   const handleDelete = () => {
@@ -173,12 +184,12 @@ export default function QuotePage() {
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Total Parts:</span>
                   <span className="font-medium text-card-foreground">
-                    {quotation.quotationServices.reduce((sum, service) => sum + service.quotationServiceParts.length, 0)}
+                    {quotation.quotationServices.reduce((sum, service) => sum + service.parts.length, 0)}
                   </span>
                 </div>
                 <div className="border-t border-border pt-3">
                   <div className="flex justify-between">
-                    <span className="text-lg font-semibold text-card-foreground">Total Amount:</span>
+                    <span className="text-lg font-semibold text-card-foreground">Amount:</span>
                     <span className="text-2xl font-bold text-primary">${totalPrice.toLocaleString()}</span>
                   </div>
                 </div>
@@ -188,7 +199,14 @@ export default function QuotePage() {
             <ManagerNotes note={managerNote} onNoteChange={setManagerNote} />
           </div>
 
-          <QuoteActions onSend={handleSend} onDelete={handleDelete} onDownloadPDF={handleDownloadPDF} />
+          <QuoteActions 
+            onSend={handleSend} 
+            onDelete={handleDelete} 
+            onDownloadPDF={handleDownloadPDF}
+            isApproved={quotation.status === "Approved"}
+            quoteSent={quotation.status === "Sent" || quotation.sentToCustomerAt !== null}
+            sentAt={quotation.sentToCustomerAt}
+          />
         </div>
       </div>
     </main>

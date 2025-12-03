@@ -24,6 +24,7 @@ type UserProfile = {
   branchId?: string | null;
   fullName?: string;
 };
+
 type EmergencyHubContextState = {
   connected: boolean;
   profile: UserProfile | null;
@@ -42,7 +43,7 @@ export function useEmergencyHub() {
   return ctx;
 }
 
-/** parseJwt, extractRolesFromClaims implementations (same as yours) */
+/** parseJwt, extractRolesFromClaims */
 function parseJwt(token?: string | null) {
   if (!token) return null;
   try {
@@ -58,6 +59,7 @@ function parseJwt(token?: string | null) {
     return null;
   }
 }
+
 function extractRolesFromClaims(claims: any): string[] {
   if (!claims) return [];
   const possible = [
@@ -100,6 +102,7 @@ export default function EmergencyHubProvider({
           typeof window !== "undefined"
             ? localStorage.getItem("authToken") ?? undefined
             : undefined;
+
         const claims = parseJwt(token ?? null);
         const tokenUserId =
           claims?.sub ??
@@ -107,9 +110,10 @@ export default function EmergencyHubProvider({
           claims?.uid ??
           claims?.user_id ??
           null;
+
         const tokenRoles = extractRolesFromClaims(claims);
 
-        // get branch
+        // Get branch info
         let branchObj: any = null;
         try {
           const res = await apiClient.get("/Branch/my", {
@@ -118,10 +122,11 @@ export default function EmergencyHubProvider({
           if (res && res.success) {
             branchObj = res.data;
             if (branchObj?.data) branchObj = branchObj.data;
-          } else
+          } else {
             branchObj = await branchService.getCurrentUserBranch(
               tokenUserId ?? ""
             );
+          }
         } catch (err) {
           console.warn("Branch/my failed, fallback", err);
           try {
@@ -145,7 +150,7 @@ export default function EmergencyHubProvider({
         if (!mounted) return;
         setProfile(pf);
 
-        // start SignalR
+        // Start SignalR
         try {
           await emergencyHubClient.start(token);
           if (!mounted) return;
@@ -155,22 +160,21 @@ export default function EmergencyHubProvider({
           return;
         }
 
-        // sau khi start SignalR, thay handler cũ bằng handler mới:
+        // Replace the old event handler
         emergencyHubClient.on(
           "EmergencyRequestCreated",
           (data: EmergencyNotification) => {
             console.log("EVENT EmergencyRequestCreated", data);
             setNotifications((prev) => [data, ...prev]);
 
-            // helper API calls (adjust endpoints)
+            // API actions
             const acceptRequest = async (id: string) => {
               try {
                 const res = await apiClient.post(
                   `/EmergencyRequest/approve/${id}`
                 );
                 if (res?.success) {
-                  toast.success("Đã chấp nhận yêu cầu");
-                  // optional: update notifications state
+                  toast.success("Request accepted");
                   setNotifications((prev) =>
                     prev.map((n) =>
                       n.EmergencyRequestId === id
@@ -179,10 +183,10 @@ export default function EmergencyHubProvider({
                     )
                   );
                 } else {
-                  throw new Error(res?.message ?? "Lỗi server");
+                  throw new Error(res?.message ?? "Server error");
                 }
               } catch (err: any) {
-                toast.error(err?.message ?? "Chấp nhận thất bại");
+                toast.error(err?.message ?? "Accept failed");
                 throw err;
               }
             };
@@ -193,7 +197,7 @@ export default function EmergencyHubProvider({
                   `/EmergencyRequest/reject/${id}`
                 );
                 if (res?.success) {
-                  toast.success("Đã huỷ yêu cầu");
+                  toast.success("Request cancelled");
                   setNotifications((prev) =>
                     prev.map((n) =>
                       n.EmergencyRequestId === id
@@ -202,20 +206,20 @@ export default function EmergencyHubProvider({
                     )
                   );
                 } else {
-                  throw new Error(res?.message ?? "Lỗi server");
+                  throw new Error(res?.message ?? "Server error");
                 }
               } catch (err: any) {
-                toast.error(err?.message ?? "Huỷ thất bại");
+                toast.error(err?.message ?? "Cancel failed");
                 throw err;
               }
             };
 
-            // create toast and render component
+            // Toast render
             const id = toast.custom(
               () => (
                 <RequestToastContent
                   data={data}
-                  toastId={""} // not required inside component, we're dismissing via id captured below
+                  toastId={""}
                   onAccept={async (id) => {
                     try {
                       await acceptRequest(id);
@@ -237,13 +241,9 @@ export default function EmergencyHubProvider({
               { duration: 20000 }
             );
 
-            // store id to ref to let component handlers dismiss
-            // since we cannot pass id into render (render fn runs after this returns),
-            // use a ref closure:
             const toastIdRef = { current: id } as {
               current: string | undefined;
             };
-            // NOTE: above is a very small trick: for robust solution wrap onAccept/onCancel/onView into stable functions capturing id.
           }
         );
 
@@ -260,7 +260,7 @@ export default function EmergencyHubProvider({
         emergencyHubClient.on("JoinedCustomerGroup", updateGroups);
         emergencyHubClient.on("LeftCustomerGroup", updateGroups);
 
-        // join branch if manager
+        // Auto join branch group if manager
         const isManager = pf.roles?.some((r) => r.toLowerCase() === "manager");
         if (isManager) {
           let branchId = pf.branchId ?? null;
@@ -278,7 +278,9 @@ export default function EmergencyHubProvider({
             } catch (err) {
               console.error("joinBranchGroup failed", err);
             }
-          } else console.warn("Manager but no branchId");
+          } else {
+            console.warn("Manager but no branchId");
+          }
         }
 
         await updateGroups();
@@ -292,7 +294,6 @@ export default function EmergencyHubProvider({
     return () => {
       mounted = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const value = useMemo(

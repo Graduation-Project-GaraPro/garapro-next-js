@@ -1,9 +1,11 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { apiClient } from "@/services/manager/api-client";
+import { toast } from "sonner";
 
 type EmergencyRequest = {
   emergencyRequestId: string;
@@ -15,6 +17,7 @@ type EmergencyRequest = {
   status?: number;
   distanceToGarageKm?: number | null;
   requestTime?: string | null;
+  branchId?: string;
   [k: string]: any;
 };
 
@@ -49,34 +52,33 @@ export default function EmergencyList() {
   );
   const [selectedTech, setSelectedTech] = useState<string | null>(null);
   const [technicians, setTechnicians] = useState<any[]>([]);
+  const [processingId, setProcessingId] = useState<string | null>(null);
 
-  // ❗ Mock list tech – bạn sẽ thay bằng fetch API
-  //   const technicians = [
-  //     { id: "tech-1", name: "Nguyễn Văn A" },
-  //     { id: "tech-2", name: "Trần Văn B" },
-  //     { id: "tech-3", name: "Lê Văn C" },
-  //   ];
+  const apiBase =
+    process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5000/api";
 
+  // ===== LOAD EMERGENCY REQUESTS =====
   useEffect(() => {
     const load = async () => {
       try {
-        const apiBase =
-          process.env.NEXT_PUBLIC_API_BASE_URL ?? "https://localhost:7113/api";
         const res = await fetch(`${apiBase}/EmergencyRequest/getAll`, {
           cache: "no-store",
         });
 
-        const json = await res.json();
+        const json = (await res.json()) as EmergencyRequest[];
         setData(json);
       } catch (err) {
         console.error(err);
+        toast.error("Failed to load emergency requests.");
       } finally {
         setLoading(false);
       }
     };
 
     load();
-  }, []);
+  }, [apiBase]);
+
+  // ===== LOAD TECHNICIANS =====
   const loadTechnicians = async (branchId?: string) => {
     if (!branchId) {
       setTechnicians([]);
@@ -87,37 +89,117 @@ export default function EmergencyList() {
       const res = await apiClient.get(`/Branch/${branchId}/technicians`);
 
       if (res.success) {
-        const json = res.data;
+        const json = res.data as any[];
         setTechnicians(json);
       } else {
-        console.error("Không load được danh sách kỹ thuật viên");
+        console.error("Failed to load technicians");
         setTechnicians([]);
+        toast.error("Failed to load technicians.");
       }
     } catch (err) {
       console.error(err);
       setTechnicians([]);
+      toast.error("Failed to load technicians.");
     }
   };
 
-  // ===== HANDLE ASSIGN TECH =====
+  // ===== ACCEPT REQUEST =====
+  const handleAccept = async (emergencyId: string) => {
+    setProcessingId(emergencyId);
+
+    try {
+      // Replace endpoint with your actual API path if different
+      const response = await apiClient.post(
+        `/EmergencyRequest/approve/${emergencyId}`
+      );
+
+      if (response.success) {
+        // optimistic update: update local data statuses
+        setData((prev) =>
+          prev.map((r) =>
+            r.emergencyRequestId === emergencyId ? { ...r, status: 1 } : r
+          )
+        );
+        toast.success("Request accepted");
+      } else {
+        console.error(response);
+        toast.error("Failed to accept request");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("An error occurred while accepting the request");
+    } finally {
+      setProcessingId(null);
+      // refresh full list to ensure consistency
+      try {
+        const updated = await apiClient.get(`/EmergencyRequest/getAll`);
+        setData(updated.data as EmergencyRequest[]);
+      } catch (err) {
+        // ignore
+      }
+    }
+  };
+
+  // ===== CANCEL REQUEST =====
+  const handleCancel = async (emergencyId: string) => {
+    setProcessingId(emergencyId);
+
+    try {
+      // Replace endpoint with your actual API path if different
+      const response = await apiClient.put(
+        `/EmergencyRequest/reject/${emergencyId}`
+      );
+
+      if (response.success) {
+        // optimistic update: set status to canceled (6)
+        setData((prev) =>
+          prev.map((r) =>
+            r.emergencyRequestId === emergencyId ? { ...r, status: 6 } : r
+          )
+        );
+        toast.success("Request canceled");
+      } else {
+        console.error(response);
+        toast.error("Failed to cancel request");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("An error occurred while canceling the request");
+    } finally {
+      setProcessingId(null);
+      // refresh full list to ensure consistency
+      try {
+        const updated = await apiClient.get(`/EmergencyRequest/getAll`);
+        setData(updated.data as EmergencyRequest[]);
+      } catch (err) {
+        // ignore
+      }
+    }
+  };
+
+  // ===== ASSIGN TECHNICIAN =====
   const handleAssignTech = async () => {
     if (!selectedTech || !selectedEmergencyId) return;
 
-    const response = await apiClient.post(`/EmergencyRequest/asign-tech`, {
-      emergencyId: selectedEmergencyId,
-      technicianUserId: selectedTech,
-    });
+    try {
+      const response = await apiClient.post(`/EmergencyRequest/assign-tech`, {
+        emergencyId: selectedEmergencyId,
+        technicianUserId: selectedTech,
+      });
 
-    if (response.success) {
-      alert("Gán kỹ thuật viên thành công!");
-      setOpenAssignModal(false);
-      setSelectedTech(null);
+      if (response.success) {
+        toast.success("Technician assigned");
+        setOpenAssignModal(false);
+        setSelectedTech(null);
 
-      // reload
-      const res = await apiClient.get(`/EmergencyRequest/getAll`);
-      setData(res.data);
-    } else {
-      alert("Gán thất bại!");
+        const updated = await apiClient.get(`/EmergencyRequest/getAll`);
+        setData(updated.data as EmergencyRequest[]);
+      } else {
+        toast.error("Assign failed");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("An error occurred while assigning the technician");
     }
   };
 
@@ -140,9 +222,10 @@ export default function EmergencyList() {
             {data.map((r) => {
               const s = statusLabel(r.status);
 
-              const allowAccept = (r.status ?? 0) === 0; // Pending
+              const allowAccept = (r.status ?? 0) === 0;
               const allowCancel = [0, 1].includes(r.status ?? 0);
-              const allowAssign = r.status === 1; // Accepted
+              const allowAssign = r.status === 1;
+              const isProcessing = processingId === r.emergencyRequestId;
 
               return (
                 <li
@@ -164,13 +247,16 @@ export default function EmergencyList() {
                         </div>
 
                         <p className="mt-1 text-sm text-gray-600">
-                          {r.issueDescription ?? r.address ?? "Không có mô tả"}
+                          {r.issueDescription ??
+                            r.address ??
+                            "No description provided"}
                         </p>
 
                         <div className="mt-2 text-xs text-gray-500 flex gap-2">
-                          <span>Xe: {r.vehicle?.licensePlate ?? "—"}</span>|
+                          <span>Vehicle: {r.vehicle?.licensePlate ?? "—"}</span>
+                          |
                           <span>
-                            Khách: {r.customer?.userName ?? r.customerId}
+                            Customer: {r.customer?.userName ?? r.customerId}
                           </span>
                         </div>
                       </div>
@@ -180,35 +266,41 @@ export default function EmergencyList() {
                           href={`/manager/test?erId=${r.emergencyRequestId}`}
                           className="text-sky-600 text-sm hover:underline"
                         >
-                          Xem chi tiết
+                          View details
                         </Link>
 
                         <div className="flex gap-2">
-                          {/* ACCEPT BUTTON */}
+                          {/* ACCEPT */}
                           <button
-                            disabled={!allowAccept}
+                            disabled={!allowAccept || isProcessing}
+                            onClick={() => handleAccept(r.emergencyRequestId)}
                             className={`px-3 py-1 text-sm rounded text-white ${
                               allowAccept
-                                ? "bg-green-600 hover:bg-green-700"
+                                ? isProcessing
+                                  ? "bg-yellow-500"
+                                  : "bg-green-600 hover:bg-green-700"
                                 : "bg-gray-100 text-gray-400 cursor-not-allowed"
                             }`}
                           >
-                            Chấp nhận
+                            {isProcessing ? "Processing..." : "Accept"}
                           </button>
 
-                          {/* CANCEL BUTTON */}
+                          {/* CANCEL */}
                           <button
-                            disabled={!allowCancel}
+                            disabled={!allowCancel || isProcessing}
+                            onClick={() => handleCancel(r.emergencyRequestId)}
                             className={`px-3 py-1 text-sm rounded text-white ${
                               allowCancel
-                                ? "bg-red-500 hover:bg-red-600"
+                                ? isProcessing
+                                  ? "bg-yellow-500"
+                                  : "bg-red-500 hover:bg-red-600"
                                 : "bg-gray-100 text-gray-400 cursor-not-allowed"
                             }`}
                           >
-                            Huỷ
+                            {isProcessing ? "Processing..." : "Cancel"}
                           </button>
 
-                          {/* ASSIGN TECH BUTTON */}
+                          {/* ASSIGN */}
                           {allowAssign && (
                             <button
                               onClick={() => {
@@ -218,7 +310,7 @@ export default function EmergencyList() {
                               }}
                               className="px-3 py-1 text-sm rounded text-white bg-purple-600 hover:bg-purple-700"
                             >
-                              Gán kỹ thuật viên
+                              Assign Technician
                             </button>
                           )}
                         </div>
@@ -232,17 +324,17 @@ export default function EmergencyList() {
         )}
       </div>
 
-      {/* =============== MODAL =============== */}
+      {/* MODAL */}
       {openAssignModal && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg shadow-lg w-96">
-            <h2 className="text-lg font-medium">Chọn kỹ thuật viên</h2>
+            <h2 className="text-lg font-medium">Select Technician</h2>
 
             <select
               className="mt-4 w-full border rounded px-3 py-2"
               onChange={(e) => setSelectedTech(e.target.value)}
             >
-              <option value="">-- Chọn kỹ thuật viên --</option>
+              <option value="">-- Choose technician --</option>
               {technicians.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.fullName}
@@ -255,7 +347,7 @@ export default function EmergencyList() {
                 onClick={() => setOpenAssignModal(false)}
                 className="px-4 py-1 rounded bg-gray-200"
               >
-                Hủy
+                Cancel
               </button>
 
               <button
@@ -267,7 +359,7 @@ export default function EmergencyList() {
                     : "bg-gray-300 cursor-not-allowed"
                 }`}
               >
-                Gán
+                Assign
               </button>
             </div>
           </div>

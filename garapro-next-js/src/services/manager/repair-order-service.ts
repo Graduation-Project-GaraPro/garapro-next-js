@@ -310,6 +310,69 @@ class RepairOrderService {
   }
 
   /**
+   * Fetch repair orders for list view with pagination
+   */
+  async getRepairOrdersListView(
+    page: number = 1,
+    pageSize: number = 50,
+    sortBy: string = 'ReceiveDate',
+    sortOrder: 'Asc' | 'Desc' = 'Desc'
+  ): Promise<{ items: RepairOrder[], totalPages: number, totalCount: number, currentPage: number, pageSize: number }> {
+    try {
+      // Build query parameters
+      const params = {
+        page,
+        pageSize,
+        sortBy,
+        sortOrder
+      };
+
+      // Call the list view endpoint
+      const response = await apiClient.get<{ 
+        items: RepairOrderApiResponse[], 
+        pagination: { 
+          totalPages: number, 
+          totalCount: number, 
+          currentPage: number, 
+          pageSize: number 
+        } 
+      }>(`${this.baseUrl}/listview`, params);
+      
+      console.log("List view API response:", response);
+      
+      // Check if response has the expected structure
+      if (response.data && response.data.items && Array.isArray(response.data.items)) {
+        return {
+          items: response.data.items.map(mapApiToRepairOrder),
+          totalPages: response.data.pagination?.totalPages || 1,
+          totalCount: response.data.pagination?.totalCount || response.data.items.length,
+          currentPage: response.data.pagination?.currentPage || page,
+          pageSize: response.data.pagination?.pageSize || pageSize
+        };
+      }
+      
+      // Fallback for unexpected structure
+      console.warn("List view response has unexpected structure:", response.data);
+      return {
+        items: [],
+        totalPages: 1,
+        totalCount: 0,
+        currentPage: page,
+        pageSize: pageSize
+      };
+    } catch (error) {
+      console.error("Failed to fetch repair orders list view:", error)
+      return {
+        items: [],
+        totalPages: 1,
+        totalCount: 0,
+        currentPage: page,
+        pageSize: pageSize
+      };
+    }
+  }
+
+  /**
    * Fetch all archived repair orders for a specific branch
    */
   async getArchivedRepairOrders(
