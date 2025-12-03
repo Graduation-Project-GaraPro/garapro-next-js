@@ -1,5 +1,5 @@
   "use client";
-  import { useState, useRef, useEffect } from "react";
+  import { useState, useRef, useEffect, useMemo } from "react";
   import { useRouter } from "next/navigation";
   import Image from "next/image";
   import { Toaster, toast } from "react-hot-toast";
@@ -47,6 +47,31 @@
     const dropdownRef = useRef<HTMLDivElement>(null);
     const accountRef = useRef<HTMLDivElement>(null);
     const notificationRef = useRef<HTMLDivElement>(null);
+
+  const userInfo = useMemo(() => {
+    if (typeof window === "undefined") {
+      return {
+        fullName: "Technician",
+        email: "technician@example.com",
+        initials: "T"
+      };
+    }
+    
+    const currentUser = authService.getCurrentUser();
+    const fullName = currentUser.fullName || "Technician";
+    
+    const initials = fullName
+      .split(" ")
+      .map((n) => n.charAt(0).toUpperCase())
+      .slice(-2)
+      .join("");
+    
+    return {
+      fullName,
+      email: currentUser.email || "technician@example.com",
+      initials: initials || "T"
+    };
+  }, []);
 
     const setupSignalREvents = () => {
     const getNotificationType = (typeValue: unknown): 'message' | 'warning' => {
@@ -521,32 +546,24 @@ const handleGoToStatistical = () => {
               </button>
               {showAccountMenu && (
                 <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-xl border border-gray-200 z-50">
-                  <div className="p-4 border-b border-gray-100">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
-                        {typeof window !== "undefined"
-                          ? (localStorage.getItem("userFullName") || "U")
-                              .split(" ")
-                              .map((n) => n.charAt(0).toUpperCase())
-                              .slice(-2)
-                              .join("")
-                          : "U"}
-                      </div>
+                  
+                 <div className="p-4 border-b border-gray-100">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                      {userInfo.initials}
+                    </div>
 
-                      <div>
-                        <h3 className="text-sm font-bold text-gray-800">
-                          {typeof window !== "undefined"
-                            ? localStorage.getItem("userFullName") || "User"
-                            : "User"}
-                        </h3>
-                        <p className="text-xs text-gray-500">
-                          {typeof window !== "undefined"
-                            ? localStorage.getItem("userEmail") || "user@example.com"
-                            : "user@example.com"}
-                        </p>
-                      </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-gray-800">
+                        {userInfo.fullName}
+                      </h3>
+                      <p className="text-xs text-gray-500">
+                        {userInfo.email}
+                      </p>
                     </div>
                   </div>
+                </div>
+
                   <div className="py-2 px-2">
                     <button 
                         onClick={() => {

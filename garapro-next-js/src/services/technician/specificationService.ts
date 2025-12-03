@@ -27,8 +27,7 @@ export const getAllSpecifications = async (): Promise<VehicleSpecificationDto[]>
     if (!token) {
       throw new Error("Missing authentication token");
     }
-
-    const response = await axios.get(API_URL, {
+    const response = await axios.get(`${API_URL}/all`, {
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",

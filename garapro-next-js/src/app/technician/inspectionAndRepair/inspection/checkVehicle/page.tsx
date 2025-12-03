@@ -729,7 +729,7 @@ export default function CheckConditionPage() {
     good: { color: "bg-green-200 text-green-800 border-green-300", label: "Good" },
     "needs-attention": { color: "bg-yellow-200 text-yellow-800 border-yellow-300", label: "Needs Attention" },
     replace: { color: "bg-red-200 text-red-800 border-red-300", label: "Replace" },
-    "not-checked": { color: "bg-gray-400 text-gray-600 border-gray-600", label: "Not Checked" },
+    //"not-checked": { color: "bg-gray-400 text-gray-600 border-gray-600", label: "Not Checked" },
   };
 
   useEffect(() => {

@@ -29,9 +29,9 @@ export const getAllNotifications = async (): Promise<NotificationDto[]> => {
       },
     });
 
-    console.log("API Response Status:", response.status);
-    console.log("API Response Data:", response.data);
-    console.log("Response Type:", typeof response.data);
+    // console.log("API Response Status:", response.status);
+    // console.log("API Response Data:", response.data);
+    // console.log("Response Type:", typeof response.data);
     console.log("Is Array:", Array.isArray(response.data));
     
     return response.data;

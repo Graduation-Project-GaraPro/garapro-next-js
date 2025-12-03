@@ -34,13 +34,13 @@ export const getMyJobs = async () => {
     const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
     if (!token) {
       throw new Error("Missing authentication token");
-    }
-
-    const response = await axios.get(`${API_URL}/my-jobs`, {
+    }    
+    const response = await axios.get(`${API_URL}/my-jobs`, {     
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
+    //console.log("Technician ID response:", response.data);
     return response.data.value || response.data;
   } catch (error) {
     console.error("Error fetching jobs:", error);

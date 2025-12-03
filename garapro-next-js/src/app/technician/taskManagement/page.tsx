@@ -385,7 +385,7 @@ useEffect(() => {
   // Cleanup
   return () => {
     isMounted = false;
-    console.log("🧹 Cleaning up Task Management SignalR connection...");
+    console.log("Cleaning up Task Management SignalR connection...");
     if (technicianId) {
       jobSignalRService.leaveTechnicianGroup(technicianId);
     }

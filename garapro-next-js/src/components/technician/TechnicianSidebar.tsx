@@ -16,7 +16,7 @@ import {
 } from "react-icons/fa";
 import { useState, useMemo, useCallback, memo } from "react";
 import { IconType } from "react-icons";
-
+import { authService } from "@/services/authService";
 // Types
 interface ChildItem {
   id: string;
@@ -199,14 +199,17 @@ export default function TechnicianSidebar() {
   const userInfo = useMemo(() => {
     if (typeof window === "undefined") {
       return {
-        fullName: "User",
-        email: "user@example.com",
+        fullName: "Technician",
+        email: "technnician@example.com",
       };
     }
+    const currentUser = authService.getCurrentUser();
+    console.log("Technician",currentUser)
     return {
-      fullName: localStorage.getItem("userFullName") || "User",
-      email: localStorage.getItem("userEmail") || "user@example.com",
+      fullName: currentUser.fullName || "Technician",
+      email: currentUser.email || "technician@example.com",
     };
+
   }, []);
 
   // Memoize active parent check
