@@ -25,9 +25,6 @@ export default function QuoteHeader({ quote }: QuoteHeaderProps) {
       <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Quote</h1>
-          <p className="mt-1 text-muted-foreground">
-            Quote ID: <span className="font-semibold">{quote.id}</span>
-          </p>
         </div>
         <div className="flex flex-col items-start gap-3 sm:items-end">
           <span

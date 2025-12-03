@@ -235,9 +235,6 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
               <MessageSquare className="w-4 h-4" />
             </Button>
             <Button variant="ghost" size="sm" className="text-white hover:bg-opacity-80" style={{ backgroundColor: "rgba(255, 255, 255, 0.1)" }} disabled={repairOrder?.isArchived}>
-              <Calculator className="w-4 h-4" />
-            </Button>
-            <Button variant="ghost" size="sm" className="text-white hover:bg-opacity-80" style={{ backgroundColor: "rgba(255, 255, 255, 0.1)" }} disabled={repairOrder?.isArchived}>
               <Settings className="w-4 h-4" />
             </Button>
           </div>

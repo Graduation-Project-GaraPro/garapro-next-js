@@ -437,11 +437,9 @@ export default function BoardPage() {
                     New
                   </span>
                 </Button>
-                <Button variant="outline" size="sm" className="text-gray-600 border-gray-200 hover:bg-gray-50">
+                <Button variant="outline" size="sm" className="text-gray-600 border-gray-200 hover:bg-gray-50"
+                onClick={() => router.push("/manager/technician-performance")}>
                   Employee
-                </Button>
-                <Button variant="outline" size="sm" className="text-gray-600 border-gray-200 hover:bg-gray-50">
-                  Appt Type
                 </Button>
               </div>
               <div className="flex items-center gap-2">
@@ -469,12 +467,11 @@ export default function BoardPage() {
                   >
                     <List className="w-4 h-4" />
                   </Button>
-                  <Button variant="ghost" size="sm" className="px-2 py-1.5 hover:bg-gray-50">
+                  {/* <Button variant="ghost" size="sm" className="px-2 py-1.5 hover:bg-gray-50">
                     <Link className="w-4 h-4" />
-                  </Button>
+                  </Button> */}
                 </div>
                 <Button className="bg-[#154c79] hover:bg-[#123c66] text-white" size="sm" onClick={() => setShowCreateForm(true)}>
-                  <Plus className="w-4 h-4" />
                   Create Repair Order
                 </Button>
               </div>

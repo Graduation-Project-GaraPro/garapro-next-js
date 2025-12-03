@@ -68,16 +68,14 @@ export function SiteHeader() {
         {/* Right side buttons */}
         <div className="flex items-center gap-2">
           {/* Settings Button */}
-          <Button
+          {/* <Button
             variant="ghost"
             size="icon"
             className="h-8 w-8 text-white hover:text-white hover:bg-white/10"
           >
             <Settings className="h-4 w-4" />
-          </Button>
+          </Button> */}
 
-          {/* Technician Assignment Notifications - Disabled (endpoint not available) */}
-          {/* <TechnicianAssignmentNotification /> */}
 
           {/* General Notifications Button with Badge */}
           <div className="relative">
