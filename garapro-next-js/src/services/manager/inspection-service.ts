@@ -5,12 +5,21 @@ import type {
   InspectionDto, 
   InspectionServiceDto, 
   InspectionPartDto, 
-  CreateInspectionRequest
+  CreateInspectionRequest,
+  CreateManagerInspectionRequest,
+  AvailableServiceDto
 } from "@/types/manager/inspection"
 import { InspectionStatus } from "@/types/manager/inspection"
 
 // Re-export for backward compatibility
-export type { InspectionDto, InspectionServiceDto, InspectionPartDto, CreateInspectionRequest }
+export type { 
+  InspectionDto, 
+  InspectionServiceDto, 
+  InspectionPartDto, 
+  CreateInspectionRequest,
+  CreateManagerInspectionRequest,
+  AvailableServiceDto
+}
 export { InspectionStatus }
 
 class InspectionService {
@@ -60,6 +69,37 @@ class InspectionService {
       return response.data
     } catch (error) {
       console.error("Failed to create inspection:", error)
+      throw error
+    }
+  }
+
+  /**
+   * Get available services for a repair order (excludes completed inspection services)
+   */
+  async getAvailableServices(repairOrderId: string): Promise<AvailableServiceDto[]> {
+    try {
+      const endpoint = `${this.baseUrl}/available-services/${repairOrderId}`
+      const response = await apiClient.get<AvailableServiceDto[]>(endpoint)
+      return response.data || []
+    } catch (error) {
+      console.error(`Failed to fetch available services for repair order ${repairOrderId}:`, error)
+      throw error
+    }
+  }
+
+  /**
+   * Create a manager inspection with optional services
+   */
+  async createManagerInspection(request: CreateManagerInspectionRequest): Promise<InspectionDto> {
+    try {
+      const endpoint = `${this.baseUrl}/manager`
+      const response = await apiClient.post<InspectionDto>(endpoint, request)
+      if (!response.data) {
+        throw new Error("Failed to create manager inspection: No data returned")
+      }
+      return response.data
+    } catch (error) {
+      console.error("Failed to create manager inspection:", error)
       throw error
     }
   }

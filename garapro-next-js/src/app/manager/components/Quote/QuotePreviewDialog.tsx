@@ -22,7 +22,6 @@ import { formatVND } from "@/lib/currency"
 
 // Helper function to convert string ID to number
 const stringIdToNumber = (id: string): number => {
-  // Simple hash function to convert string to number
   let hash = 0
   for (let i = 0; i < id.length; i++) {
     const char = id.charCodeAt(i)
@@ -280,7 +279,7 @@ export default function QuotePreviewDialog({ open, onOpenChange, quotationId }: 
       >
         <DialogHeader className="p-6">
           <div className="flex items-center justify-between">
-            <DialogTitle>Quote Preview</DialogTitle>
+            <DialogTitle>Quotation Preview</DialogTitle>
             {quotation.inspectionId && (
               <Button 
                 variant="outline" 

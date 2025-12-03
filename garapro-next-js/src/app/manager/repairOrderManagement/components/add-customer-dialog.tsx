@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
+
 import {
   Dialog,
   DialogContent,
@@ -42,45 +42,36 @@ interface AddCustomerDialogProps {
 
 export function AddCustomerDialog({ open, onOpenChange, onCustomerAdd }: AddCustomerDialogProps) {
   const [formData, setFormData] = useState({
-    name: "",
+    firstName: "",
+    lastName: "",
     phone: "",
     email: "",
-    address: "",
-    birthday: "",
   })
   const [isLoading, setIsLoading] = useState(false)
 
   const validateForm = (): string | null => {
-    // Validate required fields
-    if (!formData.name.trim()) {
-      return "Customer name is required"
+    if (!formData.firstName.trim()) {
+      return "First name is required"
     }
     
-    // Check if name contains only valid characters
-    if (formData.name.trim().length < 2) {
-      return "Customer name must be at least 2 characters long"
+    if (formData.firstName.trim().length < 2) {
+      return "First name must be at least 2 characters long"
     }
     
     if (!formData.phone.trim()) {
       return "Phone number is required"
     }
     
-    // Basic phone validation (at least 6 digits)
     if (formData.phone.trim().replace(/\D/g, '').length < 6) {
       return "Please enter a valid phone number"
     }
     
-    // Basic email validation
-    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      return "Please enter a valid email address"
-    }
-    
-    // Validate name parts
-    const nameParts = formData.name.trim().split(' ')
-    const firstName = nameParts[0] || ''
-    
-    if (!firstName || firstName.length < 1) {
-      return "First name is required"
+    // Email validation (optional field)
+    if (formData.email.trim()) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(formData.email.trim())) {
+        return "Please enter a valid email address"
+      }
     }
     
     return null
@@ -88,6 +79,12 @@ export function AddCustomerDialog({ open, onOpenChange, onCustomerAdd }: AddCust
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    e.stopPropagation()
+    // Prevent duplicate submissions
+    if (isLoading) {
+      return
+    }
+    
     setIsLoading(true)
     
     // Validate form before submission
@@ -99,64 +96,59 @@ export function AddCustomerDialog({ open, onOpenChange, onCustomerAdd }: AddCust
     }
     
     try {
-      // Split name into first and last name
-      const nameParts = formData.name.trim().split(' ')
-      const firstName = nameParts[0] || ''
-      const lastName = nameParts.slice(1).join(' ') || ''
+      const firstName = formData.firstName.trim()
+      const lastName = formData.lastName.trim()
       
-      // Validate that we have valid name parts
-      if (!firstName || firstName === 'undefined' || firstName.trim() === '') {
-        toast.error("Please enter a valid first name")
-        setIsLoading(false)
-        return
-      }
-      
-      // Format birthday - if empty, send null, otherwise send the date
-      let birthdayValue: string | null = null
-      if (formData.birthday) {
-        birthdayValue = new Date(formData.birthday).toISOString()
-      }
-      
-      // Create customer via API
-      const newCustomer = await customerService.createCustomer({
+      // Use quick create endpoint with required fields and optional email
+      const newCustomer = await customerService.quickCreateCustomer({
         firstName,
         lastName,
         phoneNumber: formData.phone,
-        email: formData.email,
-        birthday: birthdayValue
+        email: formData.email.trim() || undefined,
       })
       
       // Convert API customer to our format
-      // Ensure we don't show "undefined undefined" in the name
       const customerName = lastName 
         ? `${newCustomer.firstName} ${newCustomer.lastName}` 
         : newCustomer.firstName;
         
       const customer: Omit<Customer, "id" | "vehicles"> = {
-        name: customerName || "", // Ensure name is never undefined
-        phone: newCustomer.phoneNumber || "", // Ensure phone is never undefined
-        email: newCustomer.email || "", // Ensure email is never undefined
-        address: formData.address || "" // Address is only stored locally in this form
+        name: customerName || "",
+        phone: newCustomer.phoneNumber || "",
+        email: newCustomer.email || "",
+        address: ""
       }
+      
+      // Show success toast
+      toast.success(`Customer "${customerName}" added successfully!`)
       
       onCustomerAdd(customer)
       setFormData({
-        name: "",
+        firstName: "",
+        lastName: "",
         phone: "",
         email: "",
-        address: "",
-        birthday: "",
       })
       onOpenChange(false)
       
     } catch (error: unknown) {
-      console.error("Failed to create customer:", error)
-      if (error instanceof Error) {
-        // Show specific error messages in red
-        toast.error(`Failed to create customer: ${error.message}`)
-      } else {
-        toast.error("Failed to create customer. Please check your input and try again.")
+      // Extract detailed error message
+      let errorMessage = "Failed to create customer. Please try again."
+      
+      if (error && typeof error === 'object') {
+        // Check for details.details (nested error message from API)
+        if ('details' in error && error.details && typeof error.details === 'object' && 'details' in error.details) {
+          errorMessage = (error.details as any).details
+        }
+        // Check for message property
+        else if ('message' in error && typeof error.message === 'string') {
+          errorMessage = error.message
+        }
+      } else if (error instanceof Error) {
+        errorMessage = error.message
       }
+      
+      toast.error(errorMessage)
     } finally {
       setIsLoading(false)
     }
@@ -164,11 +156,10 @@ export function AddCustomerDialog({ open, onOpenChange, onCustomerAdd }: AddCust
 
   const handleCancel = () => {
     setFormData({
-      name: "",
+      firstName: "",
+      lastName: "",
       phone: "",
       email: "",
-      address: "",
-      birthday: "",
     })
     onOpenChange(false)
   }
@@ -179,21 +170,36 @@ export function AddCustomerDialog({ open, onOpenChange, onCustomerAdd }: AddCust
         <DialogHeader>
           <DialogTitle>Add New Customer</DialogTitle>
           <DialogDescription>
-            Add a new customer to the system. All fields except address and birthday are required.
+            Quick add a new customer. First name, last name, and phone are required. Email is optional.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right">
-                Name *
+              <Label htmlFor="firstName" className="text-right">
+                First Name *
               </Label>
               <div className="col-span-3">
                 <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Customer full name"
+                  id="firstName"
+                  value={formData.firstName}
+                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                  placeholder="First name"
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="lastName" className="text-right">
+                Last Name *
+              </Label>
+              <div className="col-span-3">
+                <Input
+                  id="lastName"
+                  value={formData.lastName}
+                  onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                  placeholder="Last name"
                   required
                   disabled={isLoading}
                 />
@@ -224,38 +230,10 @@ export function AddCustomerDialog({ open, onOpenChange, onCustomerAdd }: AddCust
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="Email address"
+                  placeholder="customer@example.com"
                   disabled={isLoading}
                 />
-              </div>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="birthday" className="text-right">
-                Birthday
-              </Label>
-              <div className="col-span-3">
-                <Input
-                  id="birthday"
-                  type="date"
-                  value={formData.birthday}
-                  onChange={(e) => setFormData({ ...formData, birthday: e.target.value })}
-                  disabled={isLoading}
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="address" className="text-right">
-                Address
-              </Label>
-              <div className="col-span-3">
-                <Textarea
-                  id="address"
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  placeholder="Customer address"
-                  className="resize-none"
-                  disabled={isLoading}
-                />
+                <p className="text-xs text-gray-500 mt-1">Optional</p>
               </div>
             </div>
           </div>

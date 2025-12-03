@@ -42,7 +42,7 @@ const data = {
     },
     {
       title: "Tech Schedule",
-      url: "/manager/techSchedule",
+      url: "/manager/technician-performance",
       icon: CircuitBoard,
     },
   ],
@@ -61,20 +61,25 @@ const data = {
       url: "/manager/CustomerAppointments",
       icon: CalendarDays,
     },
-    {
-      title: "Inventory",
-      url: "/manager/inventory",
-      icon: Package,
-    },
+    // {
+    //   title: "Inventory",
+    //   url: "/manager/inventory",
+    //   icon: Package,
+    // },
     {
       title: "Archived Orders",
       url: "/manager/repairOrderManagement/archived",
       icon: Archive,
     },
-    {
-      title: "Tech Workload/Performance",
-      url: "/manager/technician-performance",
-      icon: BarChart3,
+    // {
+    //   title: "Tech Workload/Performance",
+    //   url: "/manager/technician-performance",
+    //   icon: BarChart3,
+    // },
+        {
+      title: "Emergency Requests",
+      url: "/manager/emergency",
+      icon: Users,
     },
   ],
   // Manage section
@@ -84,11 +89,11 @@ const data = {
       url: "/manager/customers",
       icon: Users,
     },
-    {
-      title: "Vendors",
-      url: "/manager/vendors",
-      icon: Truck,
-    },
+    // {
+    //   title: "Vendors",
+    //   url: "/manager/vendors",
+    //   icon: Truck,
+    // },
     {
       title: "Canned Jobs",
       url: "/manager/canned-jobs",
@@ -102,21 +107,17 @@ const data = {
   ],
   // Admin section
   adminNav: [
-    {
-      title: "Emergency Requests",
-      url: "/manager/emergency",
-      icon: Users,
-    },
+
     {
       title: "Garage Settings",
       url: "/manager/garageSetting",
       icon: Settings,
     },
-    {
-      title: "Billing",
-      url: "/manager/billing",
-      icon: CreditCard,
-    },
+    // {
+    //   title: "Billing",
+    //   url: "/manager/billing",
+    //   icon: CreditCard,
+    // },
   ],
 };
 

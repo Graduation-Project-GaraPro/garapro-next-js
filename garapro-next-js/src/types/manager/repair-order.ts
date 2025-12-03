@@ -72,7 +72,7 @@ export interface RepairOrderApiResponse {
   archivedBy: string | null
   statusId: number
   statusName: string
-  vehicle: {
+  vehicle?: {
     vehicleId: string
     licensePlate: string
     vin: string
@@ -80,7 +80,7 @@ export interface RepairOrderApiResponse {
     modelName: string
     colorName: string
   }
-  customer: {
+  customer?: {
     userId: string
     firstName: string | null
     lastName: string | null
@@ -89,7 +89,7 @@ export interface RepairOrderApiResponse {
     email: string
     phoneNumber: string
   }
-  branch: {
+  branch?: {
     branchId: string
     branchName: string
     address: string | null
@@ -99,6 +99,8 @@ export interface RepairOrderApiResponse {
   orderIndex: number
   isOverdue: boolean
   completionPercentage: number
+  totalJobs?: number
+  completedJobs?: number
   daysInCurrentStatus: number
   isVehiclePickedUp: boolean
   vehiclePickupDate: string | null
@@ -136,16 +138,17 @@ export function mapApiToRepairOrder(apiResponse: RepairOrderApiResponse): Repair
     isArchived: apiResponse.isArchived,
     archivedAt: apiResponse.archivedAt,
     archivedByUserId: apiResponse.archivedBy,
-    branchId: apiResponse.branch.branchId,
+    branchId: apiResponse.branch?.branchId || "",
     statusId: apiResponse.statusId.toString(),
-    vehicleId: apiResponse.vehicle.vehicleId,
-    userId: apiResponse.customer.userId,
+    vehicleId: apiResponse.vehicle?.vehicleId || "",
+    userId: apiResponse.customer?.userId || "",
     repairRequestId: "", // Default value as API doesn't provide this
-    customerName: apiResponse.customer.fullName || `${apiResponse.customer.firstName || ''} ${apiResponse.customer.lastName || ''}`.trim() || apiResponse.customer.email,
-    customerPhone: apiResponse.customer.phoneNumber,
+    // Handle both nested customer object and flat customerName field (for archived ROs)
+    customerName: (apiResponse as any).customerName || apiResponse.customer?.fullName || `${apiResponse.customer?.firstName || ''} ${apiResponse.customer?.lastName || ''}`.trim() || apiResponse.customer?.email || "Unknown",
+    customerPhone: (apiResponse as any).customerPhone || apiResponse.customer?.phoneNumber || "",
     technicianNames: [], // Default value as API doesn't provide this
-    totalJobs: 0, // Default value as API doesn't provide this
-    completedJobs: 0, // Default value as API doesn't provide this
+    totalJobs: apiResponse.totalJobs || 0,
+    completedJobs: apiResponse.completedJobs || 0,
     progressPercentage: apiResponse.completionPercentage,
     isCancelled: apiResponse.isCancelled || false,
     cancelReason: apiResponse.cancelReason,

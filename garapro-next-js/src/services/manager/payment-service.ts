@@ -42,15 +42,15 @@ export const paymentService = {
   },
 
   /**
-   * Generate QR code for PayOs payment
+   * Generate QR code for PayOs payment (Manager creates payment link for customer)
    */
   async generateQRCode(
     repairOrderId: string,
     request: GenerateQRCodeRequest
   ): Promise<GenerateQRCodeResponse> {
     const response = await apiClient.post<GenerateQRCodeResponse>(
-      `/Payments/generate-qr/${repairOrderId}`,
-      request
+      `/Payments/manager-qr-payment/${repairOrderId}`,
+      { method: 0 } // Backend expects method field (0 = Cash, but for QR it creates PayOs payment)
     );
     if (!response.data) {
       throw new Error('No QR code response data received');

@@ -3,18 +3,21 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { CreditCard, DollarSign, MoreHorizontal, FileDown, FolderOpen, Share2, X, Download, Printer, Check, QrCode } from "lucide-react"
+import { DollarSign, FileDown, Share2, X, Download, Printer, Check, QrCode, Archive } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { paymentService } from "@/services/manager/payment-service"
 import { useToast } from "@/hooks/use-toast"
 import type { PaymentSummaryResponse, PaymentPreviewResponse } from "@/types/manager/payment"
+import { getPaymentMethodName, getPaymentStatusName, getPaymentStatusColor } from "@/types/manager/payment"
 import { formatVND } from "@/lib/currency"
+import { usePaymentHub } from "@/hooks/use-payment-hub"
 
 interface PaymentTabProps {
   orderId: string
   repairOrderStatus?: number
   paidStatus?: string
+  isArchived?: boolean
   onPaymentSuccess?: () => void
 }
 
@@ -22,14 +25,6 @@ interface PaymentMethod {
   id: string
   name: string
   icon: React.ReactNode
-}
-
-interface Transaction {
-  id: string
-  date: string
-  amount: number
-  paymentMethod: string
-  status: string
 }
 
 const paymentMethods: PaymentMethod[] = [
@@ -45,14 +40,11 @@ const paymentMethods: PaymentMethod[] = [
   }
 ]
 
-export default function PaymentTab({ orderId, repairOrderStatus, paidStatus, onPaymentSuccess }: PaymentTabProps) {
+export default function PaymentTab({ orderId, repairOrderStatus, paidStatus, isArchived, onPaymentSuccess }: PaymentTabProps) {
   const { toast } = useToast()
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>("")
   const [showInvoice, setShowInvoice] = useState<boolean>(false)
-  const [showCashPayment, setShowCashPayment] = useState<boolean>(false)
   const [showPaymentPreview, setShowPaymentPreview] = useState<boolean>(false)
-  const [showQRCode, setShowQRCode] = useState<boolean>(false)
-  const [qrCodeData, setQrCodeData] = useState<string>("")
   const [paymentSummary, setPaymentSummary] = useState<PaymentSummaryResponse | null>(null)
   const [paymentPreview, setPaymentPreview] = useState<PaymentPreviewResponse | null>(null)
   const [loading, setLoading] = useState<boolean>(false)
@@ -62,8 +54,40 @@ export default function PaymentTab({ orderId, repairOrderStatus, paidStatus, onP
     description: ""
   })
 
-  // Check if repair order is completed (StatusId = 3)
   const isRepairOrderCompleted = repairOrderStatus === 3
+
+  // Initialize SignalR payment hub for real-time updates
+  const { isConnected: isPaymentHubConnected } = usePaymentHub({
+    repairOrderId: orderId,
+    isManager: true,
+    autoConnect: isRepairOrderCompleted, // Only connect if repair order is completed
+    showToasts: false, // We'll handle toasts manually
+    onPaymentCreated: (event) => {
+      console.log("Payment created for this RO:", event)
+      // Reload payment summary when new payment is created
+      loadPaymentSummary()
+      if (onPaymentSuccess) {
+        onPaymentSuccess()
+      }
+    },
+    onPaymentStatusUpdated: (event) => {
+      console.log("Payment status updated:", event)
+      // Reload payment summary when payment status changes
+      loadPaymentSummary()
+    },
+    onPaymentCompleted: (event) => {
+      console.log("Payment completed for this RO:", event)
+      // Update payment summary with the completed data
+      setPaymentSummary(event.paymentSummary)
+      if (onPaymentSuccess) {
+        onPaymentSuccess()
+      }
+      toast({
+        title: "Payment Completed!",
+        description: `Repair Order is now fully paid.`,
+      })
+    }
+  })
 
   // Load payment summary
   useEffect(() => {
@@ -76,7 +100,16 @@ export default function PaymentTab({ orderId, repairOrderStatus, paidStatus, onP
     try {
       setLoading(true)
       const data = await paymentService.getPaymentSummary(orderId)
-      setPaymentSummary(data)
+      
+      // Add computed fields for backward compatibility
+      const enrichedData: PaymentSummaryResponse = {
+        ...data,
+        totalAmount: data.repairOrderCost,
+        discountAmount: data.totalDiscount,
+        paymentStatus: data.paidStatus === 1 ? 'Paid' : 'Unpaid'
+      }
+      
+      setPaymentSummary(enrichedData)
     } catch (error: any) {
       console.error("Failed to load payment summary:", error)
       toast({
@@ -89,7 +122,8 @@ export default function PaymentTab({ orderId, repairOrderStatus, paidStatus, onP
     }
   }
 
-  const balanceDue = paymentSummary?.balanceDue || 0
+  // Check if repair order is paid (no partial payments)
+  const isPaid = paymentSummary?.paidStatus === 1 || paymentSummary?.paymentStatus === 'Paid'
 
   const handleShareInvoice = () => {
     // TODO: Implement email functionality
@@ -107,6 +141,15 @@ export default function PaymentTab({ orderId, repairOrderStatus, paidStatus, onP
   }
 
   const handlePaymentMethodSelect = async (methodId: string) => {
+    if (isArchived) {
+      toast({
+        title: "Cannot Process Payment",
+        description: "This repair order is archived and cannot be modified.",
+        variant: "destructive",
+      })
+      return
+    }
+
     if (!isRepairOrderCompleted) {
       toast({
         title: "Cannot Process Payment",
@@ -116,7 +159,7 @@ export default function PaymentTab({ orderId, repairOrderStatus, paidStatus, onP
       return
     }
 
-    // Validate: Cannot pay if already fully paid (check from RO paidStatus)
+    // Cannot pay if already fully paid
     if (paidStatus === 'Paid') {
       toast({
         title: "Payment Not Allowed",
@@ -129,7 +172,6 @@ export default function PaymentTab({ orderId, repairOrderStatus, paidStatus, onP
     setSelectedPaymentMethod(methodId)
     
     if (methodId === "cash") {
-      // Load payment preview from API
       await loadPaymentPreview()
     } else if (methodId === "payos") {
       handleGenerateQRCode()
@@ -155,7 +197,6 @@ export default function PaymentTab({ orderId, repairOrderStatus, paidStatus, onP
   }
 
   const handleConfirmPayment = async () => {
-    // Validate: Cannot pay if already fully paid (check from RO paidStatus)
     if (paidStatus === 'Paid') {
       toast({
         title: "Payment Not Allowed",
@@ -169,7 +210,7 @@ export default function PaymentTab({ orderId, repairOrderStatus, paidStatus, onP
       setProcessingPayment(true)
       
       const paymentRequest = {
-        method: 0, // 0 = Cash (backend expects numeric enum)
+        method: 0,
         description: cashPaymentData.description || `Cash payment for repair order ${orderId}`,
       };
       
@@ -177,6 +218,7 @@ export default function PaymentTab({ orderId, repairOrderStatus, paidStatus, onP
       console.log("Repair Order ID:", orderId);
       console.log("Request Body:", JSON.stringify(paymentRequest, null, 2));
       console.log("API Endpoint:", `/payments/manager-create/${orderId}`);
+      console.log("Note: Backend automatically gets customer userId from repair order");
       
       const response = await paymentService.createPayment(orderId, paymentRequest)
 
@@ -188,7 +230,7 @@ export default function PaymentTab({ orderId, repairOrderStatus, paidStatus, onP
       // Reload payment summary to update transaction history
       await loadPaymentSummary()
 
-      // Notify parent component to refresh repair order data (including status)
+      // Notify parent component to refresh repair order data
       if (onPaymentSuccess) {
         onPaymentSuccess()
       }
@@ -208,7 +250,7 @@ export default function PaymentTab({ orderId, repairOrderStatus, paidStatus, onP
       console.error("Error details:", error?.details);
       
       const errorMessage = error?.message || "";
-      const responseData = error?.details; // Full response data stored in details
+      const responseData = error?.details;
       
       const isActuallySuccessful = 
         errorMessage.includes("Payment record created successfully") || 
@@ -262,18 +304,31 @@ export default function PaymentTab({ orderId, repairOrderStatus, paidStatus, onP
         description: `PayOs payment for repair order ${orderId}`,
       })
 
-      setQrCodeData(response.qrCodeData)
-      setShowQRCode(true)
+      console.log("PayOS Payment Response:", {
+        paymentId: response.paymentId,
+        orderCode: response.orderCode,
+        checkoutUrl: response.checkoutUrl
+      })
 
       toast({
-        title: "QR Code Generated",
-        description: response.message,
+        title: "Payment Link Created",
+        description: response.message || "Opening PayOS payment page...",
       })
+
+      // Open PayOS checkout page directly in new tab
+      if (response.checkoutUrl) {
+        window.open(response.checkoutUrl, '_blank')
+      }
+
+      // Reload payment summary after a short delay to show the pending payment
+      setTimeout(() => {
+        loadPaymentSummary()
+      }, 1000)
     } catch (error: any) {
-      console.error("Failed to generate QR code:", error)
+      console.error("Failed to generate payment link:", error)
       toast({
-        title: "QR Code Generation Failed",
-        description: error.response?.data?.message || "Failed to generate QR code",
+        title: "Payment Link Failed",
+        description: error.response?.data?.message || "Failed to create PayOS payment link",
         variant: "destructive",
       })
     } finally {
@@ -323,7 +378,17 @@ export default function PaymentTab({ orderId, repairOrderStatus, paidStatus, onP
             <CardTitle>Select payment method</CardTitle>
           </CardHeader>
           <CardContent>
-            {paidStatus === 'Paid' ? (
+            {isArchived ? (
+              <div className="text-center py-8">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Archive className="w-8 h-8 text-gray-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Archived Order</h3>
+                <p className="text-gray-600">
+                  This repair order is archived and cannot accept new payments.
+                </p>
+              </div>
+            ) : paidStatus === 'Paid' ? (
               <div className="text-center py-8">
                 <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Check className="w-8 h-8 text-green-600" />
@@ -382,23 +447,31 @@ export default function PaymentTab({ orderId, repairOrderStatus, paidStatus, onP
                       </tr>
                     </thead>
                     <tbody>
-                      {paymentSummary.paymentHistory.map((payment) => (
-                        <tr key={payment.paymentId} className="border-b">
-                          <td className="py-3 text-sm">{new Date(payment.createdAt).toLocaleDateString()}</td>
-                          <td className="py-3 text-sm font-medium">{formatVND(payment.amount)}</td>
-                          <td className="py-3 text-sm">{payment.method}</td>
-                          <td className="py-3 text-sm">
-                            <span className={`px-2 py-1 rounded-full text-xs ${
-                              payment.status === 'Paid' 
-                                ? 'bg-green-100 text-green-800' 
-                                : 'bg-yellow-100 text-yellow-800'
-                            }`}>
-                              {payment.status}
-                            </span>
-                          </td>
-                          <td className="py-3 text-sm text-gray-600">{payment.description || '-'}</td>
-                        </tr>
-                      ))}
+                      {paymentSummary.paymentHistory.map((payment) => {
+                        const methodName = getPaymentMethodName(payment.method);
+                        const statusName = getPaymentStatusName(payment.status);
+                        const statusColor = getPaymentStatusColor(payment.status);
+                        
+                        return (
+                          <tr key={payment.paymentId} className="border-b">
+                            <td className="py-3 text-sm">{new Date(payment.createdAt).toLocaleDateString()}</td>
+                            <td className="py-3 text-sm font-medium">{formatVND(payment.amount)}</td>
+                            <td className="py-3 text-sm">
+                              <span className="inline-flex items-center gap-1">
+                                {methodName === 'Cash' && '💵'}
+                                {methodName === 'PayOs' && '📱'}
+                                {methodName}
+                              </span>
+                            </td>
+                            <td className="py-3 text-sm">
+                              <span className={`px-2 py-1 rounded-full text-xs ${statusColor.bg} ${statusColor.text}`}>
+                                {statusName}
+                              </span>
+                            </td>
+                            <td className="py-3 text-sm text-gray-600">{payment.description || '-'}</td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -424,51 +497,41 @@ export default function PaymentTab({ orderId, repairOrderStatus, paidStatus, onP
                 {/* Customer & Vehicle Info */}
                 <div className="space-y-2 pb-4 border-b">
                   <div>
-                    <p className="text-sm font-semibold text-gray-900">{paymentSummary?.customerName || 'N/A'}</p>
-                    {paymentSummary?.customerPhone && (
-                      <p className="text-xs text-gray-600">{paymentSummary.customerPhone}</p>
-                    )}
+                    <p className="text-sm font-semibold text-gray-900">{paymentSummary.customerName}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-900">
-                      {paymentSummary?.vehicleYear} {paymentSummary?.vehicleMake} {paymentSummary?.vehicleModel}
-                    </p>
-                    <p className="text-xs text-gray-600">{paymentSummary?.vehicleLicensePlate || 'N/A'}</p>
+                    <p className="text-sm text-gray-900">{paymentSummary.vehicleInfo}</p>
                   </div>
                 </div>
 
                 {/* Cost Breakdown */}
                 <div className="space-y-3">
                   <div className="flex justify-between">
-                    <span className="text-sm">Total Amount:</span>
-                    <span className="text-sm font-medium">{formatVND(paymentSummary?.totalAmount || 0)}</span>
+                    <span className="text-sm">Repair Order Cost:</span>
+                    <span className="text-sm font-medium">{formatVND(paymentSummary.repairOrderCost)}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-red-600">Discount:</span>
-                    <span className="text-sm font-medium text-red-600">-{formatVND(paymentSummary?.discountAmount || 0)}</span>
-                  </div>
-                  <div className="flex justify-between border-t pt-2 font-semibold">
-                    <span>Amount to Pay:</span>
-                    <span>{formatVND(paymentSummary?.amountToPay || 0)}</span>
+                  {paymentSummary.totalDiscount > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-sm text-red-600">Discount:</span>
+                      <span className="text-sm font-medium text-red-600">-{formatVND(paymentSummary.totalDiscount)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between border-t pt-2 font-semibold text-lg">
+                    <span>Total Amount:</span>
+                    <span className="text-[#154c79]">{formatVND(paymentSummary.amountToPay)}</span>
                   </div>
                 </div>
 
                 {/* Payment Status */}
-                <div className="space-y-2 pt-4 border-t">
-                  <div className="flex justify-between">
-                    <span className="text-sm font-semibold">Balance Due:</span>
-                    <span className={`text-sm font-bold ${balanceDue > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                      {formatVND(balanceDue)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center pt-2">
-                    <span className="text-sm">Status:</span>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      paidStatus === 'Paid' 
+                <div className="pt-4 border-t">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-semibold">Payment Status:</span>
+                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                      isPaid
                         ? 'bg-green-100 text-green-800' 
                         : 'bg-red-100 text-red-800'
                     }`}>
-                      {paidStatus || 'Unknown'}
+                      {isPaid ? 'Paid' : 'Unpaid'}
                     </span>
                   </div>
                 </div>
@@ -645,10 +708,6 @@ export default function PaymentTab({ orderId, repairOrderStatus, paidStatus, onP
                     <div className="flex justify-between text-lg font-semibold border-t pt-2">
                       <span>Amount to Pay:</span>
                       <span>{formatVND(paymentSummary?.amountToPay || 0)}</span>
-                    </div>
-                    <div className="flex justify-between text-lg font-bold text-red-600 border-t pt-2">
-                      <span>Balance Due:</span>
-                      <span>{formatVND(balanceDue)}</span>
                     </div>
                   </div>
                 </div>
@@ -830,72 +889,6 @@ export default function PaymentTab({ orderId, repairOrderStatus, paidStatus, onP
         </div>
       )}
 
-      {/* QR Code Modal */}
-      {showQRCode && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-sm shadow-xl max-w-md w-full">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between p-6 border-b">
-              <h2 className="text-xl font-semibold text-gray-900">PayOs Payment</h2>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowQRCode(false)}
-              >
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
-
-            {/* Modal Content */}
-            <div className="p-6 space-y-4">
-              <div className="text-center">
-                <p className="text-gray-600 mb-4">
-                  Scan the QR code below to complete payment
-                </p>
-                
-                {/* QR Code Display */}
-                <div className="bg-white p-4 rounded-lg border-2 border-gray-200 inline-block">
-                  {qrCodeData ? (
-                    <img 
-                      src={qrCodeData} 
-                      alt="Payment QR Code" 
-                      className="w-64 h-64 mx-auto"
-                    />
-                  ) : (
-                    <div className="w-64 h-64 flex items-center justify-center bg-gray-100">
-                      <QrCode className="w-16 h-16 text-gray-400" />
-                    </div>
-                  )}
-                </div>
-
-                {/* Payment Amount */}
-                {paymentSummary && (
-                  <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-                    <p className="text-sm text-gray-600">Amount to Pay</p>
-                    <p className="text-2xl font-bold text-[#154c79]">
-                      {formatVND(balanceDue)}
-                    </p>
-                  </div>
-                )}
-
-                <p className="text-sm text-gray-500 mt-4">
-                  Payment will be automatically confirmed once completed
-                </p>
-              </div>
-            </div>
-
-            {/* Modal Footer */}
-            <div className="flex justify-end gap-3 p-6 border-t">
-              <Button
-                variant="outline"
-                onClick={() => setShowQRCode(false)}
-              >
-                Close
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

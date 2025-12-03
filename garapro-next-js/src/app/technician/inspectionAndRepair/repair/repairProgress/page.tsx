@@ -831,7 +831,7 @@ const handleSaveProgress = async () => {
 
         <div className="space-y-2 mb-5">
           {repairSteps.map((step, index) => {
-            const StatusIcon = statusConfig[step.status]?.icon;         
+          const StatusIcon = statusConfig?.[step?.status]?.icon;        
             const isMyJob = myJobIds.includes(step.jobId);
             const isEditable = !step.description && isMyJob;
             const isUpdatable = step.description && isMyJob && step.status !== "Completed";

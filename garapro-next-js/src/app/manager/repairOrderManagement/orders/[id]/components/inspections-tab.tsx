@@ -481,8 +481,7 @@ export default function InspectionsTab({ orderId, highlightInspectionId }: Inspe
           <div className="flex justify-between items-center">
             <CardTitle className="text-lg">Inspection Forms</CardTitle>
             <Button onClick={() => setIsCreateDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Create Inspection
+              Create New Inspection
             </Button>
           </div>
         </CardHeader>

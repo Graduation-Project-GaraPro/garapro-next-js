@@ -53,6 +53,25 @@ export interface CreateInspectionRequest {
   customerConcern: string;
 }
 
+// Request interface for creating a manager inspection with services
+export interface CreateManagerInspectionRequest {
+  repairOrderId: string;
+  technicianId?: string | null;
+  customerConcern: string;
+  serviceIds?: string[];
+}
+
+// Available service DTO (services that can be added to inspection)
+export interface AvailableServiceDto {
+  serviceId: string;
+  serviceName: string;
+  description: string;
+  price: number;
+  isAdvanced: boolean;
+  serviceCategoryId: string;
+  serviceCategoryName: string;
+}
+
 // Inspection status enum to match the backend
 export enum InspectionStatus {
   New = 0,

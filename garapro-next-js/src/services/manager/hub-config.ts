@@ -22,6 +22,9 @@ export const HUB_ENDPOINTS = {
   QUOTATION: "/hubs/quotation",
   REPAIR_ORDER: "/hubs/repairorder",
   TECHNICIAN_ASSIGNMENT: "/hubs/technicianassignment",
+  JOB: "/hubs/job",
+  REPAIR: "/hubs/repair",
+  PAYMENT: "/hubs/payment",
 } as const;
 
 /**

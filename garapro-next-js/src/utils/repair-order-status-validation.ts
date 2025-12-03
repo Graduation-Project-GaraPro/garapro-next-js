@@ -6,6 +6,13 @@ import type { QuotationDto } from "@/types/manager/quotation"
 export interface StatusTransitionValidation {
   isValid: boolean
   message?: string
+  requirements?: {
+    hasQuotation: boolean
+    hasGoodQuotation: boolean
+    allJobsCompleted: boolean
+    incompleteJobCount: number
+    incompleteJobs: Job[]
+  }
 }
 
 const STATUS = {
@@ -45,6 +52,13 @@ export function areAllJobsCompleted(jobs: Job[]): boolean {
 }
 
 /**
+ * Get list of incomplete jobs
+ */
+export function getIncompleteJobs(jobs: Job[]): Job[] {
+  return jobs.filter(job => job.status !== 3)
+}
+
+/**
  * Check if repair order is fully paid
  */
 export function isFullyPaid(repairOrder: RepairOrder): boolean {
@@ -79,19 +93,64 @@ export function validateStatusTransition(
     }
   }
 
-  // In Progress → Completed: ✅ If all jobs done OR has good quotation
+  // In Progress → Completed: ✅ MUST have quotation AND (good quotation OR all jobs done)
   if (fromStatusId === STATUS.IN_PROGRESS && toStatusId === STATUS.COMPLETED) {
-    const allJobsDone = areAllJobsCompleted(jobs)
+    const hasQuotation = quotations.length > 0
     const hasGoodQuote = hasGoodQuotation(quotations)
+    const allJobsDone = areAllJobsCompleted(jobs)
+    const incompleteJobs = getIncompleteJobs(jobs)
+    const incompleteCount = incompleteJobs.length
     
-    if (!allJobsDone && !hasGoodQuote) {
+    // STEP 1: Check if at least one quotation exists (any status)
+    if (!hasQuotation) {
       return {
         isValid: false,
-        message: "Cannot complete repair order. Either all jobs must be completed OR there must be an approved quotation with all services marked as 'Good' (no repair needed)."
+        message: "Cannot complete: No quotation exists for this repair order. Please create at least one quotation (any status).",
+        requirements: {
+          hasQuotation: false,
+          hasGoodQuotation: false,
+          allJobsCompleted: allJobsDone,
+          incompleteJobCount: incompleteCount,
+          incompleteJobs
+        }
       }
     }
     
-    return { isValid: true }
+    // STEP 2: Check if has good quotation OR all jobs completed
+    if (!hasGoodQuote && !allJobsDone) {
+      const jobList = incompleteJobs.slice(0, 3).map(job => 
+        job.jobName || `Job ${job.jobId.slice(0, 8)}`
+      ).join(", ")
+      
+      const moreJobs = incompleteCount > 3 ? ` and ${incompleteCount - 3} more` : ""
+      
+      let message = `Cannot complete: No good quotation and ${incompleteCount} job(s) incomplete. `
+      message += `To complete, either: (1) Get a good quotation (approve quotation where ALL services are marked as Good), or (2) Complete all jobs. `
+      message += `Incomplete jobs: ${jobList}${moreJobs}.`
+      
+      return {
+        isValid: false,
+        message,
+        requirements: {
+          hasQuotation: true,
+          hasGoodQuotation: false,
+          allJobsCompleted: false,
+          incompleteJobCount: incompleteCount,
+          incompleteJobs
+        }
+      }
+    }
+    
+    return { 
+      isValid: true,
+      requirements: {
+        hasQuotation: true,
+        hasGoodQuotation: hasGoodQuote,
+        allJobsCompleted: allJobsDone,
+        incompleteJobCount: 0,
+        incompleteJobs: []
+      }
+    }
   }
 
   // In Progress → Pending: ✅ Always allowed
