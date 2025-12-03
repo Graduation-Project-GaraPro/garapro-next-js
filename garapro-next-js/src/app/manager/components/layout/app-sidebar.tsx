@@ -72,8 +72,8 @@ const data = {
       icon: Archive,
     },
     {
-      title: "Reports",
-      url: "/manager/reports",
+      title: "Tech Workload/Performance",
+      url: "/manager/technician-performance",
       icon: BarChart3,
     },
   ],

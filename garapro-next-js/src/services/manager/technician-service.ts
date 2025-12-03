@@ -336,28 +336,11 @@ class TechnicianService {
     }
   }
 
-  // Get all technician workloads
-  async getAllTechnicianWorkloads(): Promise<TechnicianWorkload[]> {
-    try {
-      // Use the correct endpoint format - should be relative to base URL
-      const endpoint = `/Technician/workload`
-      console.log(`Fetching all technician workloads at endpoint: ${endpoint}`)
-      
-      const response = await apiClient.get<TechnicianWorkload[]>(endpoint)
-      console.log(`All technician workloads response:`, response)
-      
-      return response.data || []
-    } catch (error) {
-      console.error('Failed to fetch technician workloads:', error)
-      return []
-    }
-  }
-
   // Get specific technician workload
+  // Endpoint: GET /api/Technician/workload?technicianId={guid}
   async getTechnicianWorkload(technicianId: string): Promise<TechnicianWorkload | null> {
     try {
-      // Use the correct endpoint format - should be relative to base URL
-      const endpoint = `/Technician/workload/${technicianId}`
+      const endpoint = `/Technician/workload?technicianId=${technicianId}`
       console.log(`Fetching workload for technician ${technicianId} at endpoint: ${endpoint}`)
       
       const response = await apiClient.get<TechnicianWorkload>(endpoint)
@@ -370,14 +353,27 @@ class TechnicianService {
     }
   }
 
-  // Get all technician schedules
-  async getAllTechnicianSchedules(): Promise<TechnicianSchedule[]> {
+  // Get all technician schedules with optional filters
+  // Endpoint: GET /api/Technician/schedule
+  async getAllTechnicianSchedules(params?: {
+    technicianId?: string
+    status?: string
+    fromDate?: string
+    toDate?: string
+    isOverdueOnly?: boolean
+  }): Promise<TechnicianJob[]> {
     try {
-      // Use the correct endpoint format - should be relative to base URL
-      const endpoint = `/Technician/schedule`
+      const queryParams = new URLSearchParams()
+      if (params?.technicianId) queryParams.append('technicianId', params.technicianId)
+      if (params?.status) queryParams.append('status', params.status)
+      if (params?.fromDate) queryParams.append('fromDate', params.fromDate)
+      if (params?.toDate) queryParams.append('toDate', params.toDate)
+      if (params?.isOverdueOnly !== undefined) queryParams.append('isOverdueOnly', params.isOverdueOnly.toString())
+      
+      const endpoint = `/Technician/schedule${queryParams.toString() ? `?${queryParams.toString()}` : ''}`
       console.log(`Fetching all technician schedules at endpoint: ${endpoint}`)
       
-      const response = await apiClient.get<TechnicianSchedule[]>(endpoint)
+      const response = await apiClient.get<TechnicianJob[]>(endpoint)
       console.log(`All technician schedules response:`, response)
       
       return response.data || []
@@ -388,19 +384,39 @@ class TechnicianService {
   }
 
   // Get specific technician schedule
-  async getTechnicianSchedule(technicianId: string): Promise<TechnicianSchedule | null> {
+  // Endpoint: GET /api/Technician/{technicianId}/schedule
+  async getTechnicianSchedule(technicianId: string): Promise<TechnicianJob[]> {
     try {
-      // Use the correct endpoint format - should be relative to base URL
       const endpoint = `/Technician/${technicianId}/schedule`
       console.log(`Fetching schedule for technician ${technicianId} at endpoint: ${endpoint}`)
       
-      const response = await apiClient.get<TechnicianSchedule>(endpoint)
+      const response = await apiClient.get<TechnicianJob[]>(endpoint)
       console.log(`Technician schedule response:`, response)
       
-      return response.data || null
+      return response.data || []
     } catch (error) {
       console.error(`Failed to fetch schedule for technician ${technicianId}:`, error)
-      return null
+      return []
+    }
+  }
+
+  // Assign jobs to technician
+  // Endpoint: POST /api/Technician/assign/jobs
+  async assignJobsToTechnician(technicianId: string, jobIds: string[]): Promise<boolean> {
+    try {
+      const endpoint = `/Technician/assign/jobs`
+      console.log(`Assigning jobs to technician ${technicianId}:`, jobIds)
+      
+      await apiClient.post(endpoint, {
+        technicianId,
+        jobIds
+      })
+      
+      console.log(`Successfully assigned jobs to technician ${technicianId}`)
+      return true
+    } catch (error) {
+      console.error(`Failed to assign jobs to technician ${technicianId}:`, error)
+      return false
     }
   }
 
