@@ -158,10 +158,16 @@ export default function RepairOrderCard({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              {isPending && onCancel && (
+              {!repairOrder.isCancelled && !isCompleted && onCancel && (
                 <DropdownMenuItem onClick={onCancel} className="text-orange-600">
                   <XCircle className="w-4 h-4 mr-2" />
                   Cancel
+                </DropdownMenuItem>
+              )}
+              {canArchive && onArchive && (
+                <DropdownMenuItem onClick={onArchive} className="text-blue-600">
+                  <Archive className="w-4 h-4 mr-2" />
+                  Archive
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>

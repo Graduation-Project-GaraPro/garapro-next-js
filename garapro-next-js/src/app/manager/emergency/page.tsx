@@ -66,7 +66,7 @@ export default function EmergencyList() {
           cache: "no-store",
         });
 
-        const json = await res.json();
+        const json = await res.json() as EmergencyRequest[];
         setData(json);
       } catch (err) {
         console.error(err);
@@ -87,7 +87,7 @@ export default function EmergencyList() {
       const res = await apiClient.get(`/Branch/${branchId}/technicians`);
 
       if (res.success) {
-        const json = res.data;
+        const json = res.data as any[];
         setTechnicians(json);
       } else {
         console.error("Không load được danh sách kỹ thuật viên");
@@ -115,7 +115,7 @@ export default function EmergencyList() {
 
       // reload
       const res = await apiClient.get(`/EmergencyRequest/getAll`);
-      setData(res.data);
+      setData(res.data as EmergencyRequest[]);
     } else {
       alert("Gán thất bại!");
     }
