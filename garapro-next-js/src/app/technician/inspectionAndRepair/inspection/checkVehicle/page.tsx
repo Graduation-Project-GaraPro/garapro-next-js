@@ -114,7 +114,8 @@ interface InspectionItem {
   serviceId: string;
   serviceName: string;
   categoryName?: string;
-  status: "good" | "needs-attention" | "replace" | "not-checked";
+  status: "good" | "needs-attention" | "replace";
+ // status: "good" | "needs-attention" | "replace" | "not-checked";  
   notes: string;
   isAdvanced: boolean;
   allPartCategories: PartCategoryDto[];
@@ -728,7 +729,7 @@ export default function CheckConditionPage() {
     good: { color: "bg-green-200 text-green-800 border-green-300", label: "Good" },
     "needs-attention": { color: "bg-yellow-200 text-yellow-800 border-yellow-300", label: "Needs Attention" },
     replace: { color: "bg-red-200 text-red-800 border-red-300", label: "Replace" },
-    "not-checked": { color: "bg-gray-400 text-gray-600 border-gray-600", label: "Not Checked" },
+    //"not-checked": { color: "bg-gray-400 text-gray-600 border-gray-600", label: "Not Checked" },
   };
 
   useEffect(() => {
@@ -790,13 +791,15 @@ export default function CheckConditionPage() {
               });
             });
 
-            let status: "good" | "needs-attention" | "replace" | "not-checked" = "not-checked";
+           // let status: "good" | "needs-attention" | "replace" | "not-checked" = "not-checked";
+            let status: "good" | "needs-attention" | "replace" = "good";
             if (existingInspection) {
               switch (existingInspection.conditionStatus) {
                 case 0: status = "good"; break;
                 case 1: status = "needs-attention"; break;
                 case 2: status = "replace"; break;
-                default: status = "not-checked";
+                //default: status = "not-checked";
+                default: status = "good";
               }
             }
 
@@ -831,12 +834,14 @@ export default function CheckConditionPage() {
               });
             });
 
-            let status: "good" | "needs-attention" | "replace" | "not-checked" = "not-checked";
+            let status: "good" | "needs-attention" | "replace" = "good";
+            //let status: "good" | "needs-attention" | "replace" | "not-checked" = "not-checked";
             switch (si.conditionStatus) {
               case 0: status = "good"; break;
               case 1: status = "needs-attention"; break;
               case 2: status = "replace"; break;
-              default: status = "not-checked";
+              default: status = "good";
+             // default: status = "not-checked";
             }
 
             return {
@@ -922,12 +927,12 @@ export default function CheckConditionPage() {
           });
         });
 
-        let status: "good" | "needs-attention" | "replace" | "not-checked" = "not-checked";
+        let status: "good" | "needs-attention" | "replace" = "good";
         switch (si.conditionStatus) {
           case 0: status = "good"; break;
           case 1: status = "needs-attention"; break;
           case 2: status = "replace"; break;
-          default: status = "not-checked";
+          default: status = "good";
         }
 
         return {
@@ -1248,9 +1253,13 @@ export default function CheckConditionPage() {
   const isSaveValid = () => {
     const hasAnyChange =
       inspectionItems.some(
+      //   (item) =>
+      //     item.status !== "not-checked" || item.selectedPartCategories.length > 0
+      // ) || generalNotes.trim().length > 0;
         (item) =>
-          item.status !== "not-checked" || item.selectedPartCategories.length > 0
+         item.selectedPartCategories.length > 0
       ) || generalNotes.trim().length > 0;
+
 
     if (!hasAnyChange) return false;
 

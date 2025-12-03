@@ -113,7 +113,7 @@ export default function VehicleInspection() {
   useEffect(() => {
   const setupSignalR = async () => {
     try {
-      // Lấy technicianId
+      // Lấy technicianId TRỰC TIẾP từ endpoint riêng
       const id = await getTechnicianId();
       if (!id) {
         console.warn("Could not get technician ID");
@@ -121,38 +121,20 @@ export default function VehicleInspection() {
       }
       setTechnicianId(id);
       console.log("TechnicianId:", id);
+
       // Start SignalR connection
       await inspectionSignalRService.startConnection();
       setSignalRConnected(true);
       
+      // Join group
       await inspectionSignalRService.joinTechnicianGroup(id);
 
+      // Listen for events
       inspectionSignalRService.onInspectionAssigned(async (data: InspectionAssignedEvent) => {
         console.log("InspectionAssigned event:", data);
 
-        try {
-          const fullData: ApiInspection[] = await getMyInspections();
-          const newInspection = fullData.find((x) => x.inspectionId === data.inspectionId);
-
-          if (newInspection) {
-            const mapped: InspectionJob = {
-              id: newInspection.inspectionId,
-              vehicle: `${newInspection.repairOrder?.vehicle?.brand?.brandName || ""} ${newInspection.repairOrder?.vehicle?.model?.modelName || ""}`.trim() || "Unknown",
-              licensePlate: newInspection.repairOrder?.vehicle?.licensePlate || "N/A",
-              customer: newInspection.repairOrder?.customer?.fullName || "Unknown",
-              assignedDate: newInspection.createdAt 
-                ? new Date(newInspection.createdAt).toLocaleDateString("vi-VN") 
-                : "N/A",
-              status: (newInspection.statusText as TaskStatus) || "New",
-            };
-
-            setInspections((prev) => [mapped, ...prev]);
-            setTotalCount((prev) => prev + 1);
-            setTotalPages(Math.ceil((totalCount + 1) / pageSize));
-          }
-        } catch (error) {
-          console.error("Error fetching new inspection details:", error);
-        }
+        // Tự động refresh danh sách khi nhận được inspection mới
+        await fetchInspections();
       });
 
     } catch (error) {

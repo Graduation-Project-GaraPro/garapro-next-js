@@ -1,3 +1,4 @@
+
 export interface GoogleLoginDto {
   idToken: string;
 }
@@ -8,6 +9,7 @@ export interface AuthResponseDto {
   token: string;
   expiresIn: number;
   userId: string;
+  fullName?: string;  
   email: string;
   branchId?: string ;
   roles: string[];
@@ -23,6 +25,7 @@ let globalToken: string | null = null;
 let globalUserId: string | null = null;
 let globalUserEmail: string | null = null;
 let globalBranchId: string | null = null;
+let globalFullName: string | null = null; 
 
 let globalUserRoles: string[] = [];
 class AuthService {
@@ -52,12 +55,13 @@ class AuthService {
     return null;
   }
 
-  private setStoredUserData(token: string, userId: string,branchId : string ,email: string, roles: string[] = []): void {
+  private setStoredUserData(token: string, userId: string,branchId : string ,email: string, roles: string[] = [], fullName?: string): void {
     globalToken = token;
     globalUserId = userId;
     globalUserEmail = email;
     globalUserRoles = roles;
     globalBranchId = branchId
+    globalFullName = fullName || null;
     
     if (typeof window !== 'undefined') {
       localStorage.setItem('authToken', token);
@@ -65,6 +69,9 @@ class AuthService {
       sessionStorage.setItem('userEmail', email);
       sessionStorage.setItem('branchId', branchId);
       sessionStorage.setItem('userRoles', JSON.stringify(roles));
+      if (fullName) {
+        sessionStorage.setItem('fullName', fullName); 
+      }
     }
   }
 
@@ -74,6 +81,7 @@ class AuthService {
     globalUserEmail = null;
     globalUserRoles = [];
     globalBranchId = null;
+    globalFullName = null;
     
     if (typeof window !== 'undefined') {
       localStorage.removeItem('authToken');
@@ -81,7 +89,7 @@ class AuthService {
       sessionStorage.removeItem('userEmail');
       sessionStorage.removeItem('userRoles');
       sessionStorage.removeItem('branchId');
-
+      sessionStorage.removeItem('fullName');
     }
   }
 
@@ -101,7 +109,7 @@ class AuthService {
     }
 
     const authData = await response.json();
-    this.setStoredUserData(authData.token, authData.userId, authData.branchId ,authData.email, authData.roles);
+    this.setStoredUserData(authData.token, authData.userId, authData.branchId ,authData.email, authData.roles, authData.fullName );
     
     return authData;
   }
@@ -124,7 +132,20 @@ class AuthService {
     }
     return [];
   }
+getCurrentFullName(): string | null {
+    if (globalFullName) {
+      return globalFullName;
+    }
 
+    if (typeof window !== "undefined") {
+      const storedFullName = sessionStorage.getItem("fullName");
+      if (storedFullName) {
+        globalFullName = storedFullName;
+        return storedFullName;
+      }
+    }
+    return null;
+  }
   async refreshToken(): Promise<string> {
     const response = await fetch(`${API_BASE_URL}/auth/refresh-token`, {
       method: "POST",
@@ -138,11 +159,13 @@ class AuthService {
     const authData = await response.json();
     const currentUserId = this.getCurrentUserId();
     const currentUserEmail = this.getCurrentUserEmail();
+    const currentFullName = this.getCurrentFullName(); 
     this.setStoredUserData(
       authData.token,
       currentUserId || authData.userId || "",
       currentUserEmail || authData.email || "",
-      authData.branchId
+      authData.branchId,
+       currentFullName || authData.fullName 
     );
 
     return authData.token;
@@ -209,7 +232,7 @@ class AuthService {
   } {
     return {
       userId: this.getCurrentUserId(),
-      fullName: null, // Not stored in current implementation
+      fullName: this.getCurrentFullName(), 
       email: this.getCurrentUserEmail(),
       roles: this.getCurrentUserRoles()
     };

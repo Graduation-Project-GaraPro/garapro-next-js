@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { getMyJobs } from "@/services/technician/jobTechnicianService";
 import { useRouter } from "next/navigation";
+import * as signalR from "@microsoft/signalr";
 import jobSignalRService, { JobAssignedEvent } from "@/services/technician/jobSignalRService";
 import { getTechnicianId } from "@/services/technician/jobTechnicianService";
 import {
@@ -30,10 +31,8 @@ import {
 } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
-//Define types for task status and priority
 type TaskStatus = "new" | "in-progress" | "completed" | "on-hold";
 
-// Define the structure of a task
 interface Task {
   id: string | number;
   vehicle: string;
@@ -123,6 +122,7 @@ export default function TaskManagement() {
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [technicianId, setTechnicianId] = useState<string | null>(null);
   const [signalRConnected, setSignalRConnected] = useState(false);
+  const [connectionRetryCount, setConnectionRetryCount] = useState(0);
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(6);
@@ -133,7 +133,6 @@ export default function TaskManagement() {
 
   const router = useRouter();
 
-  // Debounce search term
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearchTerm(searchTerm);
@@ -168,7 +167,6 @@ export default function TaskManagement() {
           return;
         }
 
-        // Mock pagination for frontend
         const startIndex = (currentPage - 1) * pageSize;
         const endIndex = startIndex + pageSize;
         const paginatedData = data.slice(startIndex, endIndex);
@@ -251,112 +249,163 @@ export default function TaskManagement() {
     fetchJobs();
   }, [currentPage, pageSize]);
 
-  useEffect(() => {
+  // SignalR Connection and Real-time Updates
+useEffect(() => {
+  let isMounted = true;
+
   const setupSignalR = async () => {
+    if (!isMounted) return;
+
     try {
-      // Lấy technicianId
+      console.log("Setting up Task Management SignalR connection...");
+      
       const id = await getTechnicianId();
       if (!id) {
-        console.warn("Could not get technician ID");
+        console.warn("Could not get technician ID for Task Management, will retry...");
+        if (isMounted) {
+          setTimeout(() => {
+            setConnectionRetryCount(prev => prev + 1);
+          }, 3000);
+        }
         return;
       }
-      setTechnicianId(id);
-      console.log("TechnicianId:", id);
-
-      // Start SignalR connection
-      await jobSignalRService.startConnection();
-      setSignalRConnected(true);
       
-      // Join group
+      if (isMounted) {
+        setTechnicianId(id);
+      }
+      console.log("Task Management TechnicianId:", id);
+
+      await jobSignalRService.startConnection();
+      
+      if (isMounted) {
+        setSignalRConnected(true);
+      }
+      console.log("Task Management SignalR connected successfully");
+      
       await jobSignalRService.joinTechnicianGroup(id);
+      console.log(`Joined Task Management Technician_${id} group`);
 
-      // Event 1: JobAssigned - Khi Manager assign job mới
       jobSignalRService.onJobAssigned(async (data: JobAssignedEvent) => {
-        console.log("JobAssigned event:", data);
-
-        // Fetch full job list để lấy data đầy đủ
+        if (!isMounted) return;
+        
+        console.log("JobAssigned event in Task Management:", data);      
+        
         try {
-          const fullData: JobResponse[] = await getMyJobs();
-          const newJob = fullData.find((x) => x.jobId === data.jobId);
+          setLoading(true);
+          const newData: JobResponse[] = await getMyJobs();
+          
+          if (isMounted && newData && Array.isArray(newData)) {
+            const startIndex = (currentPage - 1) * pageSize;
+            const endIndex = startIndex + pageSize;
+            const paginatedData = newData.slice(startIndex, endIndex);
 
-          if (newJob) {
-            const vehicleName = newJob.vehicle
-              ? `${newJob.vehicle.brand?.brandName || ""} ${newJob.vehicle.model?.modelName || ""}`.trim() || "Unknown"
-              : "Unknown";
+            const mappedTasks: Task[] = paginatedData.map((item) => {
+              const vehicleName = item.vehicle
+                ? `${item.vehicle.brand?.brandName || ""} ${item.vehicle.model?.modelName || ""}`.trim() || "Unknown"
+                : "Unknown";
 
-            let normalizedStatus: TaskStatus = "new";
-            if (newJob.status) {
-              const statusLower = newJob.status.toLowerCase();
-              if (statusLower === "inprogress" || statusLower === "in-progress") {
-                normalizedStatus = "in-progress";
-              } else if (statusLower === "onhold" || statusLower === "on-hold") {
-                normalizedStatus = "on-hold";
-              } else if (statusLower === "completed") {
-                normalizedStatus = "completed";
-              } else if (statusLower === "new") {
-                normalizedStatus = "new";
+              let normalizedStatus: TaskStatus = "new";
+              if (item.status) {
+                const statusLower = item.status.toLowerCase();
+                if (statusLower === "inprogress" || statusLower === "in-progress") {
+                  normalizedStatus = "in-progress";
+                } else if (statusLower === "onhold" || statusLower === "on-hold") {
+                  normalizedStatus = "on-hold";
+                } else if (statusLower === "completed") {
+                  normalizedStatus = "completed";
+                } else if (statusLower === "new") {
+                  normalizedStatus = "new";
+                }
               }
-            }
 
-            let progress = 0;
-            switch (normalizedStatus) {
-              case "in-progress":
-                progress = 50;
-                break;
-              case "completed":
-                progress = 100;
-                break;
-              case "on-hold":
-                progress = 30;
-                break;
-              default:
-                progress = 0;
-            }
+              let progress = 0;
+              switch (normalizedStatus) {
+                case "in-progress":
+                  progress = 50;
+                  break;
+                case "completed":
+                  progress = 100;
+                  break;
+                case "on-hold":
+                  progress = 30;
+                  break;
+                default:
+                  progress = 0;
+              }
 
-            const deadlineStr = newJob.deadline ? new Date(newJob.deadline).toLocaleDateString("en-GB") : "N/A";
+              const deadlineStr = item.deadline ? new Date(item.deadline).toLocaleDateString("en-GB") : "N/A";
 
-            const mappedTask: Task = {
-              id: newJob.jobId || (newJob.repairOrderId ?? Math.random()),
-              vehicle: vehicleName,
-              issue: newJob.note || "N/A",
-              jobName: newJob.jobName || "N/A",
-              time: deadlineStr,
-              status: normalizedStatus,
-              progress,
-              technician:
-                newJob.technicians && newJob.technicians.length > 0
-                  ? newJob.technicians[0].fullName || "Technician"
-                  : "Technician",
-              licensePlate: newJob.vehicle?.licensePlate || "N/A",
-              owner: newJob.customer?.fullName || "Unknown",
-              phone: newJob.customer?.phoneNumber || "N/A",
-              description: newJob.repair?.description || newJob.note || "No description",
-            };
+              return {
+                id: item.jobId || (item.repairOrderId ?? Math.random()),
+                vehicle: vehicleName,
+                issue: item.note || "N/A",
+                jobName: item.jobName || "N/A",
+                time: deadlineStr,
+                status: normalizedStatus,
+                progress,
+                priority: "medium",
+                technician:
+                  item.technicians && item.technicians.length > 0
+                    ? item.technicians[0].fullName || "Technician"
+                    : "Technician",
+                licensePlate: item.vehicle?.licensePlate || "N/A",
+                owner: item.customer?.fullName || "Unknown",
+                phone: item.customer?.phoneNumber || "N/A",
+                description: item.repair?.description || item.note || "No description",
+              } as Task;
+            });
 
-            // Thêm vào đầu danh sách
-            setTasks((prev) => [mappedTask, ...prev]);
-            setTotalCount((prev) => prev + 1);
-            setTotalPages(Math.ceil((totalCount + 1) / pageSize));
-
+            setTasks(mappedTasks);
+            setTotalCount(newData.length);
+            setTotalPages(Math.ceil(newData.length / pageSize));
           }
         } catch (error) {
-          console.error("Error fetching new job details:", error);
+          console.error("Error fetching jobs after SignalR event:", error);
+        } finally {
+          if (isMounted) {
+            setLoading(false);
+          }
         }
-      });     
+      });
 
     } catch (error) {
-      console.error("SignalR setup failed:", error);
+      if (!isMounted) return;
+      
+      console.error("Task Management SignalR setup failed:", error);
       setSignalRConnected(false);
+      
+      setTimeout(() => {
+        setConnectionRetryCount(prev => prev + 1);
+      }, 5000);
     }
   };
 
   setupSignalR();
+
+  // Cleanup
   return () => {
+    isMounted = false;
+    console.log("Cleaning up Task Management SignalR connection...");
     if (technicianId) {
       jobSignalRService.leaveTechnicianGroup(technicianId);
     }
     jobSignalRService.offAllEvents();
   };
+}, [connectionRetryCount, currentPage, pageSize]);
+// Monitor connection status
+useEffect(() => {
+  const checkConnectionStatus = setInterval(() => {
+    const state = jobSignalRService.getConnectionState();
+    
+    if (state === signalR.HubConnectionState.Connected) {
+      setSignalRConnected(true);
+    } else if (state === signalR.HubConnectionState.Disconnected) {
+      setSignalRConnected(false);
+      setConnectionRetryCount(prev => prev + 1);
+    }
+  }, 10000); 
+
+  return () => clearInterval(checkConnectionStatus);
 }, []);
 
   // Memoized status configuration

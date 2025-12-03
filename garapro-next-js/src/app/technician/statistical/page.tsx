@@ -27,17 +27,12 @@ export default function StatisticalPage() {
       setLoading(true);
       setError(null);
       
-      // Token sẽ được lấy tự động trong service
       const data = await getMyStatistics();
       setStatistics(data);
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Có lỗi xảy ra khi tải thống kê';
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred while loading statistics.';
       setError(errorMessage);
-      
-      // Nếu lỗi authentication, redirect về login
-      if (errorMessage.includes("authentication") || errorMessage.includes("token")) {
-        router.push('/login');
-      }
+           
     } finally {
       setLoading(false);
     }
