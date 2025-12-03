@@ -1,9 +1,11 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { apiClient } from "@/services/manager/api-client";
+import { toast } from "sonner";
 
 type EmergencyRequest = {
   emergencyRequestId: string;
@@ -50,9 +52,10 @@ export default function EmergencyList() {
   );
   const [selectedTech, setSelectedTech] = useState<string | null>(null);
   const [technicians, setTechnicians] = useState<any[]>([]);
+  const [processingId, setProcessingId] = useState<string | null>(null);
 
   const apiBase =
-    process.env.NEXT_PUBLIC_API_BASE_URL ?? "https://localhost:7113/api";
+    process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5000/api";
 
   // ===== LOAD EMERGENCY REQUESTS =====
   useEffect(() => {
@@ -66,6 +69,7 @@ export default function EmergencyList() {
         setData(json);
       } catch (err) {
         console.error(err);
+        toast.error("Failed to load emergency requests.");
       } finally {
         setLoading(false);
       }
@@ -89,10 +93,86 @@ export default function EmergencyList() {
       } else {
         console.error("Failed to load technicians");
         setTechnicians([]);
+        toast.error("Failed to load technicians.");
       }
     } catch (err) {
       console.error(err);
       setTechnicians([]);
+      toast.error("Failed to load technicians.");
+    }
+  };
+
+  // ===== ACCEPT REQUEST =====
+  const handleAccept = async (emergencyId: string) => {
+    setProcessingId(emergencyId);
+
+    try {
+      // Replace endpoint with your actual API path if different
+      const response = await apiClient.post(
+        `/EmergencyRequest/approve/${emergencyId}`
+      );
+
+      if (response.success) {
+        // optimistic update: update local data statuses
+        setData((prev) =>
+          prev.map((r) =>
+            r.emergencyRequestId === emergencyId ? { ...r, status: 1 } : r
+          )
+        );
+        toast.success("Request accepted");
+      } else {
+        console.error(response);
+        toast.error("Failed to accept request");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("An error occurred while accepting the request");
+    } finally {
+      setProcessingId(null);
+      // refresh full list to ensure consistency
+      try {
+        const updated = await apiClient.get(`/EmergencyRequest/getAll`);
+        setData(updated.data as EmergencyRequest[]);
+      } catch (err) {
+        // ignore
+      }
+    }
+  };
+
+  // ===== CANCEL REQUEST =====
+  const handleCancel = async (emergencyId: string) => {
+    setProcessingId(emergencyId);
+
+    try {
+      // Replace endpoint with your actual API path if different
+      const response = await apiClient.put(
+        `/EmergencyRequest/reject/${emergencyId}`
+      );
+
+      if (response.success) {
+        // optimistic update: set status to canceled (6)
+        setData((prev) =>
+          prev.map((r) =>
+            r.emergencyRequestId === emergencyId ? { ...r, status: 6 } : r
+          )
+        );
+        toast.success("Request canceled");
+      } else {
+        console.error(response);
+        toast.error("Failed to cancel request");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("An error occurred while canceling the request");
+    } finally {
+      setProcessingId(null);
+      // refresh full list to ensure consistency
+      try {
+        const updated = await apiClient.get(`/EmergencyRequest/getAll`);
+        setData(updated.data as EmergencyRequest[]);
+      } catch (err) {
+        // ignore
+      }
     }
   };
 
@@ -100,20 +180,25 @@ export default function EmergencyList() {
   const handleAssignTech = async () => {
     if (!selectedTech || !selectedEmergencyId) return;
 
-    const response = await apiClient.post(`/EmergencyRequest/asign-tech`, {
-      emergencyId: selectedEmergencyId,
-      technicianUserId: selectedTech,
-    });
+    try {
+      const response = await apiClient.post(`/EmergencyRequest/assign-tech`, {
+        emergencyId: selectedEmergencyId,
+        technicianUserId: selectedTech,
+      });
 
-    if (response.success) {
-      alert("Technician assigned successfully!");
-      setOpenAssignModal(false);
-      setSelectedTech(null);
+      if (response.success) {
+        toast.success("Technician assigned");
+        setOpenAssignModal(false);
+        setSelectedTech(null);
 
-      const updated = await apiClient.get(`/EmergencyRequest/getAll`);
-      setData(updated.data as EmergencyRequest[]);
-    } else {
-      alert("Assign failed!");
+        const updated = await apiClient.get(`/EmergencyRequest/getAll`);
+        setData(updated.data as EmergencyRequest[]);
+      } else {
+        toast.error("Assign failed");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("An error occurred while assigning the technician");
     }
   };
 
@@ -139,6 +224,7 @@ export default function EmergencyList() {
               const allowAccept = (r.status ?? 0) === 0;
               const allowCancel = [0, 1].includes(r.status ?? 0);
               const allowAssign = r.status === 1;
+              const isProcessing = processingId === r.emergencyRequestId;
 
               return (
                 <li
@@ -185,26 +271,32 @@ export default function EmergencyList() {
                         <div className="flex gap-2">
                           {/* ACCEPT */}
                           <button
-                            disabled={!allowAccept}
+                            disabled={!allowAccept || isProcessing}
+                            onClick={() => handleAccept(r.emergencyRequestId)}
                             className={`px-3 py-1 text-sm rounded text-white ${
                               allowAccept
-                                ? "bg-green-600 hover:bg-green-700"
+                                ? isProcessing
+                                  ? "bg-yellow-500"
+                                  : "bg-green-600 hover:bg-green-700"
                                 : "bg-gray-100 text-gray-400 cursor-not-allowed"
                             }`}
                           >
-                            Accept
+                            {isProcessing ? "Processing..." : "Accept"}
                           </button>
 
                           {/* CANCEL */}
                           <button
-                            disabled={!allowCancel}
+                            disabled={!allowCancel || isProcessing}
+                            onClick={() => handleCancel(r.emergencyRequestId)}
                             className={`px-3 py-1 text-sm rounded text-white ${
                               allowCancel
-                                ? "bg-red-500 hover:bg-red-600"
+                                ? isProcessing
+                                  ? "bg-yellow-500"
+                                  : "bg-red-500 hover:bg-red-600"
                                 : "bg-gray-100 text-gray-400 cursor-not-allowed"
                             }`}
                           >
-                            Cancel
+                            {isProcessing ? "Processing..." : "Cancel"}
                           </button>
 
                           {/* ASSIGN */}
