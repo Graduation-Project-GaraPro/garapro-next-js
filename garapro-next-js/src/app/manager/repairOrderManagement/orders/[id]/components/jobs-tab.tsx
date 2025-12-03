@@ -54,7 +54,6 @@ export default function JobsTab({ orderId, branchId, isArchived }: JobsTabProps)
     loadJobs()
   }, [orderId])
 
-  // Listen for real-time job status updates
   useEffect(() => {
     if (!isConnected) return;
 
@@ -62,14 +61,11 @@ export default function JobsTab({ orderId, branchId, isArchived }: JobsTabProps)
     const unsubscribeStatus = onJobStatusUpdated((notification) => {
       console.log("📋 Job status updated:", notification);
       
-      // Only update if it's for a job in this RO
       if (notification.repairOrderId === orderId) {
-        // Silently refresh jobs list to show updated status
         loadJobs();
       }
     });
 
-    // Handle repair created (technician starts work)
     const unsubscribeRepair = onRepairCreated((notification) => {
       console.log("🚀 Technician started work:", notification);
       
