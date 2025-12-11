@@ -5,10 +5,28 @@ import { QuotationDto } from "@/types/manager/quotation";
 // Event types for quotation updates
 export interface QuotationCustomerResponseEvent {
   quotationId: string;
-  quotation: QuotationDto;
-  customerResponse: "Approved" | "Rejected";
-  customerResponseAt: string;
-  message?: string;
+  repairOrderId: string;
+  inspectionId: string;
+  customerId: string;
+  customerName: string;
+  status: "Approved" | "Rejected";
+  totalAmount: number;
+  selectedServicesCount: number;
+  totalServicesCount: number;
+  customerNote: string;
+  respondedAt: string;
+  message: string;
+}
+
+export interface QuotationUpdatedEvent {
+  quotationId: string;
+  userId: string;
+  repairOrderId: string;
+  totalAmount: number;
+  status: "Approved" | "Rejected";
+  note: string;
+  updatedAt: string;
+  customerRespondedAt: string;
 }
 
 class QuotationHubService {
@@ -16,6 +34,7 @@ class QuotationHubService {
   private static instance: QuotationHubService;
   private listeners: Array<(quotation: QuotationDto) => void> = [];
   private customerResponseListeners: Array<(event: QuotationCustomerResponseEvent) => void> = [];
+  private quotationUpdatedListeners: Array<(event: QuotationUpdatedEvent) => void> = [];
   private connectionId: string | null = null;
 
   private constructor() {}
@@ -74,14 +93,24 @@ class QuotationHubService {
       this.notifyListeners(quotation);
     });
 
-    // listen for customer responses
-    this.connection.on("CustomerResponseReceived", (event: QuotationCustomerResponseEvent) => {
-      console.log("Customer response received:", event);
+    // Listen for customer response notifications
+    this.connection.on("CustomerRespondedToQuotation", (event: QuotationCustomerResponseEvent) => {
+      console.log("Customer responded to quotation:", event);
       this.notifyCustomerResponseListeners(event);
-      this.notifyListeners(event.quotation);
     });
 
-    // Handle reconnection
+    // Listen for quotation updates
+    this.connection.on("QuotationUpdated", (event: QuotationUpdatedEvent) => {
+      console.log("Quotation updated:", event);
+      this.notifyQuotationUpdatedListeners(event);
+    });
+
+    // Handle connection events
+    this.connection.onclose((error) => {
+      console.warn("QuotationHub connection closed", error);
+      this.connectionId = null;
+    });
+
     this.connection.onreconnecting((error) => {
       console.warn("QuotationHub reconnecting...", error);
     });
@@ -89,11 +118,6 @@ class QuotationHubService {
     this.connection.onreconnected((connectionId) => {
       console.log("QuotationHub reconnected. Connection ID:", connectionId);
       this.connectionId = connectionId || null;
-    });
-
-    this.connection.onclose((error) => {
-      console.warn("QuotationHub connection closed", error);
-      this.connectionId = null;
     });
   }
 
@@ -110,7 +134,6 @@ class QuotationHubService {
       }
     }
   }
-
 
   public async joinManagersGroup(): Promise<void> {
     if (this.connection && this.connection.state === "Connected") {
@@ -133,7 +156,6 @@ class QuotationHubService {
       }
     }
   }
-
 
   public async joinUserGroup(userId: string): Promise<void> {
     if (this.connection && this.connection.state === "Connected") {
@@ -168,7 +190,6 @@ class QuotationHubService {
     }
   }
 
-  // Leave a specific quotation group
   public async leaveQuotationGroup(quotationId: string): Promise<void> {
     if (this.connection && this.connection.state === "Connected") {
       try {
@@ -203,6 +224,18 @@ class QuotationHubService {
 
   private notifyCustomerResponseListeners(event: QuotationCustomerResponseEvent): void {
     this.customerResponseListeners.forEach(listener => listener(event));
+  }
+
+  public addQuotationUpdatedListener(callback: (event: QuotationUpdatedEvent) => void): void {
+    this.quotationUpdatedListeners.push(callback);
+  }
+
+  public removeQuotationUpdatedListener(callback: (event: QuotationUpdatedEvent) => void): void {
+    this.quotationUpdatedListeners = this.quotationUpdatedListeners.filter(listener => listener !== callback);
+  }
+
+  private notifyQuotationUpdatedListeners(event: QuotationUpdatedEvent): void {
+    this.quotationUpdatedListeners.forEach(listener => listener(event));
   }
 
   // Get connection status

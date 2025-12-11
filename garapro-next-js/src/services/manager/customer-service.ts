@@ -7,10 +7,9 @@ class CustomerService {
   async getAllCustomers(): Promise<Customer[]> {
     try {
       const response = await apiClient.get<Customer[]>(this.baseUrl);
-      return response.data;
+      return response.data ?? [];
     } catch (error) {
       console.error('Failed to fetch customers:', error);
-      // Return empty array on error to prevent app crash
       return [];
     }
   }
@@ -18,7 +17,7 @@ class CustomerService {
   async searchCustomers(searchTerm: string): Promise<Customer[]> {
     try {
       const response = await apiClient.get<Customer[]>(`${this.baseUrl}?search=${encodeURIComponent(searchTerm)}`);
-      return response.data;
+      return response.data ?? [];
     } catch (error) {
       console.error('Failed to search customers:', error);
       // Return empty array on error to prevent app crash
@@ -29,6 +28,9 @@ class CustomerService {
   async getCustomerById(id: string): Promise<Customer> {
     try {
       const response = await apiClient.get<Customer>(`${this.baseUrl}/${id}`);
+      if (!response.data) {
+        throw new Error('No customer data returned from API');
+      }
       return response.data;
     } catch (error) {
       console.error(`Failed to fetch customer with id ${id}:`, error);

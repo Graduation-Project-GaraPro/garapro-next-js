@@ -15,6 +15,7 @@ import {
   Settings,
   Star,
   Truck,
+  User,
   Users,
   // Wrench,
   LayoutDashboard,
@@ -85,9 +86,19 @@ const data = {
   // Manage section
   manageNav: [
     {
+      title: "Profile",
+      url: "/manager/profile",
+      icon: User,
+    },
+    {
       title: "Customers",
       url: "/manager/customers",
       icon: Users,
+    },
+    {
+      title: "Part Management",
+      url: "/manager/partManagement",
+      icon: Package,
     },
     // {
     //   title: "Vendors",
