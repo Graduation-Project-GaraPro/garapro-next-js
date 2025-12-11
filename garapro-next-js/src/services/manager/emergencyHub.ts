@@ -6,9 +6,7 @@ import {
   LogLevel,
 } from "@microsoft/signalr";
 
-const HUB_URL =
-  process.env.NEXT_PUBLIC_SIGNALR_HUB_URL ??
-  "https://localhost:7113/api/emergencyrequesthub";
+const HUB_URL = `${process.env.NEXT_PUBLIC_HUB_BASE_URL}api/emergencyrequesthub`;
 
 export interface EmergencyNotification {
   EmergencyRequestId: string;
