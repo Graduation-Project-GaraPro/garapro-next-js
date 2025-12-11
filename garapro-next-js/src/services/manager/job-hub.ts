@@ -70,15 +70,13 @@ class JobHubService {
     }
 
     try {
-      const { getHubBaseUrl, HUB_CONNECTION_OPTIONS } = await import('./hub-config');
-      const hubUrl = `${getHubBaseUrl()}/hubs/job`;
-      
-      console.log("🔌 Connecting to JobHub:", hubUrl);
+      const { getHubBaseUrl, HUB_CONNECTION_OPTIONS, HUB_ENDPOINTS } = await import('./hub-config');
+      const hubUrl = `${getHubBaseUrl()}${HUB_ENDPOINTS.JOB}`;
 
       // Configure the connection with authentication
       this.connection = new HubConnectionBuilder()
         .withUrl(hubUrl, HUB_CONNECTION_OPTIONS)
-        .configureLogging(LogLevel.Information)
+        .configureLogging(LogLevel.Warning)
         .withAutomaticReconnect({
           nextRetryDelayInMilliseconds: (retryContext) => {
             if (retryContext.previousRetryCount === 0) return 0;
@@ -95,10 +93,10 @@ class JobHubService {
 
       await this.connection.start();
       
-      console.log("✅ JobHub Connected Successfully");
       this.notifyConnectionStateChanged(HubConnectionState.Connected);
       
-      // Note: JobHub automatically sends to Managers group, no need to join
+      // Join the Managers group to receive job status updates
+      await this.joinManagersGroup();
       
       return true;
     } catch (err) {
@@ -114,27 +112,28 @@ class JobHubService {
 
     // Handle reconnecting state
     this.connection.onreconnecting((error) => {
-      console.log("🔄 JobHub reconnecting...", error);
       this.isReconnecting = true;
       this.notifyConnectionStateChanged(HubConnectionState.Reconnecting);
+      if (error) {
+        console.warn("JobHub reconnecting:", error.message);
+      }
     });
 
     // Handle successful reconnection
     this.connection.onreconnected(async (connectionId) => {
-      console.log("✅ JobHub reconnected:", connectionId);
       this.isReconnecting = false;
       this.notifyConnectionStateChanged(HubConnectionState.Connected);
       
-      // Note: JobHub automatically sends to Managers group
+      // Rejoin the Managers group after reconnection
+      await this.joinManagersGroup();
     });
 
     // Handle connection closure
     this.connection.onclose(async (error) => {
-      console.log("🔌 JobHub disconnected", error);
       this.notifyConnectionStateChanged(HubConnectionState.Disconnected);
       
       if (error) {
-        console.error("Connection closed with error:", error);
+        console.error("JobHub connection error:", error.message);
       }
     });
   }
@@ -143,12 +142,8 @@ class JobHubService {
     if (!this.connection) return;
 
     // Listen for job status updates (technician starts/finishes work)
+    // SignalR .NET uses PascalCase by default
     this.connection.on("JobStatusUpdated", (data: JobStatusUpdatedNotification) => {
-      console.log("📋 Job status updated:", {
-        job: data.jobName,
-        technician: data.technicianName,
-        status: `${data.oldStatus} → ${data.newStatus}`
-      });
       this.listeners.onJobStatusUpdated.forEach(callback => {
         try {
           callback(data);
@@ -160,10 +155,6 @@ class JobHubService {
 
     // Listen for repair created (technician starts work)
     this.connection.on("RepairCreated", (data: RepairCreatedNotification) => {
-      console.log("🚀 Repair created (work started):", {
-        job: data.jobName,
-        startTime: data.startTime
-      });
       this.listeners.onRepairCreated.forEach(callback => {
         try {
           callback(data);
@@ -175,9 +166,6 @@ class JobHubService {
 
     // Listen for repair updated
     this.connection.on("RepairUpdated", (data: RepairUpdatedNotification) => {
-      console.log("🔄 Repair updated:", {
-        job: data.jobName
-      });
       this.listeners.onRepairUpdated.forEach(callback => {
         try {
           callback(data);
@@ -189,15 +177,24 @@ class JobHubService {
   }
 
   /**
-   * Note: JobHub automatically sends events to Managers group
-   * No need to explicitly join - the backend handles this based on user role
+   * Join the Managers group to receive job status updates
+   * This ensures managers get real-time updates when technicians work
    */
+  public async joinManagersGroup(): Promise<void> {
+    if (this.connection?.state === HubConnectionState.Connected) {
+      try {
+        await this.connection.invoke("JoinManagersGroup");
+      } catch (error) {
+        console.error("Failed to join Managers group:", error);
+      }
+    }
+  }
 
   public async stopConnection(): Promise<void> {
     if (this.connection) {
       try {
         await this.connection.stop();
-        console.log("🔌 JobHub disconnected");
+
       } catch (err) {
         console.warn("⚠️ Error stopping JobHub:", err);
       } finally {

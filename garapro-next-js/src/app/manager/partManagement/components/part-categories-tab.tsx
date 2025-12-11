@@ -38,7 +38,6 @@ export default function PartCategoriesTab() {
       let data: PaginatedResponse<PartCategory>
       
       if (searchTerm.trim()) {
-        // Use search API when there's a search term
         data = await PartCategoryService.searchCategories({
           page: currentPage,
           pageSize: pageSize,
@@ -47,7 +46,6 @@ export default function PartCategoriesTab() {
           sortOrder: 'asc'
         })
       } else {
-        // Use paginated API for normal browsing
         data = await PartCategoryService.getCategoriesPaged({
           page: currentPage,
           pageSize: pageSize
@@ -57,7 +55,8 @@ export default function PartCategoriesTab() {
       console.log('Categories data from API:', data) // Debug log
       setCategories(data.items)
       setPaginationData(data)
-    } catch (error) {
+    } catch (error: unknown) {
+      console.error("Failed to load categories:", error)
       toast({
         title: "Error",
         description: "Failed to load categories",
@@ -113,7 +112,8 @@ export default function PartCategoriesTab() {
       setIsFormOpen(false)
       setEditingCategory(null)
       loadCategories()
-    } catch (error) {
+    } catch (error: unknown) {
+      console.error(`Failed to ${editingCategory ? 'update' : 'create'} category:`, error)
       toast({
         title: "Error",
         description: `Failed to ${editingCategory ? 'update' : 'create'} category`,
@@ -132,7 +132,8 @@ export default function PartCategoriesTab() {
         })
         setDeleteId(null)
         loadCategories()
-      } catch (error) {
+      } catch (error: unknown) {
+        console.error("Failed to delete category:", error)
         toast({
           title: "Error",
           description: "Failed to delete category",

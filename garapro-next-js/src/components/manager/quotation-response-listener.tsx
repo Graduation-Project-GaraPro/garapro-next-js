@@ -44,6 +44,8 @@ export function QuotationResponseListener() {
     if (isConnected) {
       console.log("✅ Manager is now listening for customer quotation responses")
       console.log("Manager User ID:", currentUserId)
+    } else {
+      console.log("⚠️ QuotationHub not connected - customer response notifications may not work")
     }
   }, [isConnected, currentUserId])
 

@@ -49,14 +49,17 @@ class TechnicianAssignmentHubService {
       
       console.log("🔌 Connecting to TechnicianAssignmentHub:", hubUrl);
       
-      // Configure the connection with authentication
+      // Configure the connection with authentication and automatic reconnection
       this.connection = new HubConnectionBuilder()
         .withUrl(hubUrl, HUB_CONNECTION_OPTIONS)
+        .withAutomaticReconnect([0, 2000, 10000, 30000]) // Retry after 0, 2, 10, 30 seconds
         .configureLogging(LogLevel.Information)
         .build();
 
+      // Setup connection handlers
+      this.setupConnectionHandlers();
+
       await this.connection.start();
-      console.log("✅ TechnicianAssignmentHub Connected");
 
       // Register event listeners
       this.registerEventListeners();
@@ -100,47 +103,37 @@ class TechnicianAssignmentHubService {
       this.listeners.onInspectionReassigned.forEach(callback => callback(notification));
     });
 
-    // Handle connection closure
-    this.connection.onclose(async () => {
-      console.log("Technician Assignment SignalR Disconnected. Reconnecting...");
-      await this.reconnect();
-    });
   }
 
-  // Reconnect logic
-  private async reconnect(): Promise<void> {
-    let retryCount = 0;
-    const maxRetries = 5;
-    const retryInterval = 5000; // 5 seconds
+  private setupConnectionHandlers(): void {
+    if (!this.connection) return;
 
-    while (retryCount < maxRetries) {
-      try {
-        await new Promise(resolve => setTimeout(resolve, retryInterval));
-        
-        // Check if connection still exists before attempting to start
-        if (!this.connection) {
-          console.warn("⚠️ Connection object is null, cannot reconnect");
-          break;
-        }
-        
-        await this.connection.start();
-        console.log("✅ TechnicianAssignmentHub Reconnected");
-        this.registerEventListeners(); // Re-register event listeners after reconnect
-        return;
-      } catch (error) {
-        console.error(`❌ Reconnection attempt ${retryCount + 1} failed:`, error);
-        retryCount++;
+    // Handle reconnecting state
+    this.connection.onreconnecting((error) => {
+      if (error) {
+        console.warn("TechnicianAssignmentHub reconnecting:", error.message);
       }
-    }
+    });
 
-    console.error("❌ Failed to reconnect to TechnicianAssignmentHub after maximum retries");
+    // Handle successful reconnection
+    this.connection.onreconnected(async (connectionId) => {
+      // Re-register event listeners after reconnection
+      this.registerEventListeners();
+    });
+
+    // Handle connection closure
+    this.connection.onclose(async (error) => {
+      if (error) {
+        console.error("TechnicianAssignmentHub connection error:", error.message);
+      }
+    });
   }
 
   public async stopConnection(): Promise<void> {
     if (this.connection) {
       try {
         await this.connection.stop();
-        console.log("Technician Assignment SignalR Disconnected.");
+
       } catch (err) {
         console.warn("Error stopping Technician Assignment SignalR connection:", err);
       } finally {

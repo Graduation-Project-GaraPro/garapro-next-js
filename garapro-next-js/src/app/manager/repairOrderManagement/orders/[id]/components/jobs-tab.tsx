@@ -1,7 +1,7 @@
 // src/app/manager/repairOrderManagement/orders/[id]/components/jobs-tab.tsx
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect} from "react"
 import { useJobHub } from "@/hooks/use-job-hub"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -59,21 +59,24 @@ export default function JobsTab({ orderId, branchId, isArchived }: JobsTabProps)
 
     // Handle job status updates (technician starts/finishes work)
     const unsubscribeStatus = onJobStatusUpdated((notification) => {
-      console.log("📋 Job status updated:", notification);
-      
       if (notification.repairOrderId === orderId) {
         loadJobs();
+        toast({
+          title: "Job Status Updated",
+          description: `Job "${notification.jobName}" status updated by ${notification.technicianName}`,
+        });
       }
     });
 
     const unsubscribeRepair = onRepairCreated((notification) => {
-      console.log("🚀 Technician started work:", notification);
-      
       // Check if this repair is for a job in this RO
       const job = jobs.find(j => j.jobId === notification.jobId);
       if (job) {
-        // Silently refresh jobs list
         loadJobs();
+        toast({
+          title: "Work Started",
+          description: `Technician started work on "${notification.jobName}"`,
+        });
       }
     });
 
@@ -197,11 +200,22 @@ export default function JobsTab({ orderId, branchId, isArchived }: JobsTabProps)
       setIsTechSelectionOpen(false);
       setSelectedJobIds([]);
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to assign technician:", error);
       
       // Extract error message from backend response or Error object
-      const errorMessage = error?.response?.data?.message || error?.message || "Failed to assign technician to job(s)";
+      const getErrorMessage = (err: unknown): string => {
+        if (err && typeof err === 'object' && 'response' in err) {
+          const apiError = err as { response?: { data?: { message?: string } } };
+          return apiError.response?.data?.message || "Failed to assign technician to job(s)";
+        }
+        if (err instanceof Error) {
+          return err.message;
+        }
+        return "Failed to assign technician to job(s)";
+      };
+      
+      const errorMessage = getErrorMessage(error);
       setAssignmentError(errorMessage);
       
       // Show error toast

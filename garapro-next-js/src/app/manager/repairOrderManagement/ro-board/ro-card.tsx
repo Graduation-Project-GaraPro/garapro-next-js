@@ -82,7 +82,7 @@ export default function RepairOrderCard({
     ? [defaultLabel]
     : []
 
-  console.log("paidstatus",repairOrder.paidStatus)
+
   const canArchive = repairOrder.isCancelled || (isCompleted && repairOrder.paidStatus === PaidStatus.Paid)
 
   const getPaidStatusColor = (status: PaidStatus) => {

@@ -63,9 +63,23 @@ export function useQuotationHub(options: UseQuotationHubOptions = {}) {
     if (!autoConnect) return;
 
     let mounted = true;
+    let connectionAttempted = false;
 
     const initializeConnection = async () => {
+      if (connectionAttempted) return;
+      connectionAttempted = true;
+
       try {
+        // Check if already connected
+        if (quotationHubService.isConnected()) {
+          if (mounted) {
+            setIsConnected(true);
+            setConnectionId(quotationHubService.getConnectionId());
+          }
+          return;
+        }
+
+        console.log("🔄 Initializing QuotationHub connection...");
         const connected = await quotationHubService.startConnection();
         
         if (mounted) {
@@ -91,6 +105,10 @@ export function useQuotationHub(options: UseQuotationHubOptions = {}) {
         }
       } catch (error) {
         console.error("Failed to initialize quotation hub:", error);
+        if (mounted) {
+          setIsConnected(false);
+          setConnectionId(null);
+        }
       }
     };
 

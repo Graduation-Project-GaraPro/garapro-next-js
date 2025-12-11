@@ -47,15 +47,39 @@ class QuotationHubService {
   }
 
   public async startConnection(): Promise<boolean> {
-    if (this.connection) {
+    // Check if connection already exists and is connected
+    if (this.connection && this.connection.state === "Connected") {
       return true;
+    }
+
+    // If connection exists but is not connected, stop it first
+    if (this.connection && this.connection.state !== "Disconnected") {
+      console.log("🔄 Stopping existing QuotationHub connection...");
+      try {
+        await this.connection.stop();
+      } catch (stopError) {
+        console.warn("Warning stopping existing connection:", stopError);
+      }
+      this.connection = null;
+      this.connectionId = null;
     }
 
     try {
       const { getHubBaseUrl, HUB_CONNECTION_OPTIONS, HUB_ENDPOINTS } = await import('./hub-config');
-      const hubUrl = `${getHubBaseUrl()}${HUB_ENDPOINTS.QUOTATION}`;
+      const baseUrl = getHubBaseUrl();
+      const hubUrl = `${baseUrl}${HUB_ENDPOINTS.QUOTATION}`;
       
       console.log("🔌 Connecting to QuotationHub:", hubUrl);
+      console.log("🔍 Base URL:", baseUrl);
+      console.log("🔍 Hub endpoint:", HUB_ENDPOINTS.QUOTATION);
+      
+      // Validate URL before creating connection
+      try {
+        new URL(hubUrl);
+      } catch (urlError) {
+        console.error("❌ Invalid hub URL:", hubUrl);
+        throw new Error(`Invalid hub URL: ${hubUrl}`);
+      }
       
       this.connection = new HubConnectionBuilder()
         .withUrl(hubUrl, HUB_CONNECTION_OPTIONS)
@@ -68,12 +92,13 @@ class QuotationHubService {
 
       await this.connection.start();
       this.connectionId = this.connection.connectionId || null;
-      console.log("✅ QuotationHub SignalR Connected. Connection ID:", this.connectionId);
+      console.log("QuotationHub SignalR Connected. Connection ID:", this.connectionId);
 
       return true;
     } catch (err) {
-      console.error("❌ QuotationHub SignalR connection failed:", err);
+      console.error("QuotationHub SignalR connection failed:", err);
       this.connection = null;
+      this.connectionId = null;
       return false;
     }
   }
@@ -124,8 +149,10 @@ class QuotationHubService {
   public async stopConnection(): Promise<void> {
     if (this.connection) {
       try {
-        await this.connection.stop();
-        console.log("QuotationHub SignalR Disconnected.");
+        if (this.connection.state !== "Disconnected") {
+          await this.connection.stop();
+          console.log("QuotationHub SignalR Disconnected.");
+        }
       } catch (err) {
         console.warn("Error stopping QuotationHub SignalR connection (may already be disconnected):", err);
       } finally {
@@ -245,6 +272,10 @@ class QuotationHubService {
 
   public getConnectionId(): string | null {
     return this.connectionId;
+  }
+
+  public getConnectionState(): string {
+    return this.connection?.state || "Disconnected";
   }
 
   public async sendQuotationUpdate(quotationId: string, status: string): Promise<void> {
