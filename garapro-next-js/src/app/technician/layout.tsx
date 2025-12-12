@@ -1,63 +1,68 @@
 "use client";
 
-import { useAuth } from "@/contexts/auth-context";
-import { useRouter, usePathname } from "next/navigation";
-import { useEffect, useMemo } from "react";
-
-import TechnicianSidebar from "@/components/technician/TechnicianSidebar";
+import * as React from "react";
 import TechnicianHeader from "@/components/technician/TechnicianHeader";
+import TechnicianSidebar from "@/components/technician/TechnicianSidebar";
 import AccessDenied from "@/app/access-denied/page";
+import { useAuth } from "@/contexts/auth-context";
+import { usePathname, useRouter } from "next/navigation";
 import { authService } from "@/services/authService";
+
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 
 export default function TechnicianLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading, user } = useAuth();
   const router = useRouter();
   const pathname = usePathname() || "";
 
+  const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const isTechnicianRoute = pathname.startsWith("/technician");
 
-  // luôn load role từ sessionStorage để chính xác
-  const roles = useMemo(() => {
+  const roles = React.useMemo(() => {
     const ctx = (user as any)?.roles ?? [];
     const store = authService.getCurrentUserRoles();
     return ctx.length ? ctx : store;
   }, [user]);
 
   const isTechnician = roles.includes("Technician");
-  console.log("role",isTechnician)
 
-  // Nếu chưa check xong auth → KHÔNG render layout, KHÔNG render children
+  React.useEffect(() => {
+    if (!isLoading && !isAuthenticated) router.replace("/login");
+  }, [isLoading, isAuthenticated, router]);
+
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
-          <p className="text-gray-600">Checking access...</p>
+      <div className="min-h-screen flex items-center justify-center bg-muted">
+        <div className="flex flex-col items-center gap-3">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary" />
+          <p className="text-muted-foreground">Checking access...</p>
         </div>
       </div>
     );
   }
 
-  // Chưa login → redirect
-  if (!isAuthenticated) {
-    router.replace("/login");
-    return null;
-  }
+  if (!isAuthenticated) return null;
+  if (isTechnicianRoute && !isTechnician) return <AccessDenied />;
 
-  // Không phải Technician mà cố vào /technician/*
-  if (isTechnicianRoute && !isTechnician) {
-    return <AccessDenied />;
-  }
+  return (
+    <div className="min-h-screen bg-muted flex flex-col">
+      <TechnicianHeader onMenuClick={() => setSidebarOpen(true)} />
 
-  // OK → render layout technician
-return (
-    <div className="min-h-screen bg-gray-100 flex flex-col">
-      <TechnicianHeader />
       <div className="flex flex-1">
-        <TechnicianSidebar/>
+        {/* Desktop sidebar */}
+        <aside className="hidden lg:block w-64 shrink-0 border-r bg-background">
+          <TechnicianSidebar />
+        </aside>
+
+        {/* Mobile sidebar (Sheet) */}
+        <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+          <SheetContent side="left" className="p-0 w-72">
+            <TechnicianSidebar onClose={() => setSidebarOpen(false)} />
+          </SheetContent>
+        </Sheet>
+
         <main className="flex-1 p-3">{children}</main>
       </div>
     </div>
   );
-  
 }
