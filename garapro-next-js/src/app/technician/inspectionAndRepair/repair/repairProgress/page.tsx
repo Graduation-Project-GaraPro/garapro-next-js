@@ -697,8 +697,7 @@ const handleSaveProgress = async () => {
   }
 
   return (
-    <div className="bg-[url('/images/image9.png')] bg-cover bg-no-repeat h-full p-4 rounded-lg shadow-md">
-      
+    <div className="bg-[url('/images/image9.png')] bg-cover bg-no-repeat h-full p-3 md:p-4 rounded-lg shadow-md">
       {showSuccessToast && (
         <div className="fixed top-4 right-4 z-50 animate-slide-in-right">
           <div className="bg-green-600 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3">
@@ -710,22 +709,22 @@ const handleSaveProgress = async () => {
         </div>
       )}
 
-     <div className="relative inline-block mb-6">
-  <div className="absolute inset-0 w-full max-w-md bg-white/70 shadow-md rounded-lg"></div>
-  <div className="relative flex items-center gap-2 px-6 py-2">
-    <button onClick={() => router.back()} className="p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors duration-200 mr-2">
-      <ArrowLeft className="w-5 h-5 text-gray-600" />
+     <div className="relative inline-block mb-4 md:mb-6 w-full md:w-auto">
+  <div className="absolute inset-0 w-full bg-white/70 shadow-md rounded-lg"></div>
+  <div className="relative flex items-center gap-2 px-4 md:px-6 py-2">
+    <button onClick={() => router.back()} className="p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors duration-200 mr-1 md:mr-2">
+      <ArrowLeft className="w-4 md:w-5 h-4 md:h-5 text-gray-600" />
     </button>
     <div className="p-2 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-lg">
-      <Settings className="w-7 h-7 text-white" />
+      <Settings className="w-5 md:w-6 h-5 md:h-6 text-white" />
     </div>
-    <div className="flex flex-col items-start">
+    <div className="flex flex-col items-start min-w-0">
       <div className="flex items-center gap-2">
-        <h2 className="text-[24px] font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent italic">
+        <h2 className="text-lg md:text-xl lg:text-[24px] font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent italic truncate max-w-[180px] md:max-w-[300px]">
           {vehicleInfo.vehicle}
         </h2>
         <div 
-          className={`w-3 h-3 rounded-full transition-all duration-300 ${
+          className={`w-2 h-2 md:w-3 md:h-3 rounded-full transition-all duration-300 ${
             signalRConnected 
               ? "bg-green-500 animate-pulse shadow-lg shadow-green-400" 
               : "bg-red-500 shadow-lg shadow-red-400"
@@ -737,45 +736,45 @@ const handleSaveProgress = async () => {
   </div>
 </div>
 
-      <div className="max-w-6xl mx-auto max-h-[70vh] overflow-y-auto rounded-xl rounded-scroll">
+      <div className="max-w-6xl mx-auto max-h-[70vh] overflow-y-auto rounded-xl px-2 md:px-0">
         <div className="mb-6">
-          <div className="bg-white/70 rounded-xl p-4 shadow-lg border border-gray-200 mb-1">
+          <div className="bg-white/70 rounded-xl p-3 md:p-4 shadow-lg border border-gray-200 mb-1">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center space-x-3">
                 <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg">
                   <Car className="w-5 h-5 text-white" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900">Vehicle Information</h3>
+               <h3 className="text-lg md:text-xl font-bold text-gray-900">Vehicle Information</h3>
               </div>
               <div className="text-right">
-                <div className="text-2xl font-bold text-blue-600">{Math.round(progressPercentage)}%</div>
+                <div className="text-xl md:text-2xl font-bold text-blue-600">{Math.round(progressPercentage)}%</div>
                 <div className="text-sm text-gray-900 font-bold">Complete</div>
               </div>
             </div>
-            <div className="flex items-center justify-between mb-2 gap-4">
-              <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-3 rounded-xl border border-blue-200">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4 mb-2">
+              <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-2 md:p-3 rounded-xl border border-blue-200">
                 <span className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Vehicle</span>
-                <p className="text-base font-bold text-gray-900 mt-1">{vehicleInfo.vehicle}</p>
+                <p className="text-sm md:text-base font-bold text-gray-900 mt-1">{vehicleInfo.vehicle}</p>
               </div>
-              <div className="bg-gradient-to-br from-green-50 to-emerald-100 p-2 rounded-xl border border-green-200">
+              <div className="bg-gradient-to-br from-green-50 to-emerald-100 p-2 md:p-3 rounded-xl border border-green-200">
                 <span className="text-xs font-semibold text-green-700 uppercase tracking-wide">License Plate</span>
-                <p className="text-base font-bold text-gray-900 mt-1">{vehicleInfo.licensePlate}</p>
+                <p className="text-sm md:text-base font-bold text-gray-900 mt-1">{vehicleInfo.licensePlate}</p>
               </div>
-              <div className="bg-gradient-to-br from-amber-50 to-orange-100 p-3 rounded-xl border border-amber-200">
+              <div className="bg-gradient-to-br from-amber-50 to-orange-100 p-2 md:p-3 rounded-xl border border-amber-200">
                 <span className="text-xs font-semibold text-amber-700 uppercase tracking-wide">Issues</span>
-                <p className="text-base font-bold text-gray-900 mt-1">{vehicleInfo.issue}</p>
+                <p className="text-sm md:text-base font-bold text-gray-900 mt-1">{vehicleInfo.issue}</p>
               </div>
-              <div className="bg-gradient-to-br from-purple-50 to-violet-100 p-3 rounded-xl border border-purple-200">
+              <div className="bg-gradient-to-br from-purple-50 to-violet-100 p-2 md:p-3 rounded-xl border border-purple-200">
                 <span className="text-xs font-semibold text-purple-700 uppercase tracking-wide">Owner</span>
-                <p className="text-base font-bold text-gray-900 mt-1">{vehicleInfo.owner}</p>
+                <p className="text-sm md:text-base font-bold text-gray-900 mt-1">{vehicleInfo.owner}</p>
               </div>
-              <div className="bg-gradient-to-br from-cyan-50 to-sky-100 p-3 rounded-xl border border-cyan-200">
+              <div className="bg-gradient-to-br from-cyan-50 to-sky-100 p-2 md:p-3 rounded-xl border border-cyan-200">
                 <span className="text-xs font-semibold text-cyan-700 uppercase tracking-wide">Phone</span>
-                <p className="text-base font-bold text-gray-900 mt-1">{vehicleInfo.phone}</p>
+                <p className="text-sm md:text-base font-bold text-gray-900 mt-1">{vehicleInfo.phone}</p>
               </div>
             </div>
             <div className="bg-gradient-to-r from-slate-50 to-gray-100 rounded-xl p-4 border border-gray-200 mb-2">
-              <h6 className="text-lg font-bold text-gray-900 mb-3 flex items-center">
+             <h6 className="text-base md:text-lg font-bold text-gray-900 mb-3 flex items-center">
                 <FileText className="w-5 h-5 mr-2 text-indigo-600" />
                 Vehicle Diagnostic Results
               </h6>
@@ -783,9 +782,9 @@ const handleSaveProgress = async () => {
                 {vehicleInfo.result}
               </p>
             </div>
-            <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 rounded-xl px-5 py-2 border-2 border-blue-200">
+            <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 rounded-xl px-3 md:px-5 py-2 border-2 border-blue-200">
               <div className="flex justify-between items-center mb-4">
-                <h4 className="text-lg font-bold text-gray-900">Repair Progress</h4>
+               <h4 className="text-base md:text-lg font-bold text-gray-900">Repair Progress</h4>
                 <div className="flex items-center space-x-4 text-sm font-semibold">
                   <span className="text-green-600">Completed {completedSteps}</span>
                   <span className="text-orange-600">Remaining {totalSteps - completedSteps}</span>
@@ -829,7 +828,7 @@ const handleSaveProgress = async () => {
           </div>
         </div>
 
-        <div className="space-y-2 mb-5">
+        <div className="space-y-3 md:space-y-2 mb-5">
           {repairSteps.map((step, index) => {
           const StatusIcon = statusConfig?.[step?.status]?.icon;        
             const isMyJob = myJobIds.includes(step.jobId);
@@ -841,28 +840,28 @@ const handleSaveProgress = async () => {
                 key={step.jobId}
                 className={`bg-white/90 rounded-xl shadow-lg border-2 border-gray-200 overflow-hidden ${statusConfig[step?.status]?.bgColor}/30 ${!isMyJob ? "opacity-50 cursor-not-allowed" : ""}`}
               >
-                <div className="p-4">
-                  <div className="flex flex-col md:flex-row items-start justify-between mb-2 min-h-[100px]">
+                <div className="p-3 md:p-4">
+                  <div className="flex flex-col lg:flex-row items-start justify-between mb-2 min-h-[100px]">
  <div className="flex items-start space-x-4 flex-1">
-  <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+  <div className="flex-shrink-0 w-6 h-6 md:w-8 md:h-8 bg-blue-100 rounded-full flex items-center justify-center">
     <span className="text-sm font-bold text-blue-600">{index + 1}</span>
   </div>
   <div className="flex-1">
     <div className="flex items-center justify-between mb-2">
-      <h3 className="text-xl font-bold text-gray-900">{step.title}</h3>
+      <h3 className="text-lg md:text-xl font-bold text-gray-900">{step.title}</h3>
 
       {/* Parts Dropdown Wrapper */}
       {step.parts && step.parts.length > 0 && (
         <div className="relative inline-block text-left">
           {/* Dropdown Trigger Button */}
-          <button
-            onClick={() =>
-              setOpenPartDropdown(openPartDropdown === step.jobId ? null : step.jobId)
-            }
-            className="flex items-center space-x-2 px-3 py-2 bg-gradient-to-r from-purple-100 to-pink-100 rounded-lg hover:from-purple-200 hover:to-pink-200 transition-colors duration-200 border border-purple-300"
-          >
+         <button
+          onClick={() =>
+            setOpenPartDropdown(openPartDropdown === step.jobId ? null : step.jobId)
+          }
+          className="flex items-center space-x-1 md:space-x-2 px-2 md:px-3 py-1.5 md:py-2 bg-gradient-to-r from-purple-100 to-pink-100 rounded-lg hover:from-purple-200 hover:to-pink-200 transition-colors duration-200 border border-purple-300"
+        >
             <Package className="w-4 h-4 text-purple-600" />
-            <span className="text-sm font-semibold text-purple-800">
+            <span className="text-xs md:text-sm font-semibold text-purple-800">
               Parts Required (
               {step.parts.reduce((total, cat) => total + cat.parts.length, 0)})
             </span>
@@ -875,8 +874,8 @@ const handleSaveProgress = async () => {
 
           {/* Dropdown Content */}
           {openPartDropdown === step.jobId && (
-            <div className="absolute right-0 mt-1 w-[420px] bg-white rounded-lg shadow-lg border border-purple-200 z-20 animate-fadeIn">
-              <div className="p-3 space-y-2 max-h-52 overflow-y-auto scrollbar-thin scrollbar-thumb-purple-300 scrollbar-track-purple-100">
+            <div className="absolute right-0 mt-1 w-[calc(100vw-3rem)] max-w-[420px] bg-white rounded-lg shadow-lg border border-purple-200 z-20 animate-fadeIn">
+              <div className="p-2 md:p-3 space-y-2 max-h-52 overflow-y-auto scrollbar-thin scrollbar-thumb-purple-300 scrollbar-track-purple-100">
                 {step.parts.map((category) => (
                   <div
                     key={category.partCategoryId}
@@ -915,7 +914,7 @@ const handleSaveProgress = async () => {
 
     {/* Assigned to another technician warning */}
     {!isMyJob && (
-      <div className="inline-block px-3 py-1 bg-amber-100 text-amber-800 text-sm font-semibold rounded-lg mb-2">
+    <div className="inline-block px-2 md:px-3 py-1 bg-amber-100 text-amber-800 text-xs md:text-sm font-semibold rounded-lg mb-2">
         Assigned to another technician
       </div>
     )}
@@ -928,7 +927,7 @@ const handleSaveProgress = async () => {
     )}
 
     {/* Time and Status Info */}
-    <div className="flex items-center space-x-4 text-sm text-gray-700 mb-3 font-bold">
+   <div className="flex flex-wrap gap-2 md:gap-4 text-xs md:text-sm text-gray-700 mb-3 font-bold">
   {step.estimatedTimeShort && (
     <div className="flex items-center space-x-1">
       <Clock className="w-4 h-4" />
@@ -949,12 +948,12 @@ const handleSaveProgress = async () => {
 </div>
   </div>
 </div>
-                    <div className="flex flex-col items-end space-y-2 mt-2 md:mt-0 md:ml-4">
+                    <div className="flex flex-col items-end space-y-2 mt-2 lg:mt-0 lg:ml-4">
                       {isEditable && (
                         <div className="flex items-center space-x-2">
                           <button
                             onClick={() => startRepair(step.jobId)}
-                            className="p-2 bg-blue-100 rounded-lg hover:bg-blue-200 transition-colors duration-200"
+                            className="p-1.5 md:p-2 bg-blue-100 rounded-lg hover:bg-blue-200 transition-colors duration-200"
                             disabled={!isMyJob}
                           >
                             <div className="flex items-center justify-between space-x-2">
@@ -998,16 +997,14 @@ const handleSaveProgress = async () => {
                           const isDisabled =
                             !step.description || !isMyJob || isNewLocked || isCompletedLocked;
                           return (
-                            <button
+                           <button
                               key={status}
                               onClick={() => updateStepStatus(step.jobId, status)}
-                              className={`p-2 rounded-lg transition-all duration-200 ${
+                              className={`p-1.5 md:p-2 rounded-lg transition-all duration-200 ${
                                 step.status === status
                                   ? config.color
                                   : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                               } ${isDisabled ? "opacity-50 cursor-not-allowed" : ""}`}
-                              title={config.label}
-                              disabled={isDisabled}
                             >
                               <config.icon className="w-4 h-4" />
                             </button>
@@ -1038,7 +1035,7 @@ const handleSaveProgress = async () => {
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div className="bg-white rounded-xl p-6 w-200 shadow-xl">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-bold text-gray-900">
+                <h3 className="text-lg md:text-xl font-bold text-gray-900">
                   {isUpdating ? "Update Repair Step" : "Start Repair Step"}
                 </h3>
                 <button onClick={closeModal} className="p-2 hover:bg-gray-100 rounded-full">
@@ -1076,7 +1073,7 @@ const handleSaveProgress = async () => {
                   />
                 </div>
                 {!isUpdating && (
-  <div className="flex space-x-4">
+  <div className="flex flex-col md:flex-row space-y-3 md:space-y-0 md:space-x-4">
     <div className="flex-1">
       <label className="text-sm font-medium text-gray-600 mb-2 block">
         Estimated Hours:<span className="text-red-500">*</span>
@@ -1096,7 +1093,6 @@ const handleSaveProgress = async () => {
           <span className="text-gray-700 font-bold">-</span>
         </button>
         <input
-          // type="number"
           value={editForm.estimatedHours}
           onChange={(e) => {
             const value = parseInt(e.target.value) || 0;
@@ -1182,11 +1178,11 @@ const handleSaveProgress = async () => {
           </div>
         )}
 
-        <div className="flex justify-end space-x-4 pb-6">
-           <button onClick={() => router.back()} className="px-6 py-3 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition-colors duration-200">
+        <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4 pb-6">
+           <button onClick={() => router.back()} className="px-4 md:px-6 py-2 md:py-3 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition-colors duration-200 text-sm md:text-base">
               Cancel
             </button>
-          <button
+<button
   onClick={handleSaveProgress}
   disabled={
     loading || 
@@ -1194,8 +1190,8 @@ const handleSaveProgress = async () => {
     repairSteps.filter(step => myJobIds.includes(step.jobId)).every(step => step.status === "Completed")
   }
   className={`
-    px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold rounded-lg 
-    transition-all duration-200 flex items-center space-x-2
+    px-4 md:px-6 py-2 md:py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold rounded-lg 
+    transition-all duration-200 flex items-center space-x-2 text-sm md:text-base
     ${
       loading || 
       !repairSteps.some(step => myJobIds.includes(step.jobId) && step.description && step.repairId)||

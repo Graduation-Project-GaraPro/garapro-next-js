@@ -99,33 +99,32 @@ export default function StatisticalPage() {
   if (!statistics) return null;
 
   return (
-    <div className="flex-col h-full p-3 bg-gradient-to-r from-purple-100 to-blue-100 rounded-xl rounded-xl">
+    <div className="flex-col h-full p-3 md:p-4 bg-gradient-to-r from-purple-100 to-blue-100 rounded-xl">
       {/* Header */}
-      <div className="relative inline-block mb-4">
-        <div className="absolute inset-0 w-full max-w-md bg-white/70 shadow-md rounded-lg"></div>
-        <div className="relative flex items-center gap-2 px-6 py-3">
+      <div className="relative inline-block mb-4 w-full md:w-auto">
+        <div className="absolute inset-0 w-full bg-white/70 shadow-md rounded-lg"></div>
+        <div className="relative flex items-center gap-2 px-4 md:px-6 py-3">
           <div className="p-2 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-lg">
-            <FaChartBar className="w-7 h-7 text-white" />
+            <FaChartBar className="w-6 md:w-7 h-6 md:h-7 text-white" />
           </div>
           <div className="flex flex-col items-start">
-            <h2 className="text-[29px] font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent italic">
+            <h2 className="text-xl md:text-2xl lg:text-[29px] font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent italic">
               Statistical
             </h2>
-            <p className="text-gray-700 italic">Where numbers reveal performance.</p>
+            <p className="text-gray-700 italic text-sm md:text-base">Where numbers reveal performance.</p>
           </div>
         </div>
       </div>
-
-      <div className="space-y-4 px-8">
+      <div className="space-y-4 px-4 md:px-8">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+          <div className="bg-white p-4 md:p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">New Tasks</p>
-                <p className="text-3xl font-bold text-blue-600">{statistics.newJobs}</p>
+               <p className="text-2xl md:text-3xl font-bold text-blue-600">{statistics.newJobs}</p>
               </div>
-              <FaClipboardList className="text-3xl text-blue-600" />
+              <FaClipboardList className="text-2xl md:text-3xl text-blue-600" />
             </div>
             <div className="mt-2">
               <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
@@ -181,10 +180,10 @@ export default function StatisticalPage() {
         </div>
 
         {/* Main Content Sections */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6">
           {/* Recent Tasks */}
-          <div className="bg-white p-5 rounded-lg shadow-md">
-            <h3 className="text-lg font-semibold mb-4 flex items-center text-gray-700">
+          <div className="bg-white p-3 md:p-5 rounded-lg shadow-md">
+           <h3 className="text-base md:text-lg font-semibold mb-4 flex items-center text-gray-700">
               <FaClipboardList className="mr-2 text-blue-600" />
               Recent Tasks
             </h3>
@@ -209,7 +208,7 @@ export default function StatisticalPage() {
             
             <div className="mt-4 pt-4 border-t">
               <button 
-                className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                className="text-blue-600 hover:text-blue-800 text-xs md:text-sm font-medium"
                 onClick={() => router.push(`/technician/taskManagement/`)}
               >
                 View all tasks →
@@ -218,7 +217,7 @@ export default function StatisticalPage() {
           </div>
 
           {/* Performance Score */}
-          <div className="bg-white p-6 rounded-lg shadow-md">
+          <div className="bg-white p-4 md:p-6 rounded-lg shadow-md">
             <h3 className="text-lg font-semibold mb-1 flex items-center text-gray-700">
               <FaStar className="mr-2 text-yellow-500" />
               Performance Score
@@ -227,17 +226,17 @@ export default function StatisticalPage() {
             {/* Main Score Display */}
             <div className="text-center mb-1">
               <div className="relative inline-block">
-                <div className="text-6xl font-bold text-gray-800 mb-2">
+                <div className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-800 mb-1">
                   {statistics.score.toFixed(1)}
                 </div>
                 <div className="absolute -top-2 -right-2">
-                  <FaStar className="text-yellow-500 text-2xl" />
+                  <FaStar className="text-yellow-500 text-xl md:text-2xl" />
                 </div>
               </div>
               <div className="text-sm text-gray-600">out of 10</div>
               
               {/* Progress Bar */}
-              <div className="w-full bg-gray-200 rounded-full h-3 mt-3 mb-1">
+              <div className="w-full bg-gray-200 rounded-full h-2 md:h-3 mt-1 mb-1">
                 <div 
                   className="bg-gradient-to-r from-yellow-400 to-yellow-600 h-3 rounded-full transition-all duration-500" 
                   style={{width: `${(statistics.score / 10) * 100}%`}}
@@ -254,7 +253,7 @@ export default function StatisticalPage() {
             {/* Score Breakdown */}
             <div className="space-y-1">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Quality</span>
+                <span className="text-xs md:text-sm text-gray-600">Quality</span>
                 <div className="flex items-center">
                   <div className="flex mr-2">
                     {[1,2,3,4,5].map((star) => (
@@ -264,7 +263,7 @@ export default function StatisticalPage() {
                       />
                     ))}
                   </div>
-                  <span className="text-sm font-medium text-gray-800">{statistics.quality.toFixed(1)}/10</span>
+                  <span className="text-xs md:text-sm font-medium text-gray-800">{statistics.quality.toFixed(1)}/10</span>
                 </div>
               </div>
               
@@ -301,10 +300,10 @@ export default function StatisticalPage() {
 
             {/* Achievement Badge */}
             {statistics.score >= 8 && (
-              <div className="mt-6 p-3 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg border border-yellow-200">
+              <div className="mt-4 md:mt-6 p-2 md:p-3 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg border border-yellow-200">
                 <div className="flex items-center justify-center">
                   <FaStar className="text-yellow-500 mr-2" />
-                  <span className="text-sm font-medium text-yellow-800">Top Performer This Week!</span>
+                  <span className="text-xs md:text-sm font-medium text-yellow-800">Top Performer This Week!</span>
                   <FaStar className="text-yellow-500 ml-2" />
                 </div>
               </div>

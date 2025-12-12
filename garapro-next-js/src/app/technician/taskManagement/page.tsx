@@ -524,7 +524,7 @@ useEffect(() => {
         } rounded-2xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1`}
       >
         {/* Card Header */}
-        <div className="p-6 pb-4">
+        <div className="p-4 md:p-6 pb-3 md:pb-4">
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center space-x-3">
               <div className="p-2 bg-white rounded-lg shadow-sm">
@@ -592,12 +592,12 @@ useEffect(() => {
         </div>
 
         {/* Card Footer */}
-        <div className="px-6 py-4 bg-white/50 border-t border-gray-200">
+        <div className="px-4 md:px-6 py-3 md:py-4 bg-white/50">
           <div className="flex space-x-3">
             <button
               onClick={() => handleStartWork(task)}
               disabled={isCompleted}
-              className={`flex-1 flex items-center justify-center space-x-2 px-4 py-2 font-semibold rounded-lg transition-all duration-300 shadow-md ${
+              className={`flex-1 flex items-center justify-center space-x-2 px-3 md:px-4 py-1.5 md:py-2 font-semibold rounded-lg transition-all duration-300 shadow-md ${
                 isCompleted
                   ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                   : "bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-800 transform hover:scale-105"
@@ -620,56 +620,54 @@ useEffect(() => {
   }, [statusConfig, priorityConfig, handleStartWork, handleTaskClick]);
 
   return (
-    <div className="bg-[url('/images/image5.jpg')] bg-cover bg-no-repeat h-full p-6 pb-2 rounded-lg shadow-md max-h-[86vh] overflow-y-auto rounded-xl rounded-scroll">
-      <div className="flex items-center justify-between mb-2 gap-4">
-        {/* Header Section */}
-        <div className="relative inline-block mb-4">
-          <div className="absolute inset-0 w-full max-w-md bg-white/70 shadow-md rounded-lg"></div>
-          <div className="relative flex items-center gap-2 px-6 py-3">
-            <div className="p-2 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-lg">
-              <ClipboardList className="w-7 h-7 text-white" />
-            </div>
-            <div className="flex flex-col items-start">
-              <div className="flex items-center gap-2">
-              <h2 className="text-[29px] font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent italic">
-                Task Management
-              </h2>
-              <div 
-                  className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                    signalRConnected 
-                      ? "bg-green-500 animate-pulse shadow-lg shadow-green-400" 
-                      : "bg-red-500 shadow-lg shadow-red-400"
-                  }`}
-                  title={signalRConnected ? "Real-time Connected" : "Disconnected"}
-                />
-              </div>
-              
-              <p className="text-gray-700 italic">Manage your vehicle service tasks efficiently</p>
-            
-          </div>
-            
-          </div>
-        </div>
-
-        <div className="px-12 mb-4 flex-1">
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500" />
-            <input
-              type="text"
-              placeholder="Search by vehicle, license plate or owner..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 border-3 border-gray-300 rounded-[100px] focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white/80"
-            />
-          </div>
-        </div>
+    <div className="bg-[url('/images/image5.jpg')] bg-cover bg-no-repeat h-full p-4 md:p-6 pb-2 rounded-lg shadow-md max-h-[86vh] overflow-y-auto rounded-xl">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 md:mb-2 gap-4">
+  {/* Header Section */}
+  <div className="relative inline-block w-full md:w-auto">
+    <div className="absolute inset-0 w-full bg-white/70 shadow-md rounded-lg"></div>
+    <div className="relative flex items-center gap-2 px-4 md:px-6 py-3">
+      <div className="p-2 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-lg">
+        <ClipboardList className="w-6 md:w-7 h-6 md:h-7 text-white" />
       </div>
+      <div className="flex flex-col items-start">
+        <div className="flex items-center gap-2">
+          <h2 className="text-xl md:text-2xl lg:text-[29px] font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent italic">
+            Task Management
+          </h2>
+          <div 
+            className={`w-2 h-2 md:w-3 md:h-3 rounded-full transition-all duration-300 ${
+              signalRConnected 
+                ? "bg-green-500 animate-pulse shadow-lg shadow-green-400" 
+                : "bg-red-500 shadow-lg shadow-red-400"
+            }`}
+            title={signalRConnected ? "Real-time Connected" : "Disconnected"}
+          />
+        </div>
+        <p className="text-gray-700 italic text-sm md:text-base">Manage your vehicle service tasks efficiently</p>
+      </div>
+    </div>
+  </div>
+
+  {/* Search Section */}
+  <div className="w-full md:px-12 md:flex-1">
+    <div className="relative">
+      <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4 md:w-5 md:h-5" />
+      <input
+        type="text"
+        placeholder="Search by vehicle, license plate or owner..."
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        className="w-full pl-10 md:pl-12 pr-4 py-2 md:py-3 border-2 md:border-3 border-gray-300 rounded-full focus:outline-none focus:ring-1 md:focus:ring-2 focus:ring-blue-400 bg-white/80 text-sm md:text-base"
+      />
+    </div>
+  </div>
+</div>
 
       <div className="max-w-6xl mx-auto">
         <div className="mb-3">
           {/* Filter Section */}
-          <div className="flex items-center space-x-2 bg-white/40 rounded-xl p-3 shadow-sm border border-gray-200">
-            <h2 className="text-[18px] font-semibold text-gray-800 flex items-center gap-2">
+         <div className="flex flex-col md:flex-row items-start md:items-center space-y-2 md:space-y-0 bg-white/40 rounded-xl p-3 shadow-sm border border-gray-200">
+            <h2 className="text-base md:text-[18px] font-semibold text-gray-800 flex items-center gap-2">
               <Car className="w-6 h-6 text-blue-600" />
               Assigned Tasks ({totalCount})
             </h2>
@@ -677,21 +675,21 @@ useEffect(() => {
             <div className="flex items-center gap-2 ml-auto">
               <Filter className="w-5 h-5 text-gray-800" />
               <span className="text-gray-900 font-medium text-[18px]">Filter:</span>
-              <div className="flex space-x-2">
-                {(["all", "new", "in-progress", "on-hold", "completed"] as const).map((status) => (
-                  <button
-                    key={status}
-                    onClick={() => setFilter(status)}
-                    className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 capitalize ${
-                      filter === status
-                        ? "bg-blue-500 text-white hover:bg-blue-800"
-                        : "bg-gray-100 text-gray-600 hover:bg-gray-400"
-                    }`}
-                  >
-                    {status === "all" ? "All Tasks" : status.replace("-", " ")}
-                  </button>
-                ))}
-              </div>
+              <div className="flex flex-wrap gap-2">
+  {(["all", "new", "in-progress", "on-hold", "completed"] as const).map((status) => (
+    <button
+      key={status}
+      onClick={() => setFilter(status)}
+      className={`px-3 md:px-4 py-1.5 md:py-2 rounded-lg font-medium transition-all duration-200 capitalize text-sm md:text-base ${
+        filter === status
+          ? "bg-blue-500 text-white hover:bg-blue-800"
+          : "bg-gray-100 text-gray-600 hover:bg-gray-400"
+      }`}
+    >
+      {status === "all" ? "All Tasks" : status.replace("-", " ")}
+    </button>
+  ))}
+</div>
             </div>
           </div>
         </div>
@@ -764,7 +762,7 @@ useEffect(() => {
 
             {/* Pagination Controls */}
             {totalPages > 1 && (
-              <div className="sticky bottom-0 left-0 right-0 mt-4 flex items-center justify-between bg-white/80 backdrop-blur-md rounded-xl px-6 shadow-md border-t border-gray-300 z-10">
+              <div className="sticky bottom-0 left-0 right-0 mt-4 flex flex-col md:flex-row items-center justify-between bg-white/80 backdrop-blur-md rounded-xl px-4 md:px-6 py-3 shadow-md border-t border-gray-300 z-10 gap-3 md:gap-0">
                 {/* Pagination info */}
                 <div className="text-sm text-gray-700 font-medium">
                   Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, totalCount)} of{" "}
@@ -879,10 +877,10 @@ const TaskDetailModal = ({
   priorityConfig: PriorityConfigMap;
 }) => {
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
-      <div className="bg-gradient-to-br from-slate-100 via-blue-300 to-indigo-100 rounded-2xl shadow-2xl max-w-3xl w-full">
+    <div className="fixed inset-0 bg-black/60 flex items-start md:items-center justify-center p-2 md:p-4 z-50 overflow-y-auto">
+<div className="bg-gradient-to-br from-slate-100 via-blue-300 to-indigo-100 rounded-xl md:rounded-2xl shadow-2xl max-w-3xl w-full my-4 md:my-0">
         {/* Modal Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+        <div className="flex items-center justify-between p-4 md:p-6 border-b border-gray-200">
           <div className="flex items-center space-x-3">
             <div className="p-2 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg">
               <Car className="w-6 h-6 text-white" />
@@ -900,14 +898,14 @@ const TaskDetailModal = ({
         </div>
 
         {/* Modal Content */}
-        <div className="p-6 space-y-6 max-h-[60vh] overflow-y-auto">
+        <div className="p-4 md:p-6 space-y-4 md:space-y-6 max-h-[60vh] overflow-y-auto">
           {/* Vehicle Info */}
           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-100">
             <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
               <Car className="w-5 h-5 mr-2 text-blue-600" />
               Vehicle Information
             </h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
               <div>
                 <span className="text-sm font-medium text-gray-600">Vehicle:</span>
                 <p className="text-lg font-semibold text-gray-900">{task.vehicle}</p>

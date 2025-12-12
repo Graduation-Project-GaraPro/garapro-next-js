@@ -389,12 +389,12 @@ useEffect(() => {
     return (
       <div
         key={vehicle.id}
-        className="w-205 h-52 relative bg-[url('/images/image13.png')] bg-cover bg-no-repeat before:absolute before:inset-0 before:bg-black before:opacity-30 before:rounded-lg group relative rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden cursor-pointer transform hover:-translate-y-1"
+        className="w-205 h-52 min-h-[200px] relative bg-[url('/images/image13.png')] bg-cover bg-no-repeat before:absolute before:inset-0 before:bg-black before:opacity-30 before:rounded-lg group relative rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden cursor-pointer transform hover:-translate-y-1"
       >
         <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>                 
-        <div className="relative p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-4">
+          <div className="relative p-4 md:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3">
+  <div className="flex items-center gap-3">
               <div className="p-3 bg-gradient-to-r from-blue-100 to-cyan-100 rounded-xl">
                 <Car className="w-6 h-6 text-blue-600" />
               </div>
@@ -410,13 +410,13 @@ useEffect(() => {
                 </div>
               </div>
             </div>
-            <div className={`px-4 py-2 rounded-full bg-gradient-to-r ${getStatusColor(vehicle.status)} text-white font-medium flex items-center gap-2 shadow-lg`}>
+            <div className={`px-3 py-1.5 md:px-4 md:py-2 text-sm rounded-full bg-gradient-to-r ${getStatusColor(vehicle.status)} text-white font-medium flex items-center gap-2 shadow-lg`}>
               {getStatusIcon(vehicle.status)}
               {getStatusDisplayText(vehicle.status)}
             </div>
           </div>
          
-          <div className="flex items-center gap-4 mb-4">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center gap-2 mb-4">
             <div className="bg-black/40 flex items-center font-bold gap-2 text-white rounded">
               <User className="w-4 h-4" />
               <span className="text-sm">Customer: {vehicle.customer}</span>
@@ -480,17 +480,17 @@ useEffect(() => {
   return (
     <div className="flex gap-6 bg-gradient-to-br from-slate-100 via-blue-300 to-indigo-100 p-5 rounded-lg h-full">
       <div className="max-w-7xl mx-auto w-full">
-        <div className="flex items-center justify-between mb-1 gap-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-3 gap-4">
           {/* Animated Header */}
-          <div className="relative inline-block mb-1">
-            <div className="absolute inset-0 w-full max-w-md bg-white/70 shadow-md rounded-lg"></div>
+          <div className="relative w-full md:w-auto mb-2 md:mb-1">
+  <div className="absolute inset-0 w-full bg-white/70 shadow-md rounded-lg"></div>
             <div className="relative flex items-center gap-2 px-3 py-2">
               <div className="p-2 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-lg">
                 <Wrench className="w-7 h-7 text-white"/>
               </div>
               <div className="flex flex-col items-start">
                 <div className="flex items-center gap-2">
-        <h2 className="text-[27px] font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent italic">
+        <h2 className="text-xl md:text-2xl lg:text-[27px] font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent italic">
           Vehicle Repair Progress
         </h2>
         {/* SignalR Connection Indicator */}
@@ -508,7 +508,7 @@ useEffect(() => {
             </div>
           </div>
           {/* Search */}
-          <div className="px-6 mb-2 flex-1">
+         <div className="w-full md:flex-1 mb-2">
             <div className="relative">
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500" />
               <input
@@ -528,10 +528,10 @@ useEffect(() => {
             Assigned Vehicles ({totalCount})
           </h2>
           {/* Filter Section */}
-          <div className="flex items-center space-x-2 bg-white/40 rounded-xl p-2 shadow-sm border border-gray-200">
+         <div className="flex flex-wrap items-center gap-2 bg-white/40 rounded-xl p-2 shadow-sm border border-gray-200 w-full md:w-auto">
             <Filter className="w-5 h-5 text-gray-600" />
             <span className="text-gray-700 font-medium">Filter:</span>
-            <div className="flex space-x-2">
+            <div className="flex flex-wrap gap-2">
               {(["all", "New", "InProgress", "OnHold","Completed"] as const).map((status) => (
                 <button
                   key={status}
@@ -578,8 +578,8 @@ useEffect(() => {
         {/* Vehicle List */}
         {!loading && !error && assignedVehicles.length > 0 && (
           <div className="max-h-[60vh] overflow-y-auto rounded-xl rounded-scroll">              
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              <div className="lg:col-span-2 space-y-4">              
+            <div className="grid gap-4 grid-cols-1 xl:grid-cols-3">
+  <div className="xl:col-span-2 space-y-4">           
                 {searchedVehicles.map((vehicle) => (
                   <VehicleCard key={vehicle.id} vehicle={vehicle} />
                 ))}
@@ -606,7 +606,7 @@ useEffect(() => {
             {totalPages > 1 && (
               <div className="sticky bottom-0 left-0 right-0 mt-4 flex items-center justify-between bg-white/80 backdrop-blur-md rounded-xl py-1 px-6 shadow-md border-t border-gray-300 z-10">
                 {/* Pagination info */}
-                <div className="text-sm text-gray-700 font-medium">
+                <div className="hidden md:block text-sm text-gray-700 font-medium">
                   Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, totalCount)} of{" "}
                   {totalCount} vehicles
                 </div>
@@ -692,10 +692,10 @@ useEffect(() => {
       </div>
 
       {/* Image Slideshow */}
-      <div className="lg:col-span1">
-        <div className="">
+      <div className="hidden xl:block w-full xl:w-auto">
+  <div className="sticky top-5">
           <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
-            <div className="relative h-135 w-85 overflow-hidden">
+            <div className="relative h-133 w-85 overflow-hidden">
               <div className="relative h-full">
                 <Image
                   src={placeholderImages[currentImageIndex]}
@@ -727,7 +727,7 @@ useEffect(() => {
             </div>
             {/* Stats panel */}
             <div className="p-2 bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl shadow-sm">
-              <div className="flex items-center justify-center gap-10 text-center">
+              <div className="grid grid-cols-4 gap-4 text-center">
                 <div>
                   <div className="text-xl font-bold text-green-600">
                     {vehicleStats.new}

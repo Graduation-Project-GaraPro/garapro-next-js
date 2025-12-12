@@ -1,5 +1,6 @@
 "use client";
 
+
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -14,16 +15,21 @@ import {
   FaCog,
   FaUserCircle,
 } from "react-icons/fa";
-import { useState, useMemo, useCallback, memo } from "react";
+import { useState, useMemo, useCallback, memo, useEffect } from "react";
 import { IconType } from "react-icons";
 import { authService } from "@/services/authService";
-// Types
+
+
+interface TechnicianSidebarProps {
+  onClose?: () => void;  
+}
 interface ChildItem {
   id: string;
   label: string;
   icon: IconType;
   href: string;
 }
+
 
 interface SidebarItem {
   id: string;
@@ -32,6 +38,7 @@ interface SidebarItem {
   href?: string;
   children?: ChildItem[];
 }
+
 
 // Sidebar configuration
 const sidebarItems: SidebarItem[] = [
@@ -81,13 +88,15 @@ const sidebarItems: SidebarItem[] = [
   },
 ];
 
+
 // Child Menu Item Component (Memoized)
-const ChildMenuItem = memo(({ child, isActive }: { child: ChildItem; isActive: boolean }) => {
+const ChildMenuItem = memo(({ child, isActive , onClick}: { child: ChildItem; isActive: boolean ; onClick: () => void; }) => {
   const ChildIcon = child.icon;
-  
+ 
   return (
     <Link
       href={child.href}
+       onClick={onClick}
       className={`flex items-center px-3 py-2 rounded-md text-sm font-medium ${
         isActive
           ? "bg-blue-200 text-blue-800 font-medium"
@@ -100,7 +109,9 @@ const ChildMenuItem = memo(({ child, isActive }: { child: ChildItem; isActive: b
   );
 });
 
+
 ChildMenuItem.displayName = "ChildMenuItem";
+
 
 // Parent Menu Item Component (Memoized)
 const ParentMenuItem = memo(({
@@ -109,14 +120,17 @@ const ParentMenuItem = memo(({
   isParentActive,
   pathname,
   onToggle,
+   onClick
 }: {
   item: SidebarItem;
   isExpanded: boolean;
   isParentActive: boolean;
   pathname: string;
   onToggle: () => void;
+  onClick: () => void;
 }) => {
   const IconComponent = item.icon;
+
 
   return (
     <div>
@@ -137,7 +151,8 @@ const ParentMenuItem = memo(({
             <ChildMenuItem
               key={child.id}
               child={child}
-              isActive={pathname === child.href}
+              isActive={pathname.startsWith(child.href)}
+              onClick={onClick}
             />
           ))}
         </div>
@@ -146,21 +161,27 @@ const ParentMenuItem = memo(({
   );
 });
 
+
 ParentMenuItem.displayName = "ParentMenuItem";
+
 
 // Simple Menu Item Component (Memoized)
 const SimpleMenuItem = memo(({
   item,
   isActive,
+  onClick
 }: {
   item: SidebarItem;
   isActive: boolean;
+  onClick: () => void;
 }) => {
   const IconComponent = item.icon;
+
 
   return (
     <Link
       href={item.href!}
+       onClick={onClick}
       className={`w-full flex items-center px-4 py-4 text-left rounded-lg mb-2 transition-colors bg-white/10 ${
         isActive
           ? "bg-gradient-to-r from-blue-300 to-teal-300 text-blue-800 border-r-2 border-blue-600"
@@ -173,7 +194,9 @@ const SimpleMenuItem = memo(({
   );
 });
 
+
 SimpleMenuItem.displayName = "SimpleMenuItem";
+
 
 // User Profile Component (Memoized)
 const UserProfile = memo(({ fullName, email }: { fullName: string; email: string }) => (
@@ -188,12 +211,21 @@ const UserProfile = memo(({ fullName, email }: { fullName: string; email: string
   </div>
 ));
 
+
 UserProfile.displayName = "UserProfile";
 
+
 // Main Sidebar Component
-export default function TechnicianSidebar() {
+export default function TechnicianSidebar({ onClose }: TechnicianSidebarProps) {
   const pathname = usePathname();
   const [expandedMenu, setExpandedMenu] = useState<string | null>(null);
+  const [userFullName, setUserFullName] = useState<string>("");
+  const handleClick = () => {
+  if (onClose && window.innerWidth < 1024) {
+    onClose();
+  }
+};
+
 
   // Get user info (only once)
   const userInfo = useMemo(() => {
@@ -205,11 +237,27 @@ export default function TechnicianSidebar() {
     }
     const currentUser = authService.getCurrentUser();
     console.log("Technician",currentUser)
+    const fullName = userFullName || currentUser.fullName || "Technician";
     return {
-      fullName: currentUser.fullName || "Technician",
+      fullName,  
       email: currentUser.email || "technician@example.com",
     };
 
+
+  }, [userFullName]);
+ 
+  useEffect(() => {
+    const handleProfileUpdate = (event: CustomEvent) => {
+      const { fullName } = event.detail;
+      setUserFullName(fullName);
+    };
+
+
+    window.addEventListener('profileUpdated', handleProfileUpdate as EventListener);
+   
+    return () => {
+      window.removeEventListener('profileUpdated', handleProfileUpdate as EventListener);
+    };
   }, []);
 
   // Memoize active parent check
@@ -217,16 +265,24 @@ export default function TechnicianSidebar() {
     const map = new Map<string, boolean>();
     sidebarItems.forEach((item) => {
       if (item.children) {
-        map.set(item.id, item.children.some((child) => pathname === child.href));
+        map.set(item.id, item.children.some((child) => pathname.startsWith(child.href)));
       }
     });
     return map;
   }, [pathname]);
 
+useEffect(() => {
+  sidebarItems.forEach((item) => {
+    if (item.children && activeParentMap.get(item.id)) {
+      setExpandedMenu(item.id);
+    }
+  });
+}, [pathname, activeParentMap]);
   // Toggle handler with useCallback
   const handleToggle = useCallback((itemId: string) => {
     setExpandedMenu((prev) => (prev === itemId ? null : itemId));
   }, []);
+
 
   return (
     <div className="w-64 bg-gradient-to-r from-gray-300 to-teal-100 shadow-lg flex flex-col">
@@ -236,6 +292,7 @@ export default function TechnicianSidebar() {
             <FaWrench className="text-xl text-gray-500 mr-2" />
             TECHNICIAN
           </p>
+
 
           {sidebarItems.map((item) => {
             if (item.children) {
@@ -247,22 +304,27 @@ export default function TechnicianSidebar() {
                   isParentActive={activeParentMap.get(item.id) || false}
                   pathname={pathname}
                   onToggle={() => handleToggle(item.id)}
+                  onClick={handleClick}
                 />
               );
             }
+
 
             return (
               <SimpleMenuItem
                 key={item.id}
                 item={item}
                 isActive={pathname === item.href}
+                onClick={handleClick}
               />
             );
           })}
         </div>
       </nav>
 
+
       <UserProfile fullName={userInfo.fullName} email={userInfo.email} />
     </div>
   );
 }
+

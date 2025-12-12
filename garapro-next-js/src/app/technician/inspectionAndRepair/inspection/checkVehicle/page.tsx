@@ -388,7 +388,7 @@ function PartCategorySelection({
 
       {isCategorySelected && expanded && (
         <div className="border-t border-gray-200 p-3 bg-white">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+         <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
             {category.parts.map((part) => {
               const isSelected = selectedPartsInCategory.some((p: any) => p.partId === part.partId);
               const quantity = getPartQuantity(part.partId);
@@ -1315,44 +1315,46 @@ export default function CheckConditionPage() {
   }
 
   return (
-    <div className="bg-[url('/images/image9.png')] bg-cover bg-no-repeat h-full p-4 rounded-lg shadow-md max-h-[86vh] overflow-y-auto rounded-xl">
-      <div className="flex items-center justify-between mb-2 gap-4 flex-nowrap">
-        <div className="relative inline-block mb-3 flex-shrink-0">
-          <div className="absolute inset-0 w-full max-w-md bg-white/70 shadow-md rounded-lg"></div>
-          <div className="relative flex items-center gap-2 px-4 py-2">
+  <div className="bg-[url('/images/image9.png')] bg-cover bg-no-repeat h-full p-3 md:p-4 rounded-lg shadow-md max-h-[86vh] overflow-y-auto rounded-xl">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-2 gap-3 md:gap-4">
+        {/* Header Left */}
+        <div className="relative inline-block mb-2 md:mb-3 w-full md:w-auto">
+          <div className="absolute inset-0 w-full bg-white/70 shadow-md rounded-lg"></div>
+          <div className="relative flex items-center gap-2 px-3 md:px-4 py-2">
             <button
               onClick={() => router.back()}
-              className="p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors duration-200 mr-2"
+              className="p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors duration-200 mr-1 md:mr-2 flex-shrink-0"
             >
-              <ArrowLeft className="w-5 h-5 text-gray-600" />
+              <ArrowLeft className="w-4 md:w-5 h-4 md:h-5 text-gray-600" />
             </button>
             <div className="p-2 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-lg flex-shrink-0">
-              <ClipboardCheck className="w-5 h-5 text-white" />
+              <ClipboardCheck className="w-4 md:w-5 h-4 md:h-5 text-white" />
             </div>
-            <div className="flex flex-col items-start min-w-0">
-              <h2 className="text-[24px] font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent italic truncate max-w-[300px]">
+            <div className="flex flex-col items-start min-w-0 flex-1 md:flex-none">
+              <h2 className="text-lg md:text-[24px] font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent italic truncate max-w-[180px] md:max-w-[300px]">
                 {vehicleInfo?.vehicle || "Vehicle Inspection"}
               </h2>
-              <p className="text-sm text-gray-600 truncate">Status: {inspectionStatus}</p>
+              <p className="text-xs md:text-sm text-gray-600 truncate">Status: {inspectionStatus}</p>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-4 flex-shrink-0">         
+        {/* Header Right - Buttons */}
+        <div className="flex items-center gap-2 md:gap-4 w-full md:w-auto justify-between md:justify-end">
           {canAddService && !isCompleted && (
             <button
               onClick={handleOpenAddServiceModal}
-              className="px-4 py-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold rounded-xl transition-all duration-200 flex items-center gap-2 shadow-lg whitespace-nowrap"
+              className="px-3 md:px-4 py-2 md:py-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold rounded-lg md:rounded-xl transition-all duration-200 flex items-center gap-2 shadow-lg whitespace-nowrap text-sm md:text-base"
             >
-              <Plus className="w-5 h-5" />
+              <Plus className="w-4 md:w-5 h-4 md:h-5" />
               <span>Add Services</span>
             </button>
           )}
 
-          <div className="relative w-190 px-10">
+          <div className="relative w-full md:w-48 lg:w-190">
             <button
               onClick={() => setShowVehicleDetails(!showVehicleDetails)}
-              className="w-full p-4 bg-gradient-to-r from-gray-200 to-blue-400/60 hover:from-gray-100/60 hover:to-blue-100/60 border-2 border-gray-200 hover:border-blue-300/60 rounded-xl transition-all duration-300 flex items-center justify-between"
+              className="w-full p-3 md:p-4 bg-gradient-to-r from-gray-200 to-blue-400/60 hover:from-gray-100/60 hover:to-blue-100/60 border-2 border-gray-200 hover:border-blue-300/60 rounded-lg md:rounded-xl transition-all duration-300 flex items-center justify-between"
             >
               <div className="flex items-center gap-3">
                 <Car className="w-5 h-5 text-blue-600" />
@@ -1365,7 +1367,7 @@ export default function CheckConditionPage() {
   <div className="absolute top-full left-0 right-0 mt-2 bg-white border-2 border-gray-200 rounded-xl shadow-2xl z-10 overflow-hidden max-h-[calc(100vh-200px)] overflow-y-auto">
     <div className="px-4 py-4">
       <div className="text-center mb-2">
-        <h3 className="text-[16px] font-bold text-gray-800">Vehicle Details</h3>
+        <h3 className="text-sm md:text-[16px] font-bold text-gray-800">Vehicle Details</h3>
         <div className="w-20 h-1 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full mx-auto"></div>
       </div>
       <div className="p-3 bg-gradient-to-r from-blue-50 to-purple-50">
@@ -1374,37 +1376,37 @@ export default function CheckConditionPage() {
             <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-2 border border-blue-200/50">
               <div className="flex items-center gap-3 mb-1">
                 <div className="px-2 py-1 bg-blue-100 rounded-lg"><Car className="w-4 h-4 text-blue-600" /></div>
-                <span className="text-sm font-medium text-blue-700">Vehicle Model</span>
+                <span className="text-xs md:text-sm font-medium text-blue-700">Vehicle Model</span>
               </div>
-              <p className="text-gray-800 font-bold text-sx px-11">{vehicleInfo.vehicle}</p>
+              <p className="text-gray-800 font-bold text-xs md:text-sx px-8 md:px-11">{vehicleInfo.vehicle}</p>
             </div>
             <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-2 border border-purple-200/50">
               <div className="flex items-center gap-3 mb-1">
                 <div className="px-2 py-1 bg-purple-100 rounded-lg"><User className="w-4 h-4 text-purple-600" /></div>
-                <span className="text-sm font-medium text-purple-700">Customer Name</span>
+                <span className="text-xs md:text-sm font-medium text-blue-700">Customer Name</span>
               </div>
-              <p className="text-gray-800 font-bold text-sx px-11">{vehicleInfo.owner}</p>
+             <p className="text-gray-800 font-bold text-xs md:text-sx px-8 md:px-11">{vehicleInfo.owner}</p>
             </div>
             <div className="bg-gradient-to-br from-orange-50 to-red-50 rounded-xl p-2 border border-orange-200/50">
               <div className="flex items-center gap-3 mb-1">
                 <div className="px-2 py-1 bg-orange-100 rounded-lg"><Phone className="w-4 h-4 text-orange-600" /></div>
-                <span className="text-sm font-medium text-orange-700">Phone Number</span>
+                <span className="text-xs md:text-sm font-medium text-blue-700">Phone Number</span>
               </div>
-              <p className="text-gray-800 font-bold text-sx px-11">{vehicleInfo.phone}</p>
+              <p className="text-gray-800 font-bold text-xs md:text-sx px-8 md:px-11">{vehicleInfo.phone}</p>
             </div>
           </div>
           <div className="space-y-3">
             <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-2 border border-green-200/50">
               <div className="flex items-center gap-3 mb-1">
                 <div className="px-2 py-1 bg-green-100 rounded-lg"><Hash className="w-4 h-4 text-green-600" /></div>
-                <span className="text-sm font-medium text-green-700">License Plate</span>
+                <span className="text-xs md:text-sm font-medium text-blue-700">License Plate</span>
               </div>
-              <p className="text-gray-800 font-bold text-sx px-11">{vehicleInfo.licensePlate}</p>
+              <p className="text-gray-800 font-bold text-xs md:text-sx px-8 md:px-11">{vehicleInfo.licensePlate}</p>
             </div>
             <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl p-2 border border-yellow-200/50">
               <div className="flex items-center gap-3 mb-1">
                 <div className="px-2 py-1 bg-yellow-100 rounded-lg"><Info className="w-5 h-5 text-yellow-600" /></div>
-                <span className="text-sm font-semibold text-yellow-700">VIN</span>
+                <span className="text-xs md:text-sm font-semibold text-yellow-700">VIN</span>
               </div>
               <p className="text-gray-800 font-bold text-sx px-11">{vehicleInfo.vin}</p>
             </div>
@@ -1433,10 +1435,10 @@ export default function CheckConditionPage() {
             <div className="px-2 py-1 bg-slate-100 rounded-lg">
               <Info className="w-5 h-5 text-slate-600" />
             </div>
-            <span className="text-[18px] font-semibold text-slate-700">Customer Concern</span>
+            <span className="text-base md:text-[18px] font-semibold text-slate-700">Customer Concern</span>
           </div>
           <div className="bg-white rounded-lg p-4 border border-slate-200 shadow-sm">
-            <p className="text-gray-700 leading-relaxed text-base">
+            <p className="text-gray-700 leading-relaxed text-sm md:text-base">
               {vehicleInfo.customerConcern || "No concerns reported"}
             </p>
           </div>
@@ -1459,7 +1461,7 @@ export default function CheckConditionPage() {
       </div>
 
       <div className="max-w-6xl mx-auto">
-        <div className="space-y-3 bg-white/70 px-8 py-4 rounded-xl">
+        <div className="space-y-3 bg-white/70 px-4 md:px-6 lg:px-8 py-4 rounded-xl">
           {Object.entries(
             inspectionItems.reduce((acc, item) => {
               const category = item.categoryName || "Uncategorized";
@@ -1472,16 +1474,16 @@ export default function CheckConditionPage() {
           ).map(([categoryName, services]) => (
             <div key={categoryName} className="rounded-xl shadow-lg border border-gray-200 overflow-hidden bg-gradient-to-r from-purple-100 to-blue-100">
               <div className="bg-gradient-to-r from-blue-600 to-indigo-400/70 px-6 py-3">
-                <h3 className="text-xl font-bold text-white">{categoryName}</h3>        
+                <h3 className="text-lg md:text-xl font-bold text-white">{categoryName}</h3> 
               </div>
 
               <div className="divide-y divide-gray-300">
                 {services.map((item) => (
-                  <div key={item.serviceId} className="px-10 py-4 bg-white/50">
-                    <div className="border-2 border-gray-200 rounded-lg px-5 py-3 bg-gray-50">
+                  <div key={item.serviceId} className="px-4 md:px-6 lg:px-10 py-4 bg-white/50">
+                    <div className="border-2 border-gray-200 rounded-lg px-4 md:px-5 py-3 bg-gray-50">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-3">
-                          <h4 className="text-lg font-semibold text-gray-900">{item.serviceName}</h4>
+                          <h4 className="text-base md:text-lg font-semibold text-gray-900">{item.serviceName}</h4>
                           {item.isAdvanced && (
                             <span className="px-2 py-1 bg-orange-100 text-orange-700 text-xs font-medium rounded">
                               Advanced
@@ -1503,7 +1505,7 @@ export default function CheckConditionPage() {
                               key={status}
                               onClick={() => updateInspectionItem(item.serviceId, "status", status)}
                               disabled={isCompleted}
-                              className={`px-3 py-1 rounded-lg text-sm font-medium border transition-all duration-200 ${
+                              className={`px-2 md:px-3 py-1 rounded-lg text-xs md:text-sm font-medium border transition-all duration-200 ${
                                 item.status === status ? config.color : "bg-white text-gray-600 border-gray-300 hover:bg-gray-100"
                               } ${isCompleted ? "opacity-50 cursor-not-allowed" : ""}`}
                             >
@@ -1524,12 +1526,12 @@ export default function CheckConditionPage() {
     >
       <div className="flex items-center gap-2">
         <Settings className="w-4 h-4 text-red-600" />
-        <span className="font-medium text-red-700">
-          Part Categories Suggestions
-          {item.selectedPartCategories.length > 0 && 
-            ` (${item.selectedPartCategories.length} categories selected)`}
-          {isCompleted && item.selectedPartCategories.length > 0 }
-        </span>
+          <span className="font-medium text-red-700 text-xs md:text-sm">
+            Part Categories Suggestions
+            {item.selectedPartCategories.length > 0 && 
+              ` (${item.selectedPartCategories.length} categories selected)`}
+            {isCompleted && item.selectedPartCategories.length > 0 }
+          </span>
       </div>
       {expandedPartCategories[item.serviceId] ? (
         <ChevronDown className="w-4 h-4 text-red-600" />
@@ -1574,10 +1576,10 @@ export default function CheckConditionPage() {
             </div>
           ))}
 
-          <div className="bg-white/90 rounded-xl shadow-lg border border-gray-200 p-6">
+          <div className="bg-white/90 rounded-xl shadow-lg border border-gray-200 p-4 md:p-6">
             <div className="flex items-center space-x-3 mb-4">
               <FileText className="w-6 h-6 text-gray-600" />
-              <h3 className="text-xl font-bold text-gray-900">General Inspection Finding  <span className="text-red-500">*</span></h3>
+              <h3 className="text-lg md:text-xl font-bold text-gray-900">General Inspection Finding  <span className="text-red-500">*</span></h3>
             </div>
             <textarea
               value={generalNotes}
@@ -1589,15 +1591,15 @@ export default function CheckConditionPage() {
             />
           </div>
 
-          <div className="flex justify-end space-x-4 pb-4">
-            <button onClick={() => router.back()} className="px-6 py-3 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition-colors duration-200">
+          <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4 pb-4">
+            <button onClick={() => router.back()} className="px-4 md:px-6 py-2 md:py-3 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition-colors duration-200 text-sm md:text-base">
               Cancel
             </button>
             {!isCompleted && (
               <button
                 onClick={handleSaveInspection}
                 disabled={saving || !isSaveValid()}
-                className={`px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-200 flex items-center space-x-2 ${
+                className={`px-4 md:px-6 py-2 md:py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-200 flex items-center space-x-2 text-sm md:text-base ${
                   saving || !isSaveValid() ? "opacity-50 cursor-not-allowed" : ""
                 }`}
               >

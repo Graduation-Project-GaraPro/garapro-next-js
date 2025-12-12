@@ -41,7 +41,8 @@ const getAuthToken = (): string | null => {
 
 const isOver18 = (dateOfBirth: string): boolean => {
   try {
-    const birthDate = new Date(dateOfBirth);
+    const [year, month, day] = dateOfBirth.split('-').map(Number);
+    const birthDate = new Date(year, month - 1, day);
     const today = new Date();
     
     let age = today.getFullYear() - birthDate.getFullYear();
@@ -67,8 +68,8 @@ const formatDateForInput = (dateString?: string): string => {
   if (!dateString) return '';
   
   try {
-    const date = new Date(dateString);
-    return date.toISOString().split('T')[0];
+    const dateOnly = dateString.split('T')[0];
+    return dateOnly;
   } catch {
     return '';
   }
@@ -78,7 +79,9 @@ const formatDateForDisplay = (dateString?: string): string => {
   if (!dateString) return 'Not set';
   
   try {
-    const date = new Date(dateString);
+    const [year, month, day] = dateString.split('T')[0].split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
@@ -102,7 +105,8 @@ const validateFormData = (formData: UpdateUserDto): string[] => {
   
   if (formData.dateOfBirth) {
     const today = new Date();
-    const birthDate = new Date(formData.dateOfBirth);
+    const [year, month, day] = formData.dateOfBirth.split('-').map(Number);
+    const birthDate = new Date(year, month - 1, day);
     
     if (isNaN(birthDate.getTime())) {
       errors.push('Invalid date of birth');

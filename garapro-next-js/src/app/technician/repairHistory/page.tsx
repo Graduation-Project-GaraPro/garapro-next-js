@@ -281,54 +281,59 @@ export default function RepairHistory() {
         </div>
       )}
 
-      <div className="bg-gradient-to-br from-blue-100 to-gray-200 p-6 rounded-lg shadow-md h-full flex flex-col">
-        <div className="flex items-center justify-between mb-2 gap-4">
-          <div className="relative inline-block mb-4">
-            <div className="absolute inset-0 w-full max-w-md bg-white/70 shadow-md rounded-lg"></div>
-            <div className="relative flex items-center gap-2 px-6 py-3">
+     <div className="bg-gradient-to-br from-blue-100 to-gray-200 p-4 md:p-6 rounded-lg shadow-md h-full flex flex-col">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 md:mb-2 gap-4">
+          {/* Header Section */}
+          <div className="relative inline-block w-full md:w-auto">
+            <div className="absolute inset-0 w-full bg-white/70 shadow-md rounded-lg"></div>
+            <div className="relative flex items-center gap-2 px-4 md:px-6 py-3">
               <div className="p-2 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-lg">
-                <FaHistory className="text-3xl text-white" />
+                <FaHistory className="text-2xl md:text-3xl text-white" />
               </div>
               <div className="flex flex-col items-start">
-                <h2 className="text-[29px] font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent italic">
+                <h2 className="text-xl md:text-2xl lg:text-[29px] font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent italic">
                   Repair History
                 </h2>
-                <p className="text-gray-700 italic">
+                <p className="text-gray-700 italic text-sm md:text-base">
                   Select a vehicle to view its repair history.
                 </p>
               </div>
             </div>
           </div>
-          <div className="px-12 mb-4 flex-1">
+
+          {/* Search Section */}
+          <div className="w-full md:px-12 md:flex-1">
             <div className="relative">
-              <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500" />
+              <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4 md:w-5 md:h-5" />
               <input
                 type="text"
                 placeholder="Search by vehicle, license plate or owner..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 border-3 border-gray-300 rounded-[100px] focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white/80"
+                className="w-full pl-10 md:pl-12 pr-4 py-2 md:py-3 border-2 md:border-3 border-gray-300 rounded-full focus:outline-none focus:ring-1 md:focus:ring-2 focus:ring-blue-400 bg-white/80 text-sm md:text-base"
               />
             </div>
           </div>
+
+          {/* Sort Button */}
           <button
             onClick={() => setIsSorted(!isSorted)}
-            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center"
+            className="px-3 md:px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center text-sm md:text-base w-full md:w-auto justify-center"
           >
             <FaSort className="mr-2" />
             {isSorted ? "Unsort" : "Sort by Date"}
           </button>
         </div>
 
-        <div className="px-8 max-h-[64vh] overflow-y-auto bg-white/30 rounded-2xl shadow-inner space-y-4 p-4 rounded-scroll">
+        <div className="px-4 md:px-8 max-h-[64vh] overflow-y-auto bg-white/30 rounded-2xl shadow-inner space-y-4 p-3 md:p-4">
           {filteredVehicles.length > 0 ? (
             filteredVehicles.map((vehicle) => (
               <div
                 key={vehicle.id}
-                className="bg-white border-2 border-gray-200 rounded-2xl p-6 w-280 hover:shadow-lg cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:border-blue-300"
+                className="bg-white border-2 border-gray-200 rounded-2xl p-4 md:p-6 hover:shadow-lg cursor-pointer transition-all duration-300 hover:scale-[1.01] md:hover:scale-[1.02] hover:border-blue-300"
                 onClick={() => openModal(vehicle)}
               >
-                <div className="flex items-start space-x-4">
+                <div className="flex flex-col md:flex-row items-start md:items-center space-y-4 md:space-y-0 md:space-x-4">
                   {/* Vehicle Image */}
                   <div className="flex-shrink-0">
                     <Image
@@ -336,14 +341,14 @@ export default function RepairHistory() {
                       width={400}
                       height={256}
                       alt={vehicle.vehicle}
-                      className="w-38 h-27 object-cover rounded-lg shadow-sm"
+                      className="w-full md:w-38 h-32 md:h-27 object-cover rounded-lg shadow-sm"
                     />
                   </div>
 
                   {/* Vehicle Info */}
-                  <div className="flex-1 grid grid-cols-2 gap-4">
+                  <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                     <div>
-                      <h3 className="font-bold text-xl text-gray-800 mb-2 flex items-center">
+                     <h3 className="font-bold text-lg md:text-xl text-gray-800 mb-2 flex items-center">
                         <FaCar className="mr-2 text-blue-500" />
                         {vehicle.vehicle}
                       </h3>
@@ -367,7 +372,7 @@ export default function RepairHistory() {
                         {vehicle.repairCount} repair times
                       </p>
                       
-                      <p className="text-[18px] font-bold text-green-600 flex items-center justify-end">
+                     <p className="text-base md:text-[18px] font-bold text-green-600 flex items-center justify-end">
                         <FaMoneyBill className="mr-1" />
                         {vehicle.totalVehicleAmount.toLocaleString()} VND
                       </p>
@@ -401,7 +406,7 @@ export default function RepairHistory() {
 
         {/* Pagination Controls */}
         {totalPages > 1 && (
-          <div className="sticky bottom-0 left-0 right-0 mt-4 flex items-center justify-between bg-white/80 backdrop-blur-md rounded-xl px-6 shadow-md border-t border-gray-300 z-10">
+          <div className="sticky bottom-0 left-0 right-0 mt-4 flex flex-col md:flex-row items-center justify-between bg-white/80 backdrop-blur-md rounded-xl px-4 md:px-6 py-3 shadow-md border-t border-gray-300 z-10 gap-3 md:gap-0">
             {/* Pagination info */}
             <div className="text-sm text-gray-700 font-medium">
               Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, totalCount)} of{" "}
@@ -489,18 +494,18 @@ export default function RepairHistory() {
       {/* Modal */}
       {isModalOpen && selectedVehicle && (
         <div
-          className="fixed inset-0 flex items-center justify-center px-70 bg-black/40 bg-opacity-50 backdrop-blur-sm"
-          style={{ zIndex: 9999 }}
-        >
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden">
-            <div className="bg-[url('/images/image20.jpg')] bg-cover bg-no-repeat p-6 text-white">
+        className="fixed inset-0 flex items-start md:items-center justify-center p-2 md:p-4 bg-black/40 bg-opacity-50 backdrop-blur-sm"
+        style={{ zIndex: 9999 }}
+      >
+        <div className="bg-white rounded-xl md:rounded-3xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden my-4 md:my-0">
+            <div className="bg-[url('/images/image20.jpg')] bg-cover bg-no-repeat p-4 md:p-6 text-white">
               <div className="flex justify-between items-center">
                 <div>
-                  <h2 className="text-3xl font-bold flex items-center mb-1">
+                 <h2 className="text-xl md:text-2xl lg:text-3xl font-bold flex items-center mb-1">
                     <FaHistory className="mr-3" />
                     {selectedVehicle.vehicle}
                   </h2>
-                  <div className="grid grid-cols-2 gap-3 text-blue-100">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3 text-blue-100">
                     <p className="bg-black/60 flex items-center rounded-xl p-1">
                       <FaUser className="mr-2" />
                       <strong>Owner:</strong>
@@ -532,12 +537,12 @@ export default function RepairHistory() {
               </div>
             </div>
 
-            <div className="p-6 overflow-y-auto max-h-[calc(85vh-200px)]">
+            <div className="p-4 md:p-6 overflow-y-auto max-h-[calc(85vh-200px)]">
               {selectedVehicle.history.length > 0 ? (
                 <>
                   {/* Common Issue Section */}
                   <div className="bg-gradient-to-r from-red-50 to-orange-50 rounded-xl p-3 mb-4 border-2 border-red-200 shadow-sm">
-                    <h3 className="text-[18px] font-bold text-gray-800 mb-2 flex items-center">
+                   <h3 className="text-base md:text-[18px] font-bold text-gray-800 mb-2 flex items-center">
                       <FaExclamationTriangle className="mr-2 text-red-600" />
                       Customer Reported Issues
                     </h3>
@@ -547,7 +552,7 @@ export default function RepairHistory() {
                   </div>
 
                   {/* Jobs History */}
-                  <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                 <h3 className="text-lg md:text-xl font-bold text-gray-800 mb-4 flex items-center">
                     <FaTools className="mr-2 text-orange-600" />
                     Completed Jobs
                   </h3>
@@ -555,16 +560,16 @@ export default function RepairHistory() {
                     {sortHistoryByDate(selectedVehicle.history).map((entry, index) => (
                       <div
                         key={index}
-                        className="bg-gray-50 rounded-xl p-6 border border-gray-200 hover:shadow-md transition-shadow"
+                        className="bg-gray-50 rounded-xl p-4 md:p-6 border border-gray-200 hover:shadow-md transition-shadow"
                       >
                         {/* Header with Date */}
-                        <h4 className="font-bold text-lg text-gray-800 mb-4 flex items-center border-b pb-3 border-gray-300">
+                        <h4 className="font-bold text-base md:text-lg text-gray-800 mb-4 flex items-center border-b pb-3 border-gray-300">
                           <FaCalendar className="mr-2 text-blue-500" />
                           {new Date(entry.date).toLocaleDateString("en-US")}
                         </h4>
 
                         {/* Two Columns Layout */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mb-4">
                           {/* Column 1: Job Name, Service, Spare parts */}
                           <div className="space-y-3">
                             <div className="flex items-start">
@@ -612,7 +617,7 @@ export default function RepairHistory() {
                         </div>
 
                         {/* Full Width: Repair Description */}
-                        <div className="bg-white p-4 rounded-lg border border-indigo-200 mt-4">
+                       <div className="bg-white p-3 md:p-4 rounded-lg border border-indigo-200 mt-4">
                           <strong className="text-gray-700 block mb-2 flex items-center">
                             <FaFileAlt className="mr-2 text-indigo-500" />
                             Repair Description:
@@ -635,10 +640,10 @@ export default function RepairHistory() {
               )}
             </div>
 
-            <div className="bg-gray-50 px-6 py-4 flex justify-end border-t border-gray-200 rounded-b-3xl">
+            <div className="bg-gray-50 px-4 md:px-6 py-4 flex justify-end border-t border-gray-200 rounded-b-xl md:rounded-b-3xl">
               <button
                 onClick={closeModal}
-                className="px-6 py-3 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-xl hover:from-gray-700 hover:to-gray-800 transition-all duration-300 shadow-lg hover:shadow-xl"
+                className="px-4 md:px-6 py-2 md:py-3 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg md:rounded-xl hover:from-gray-700 hover:to-gray-800 transition-all duration-300 shadow-lg hover:shadow-xl text-sm md:text-base"
               >
                 Close
               </button>

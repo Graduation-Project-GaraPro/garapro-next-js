@@ -1,6 +1,7 @@
 import { useState, useEffect, ChangeEvent } from "react";
 import { FaTimes, FaUser, FaEnvelope, FaPhone, FaCalendar, FaCamera, FaSave } from "react-icons/fa";
 import { toast } from "react-hot-toast";
+import Image from "next/image";
 import { 
   getCurrentUser, 
   updateCurrentUser, 
@@ -12,9 +13,10 @@ import {
 interface ProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onProfileUpdate?: (fullName: string) => void; 
 }
 
-export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
+export default function ProfileModal({ isOpen, onClose, onProfileUpdate }: ProfileModalProps) {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [isEditing, setIsEditing] = useState<boolean>(false);
@@ -140,7 +142,6 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
         return;
       }
 
-
       const updateData: UpdateUserDto = {
         ...formData,
         gender: formData.gender === undefined ? undefined : formData.gender,
@@ -158,12 +159,23 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
         ...updatedUser,
       }));
 
-      localStorage.setItem('userFullName', `${formData.firstName} ${formData.lastName}`);
+      const fullName = `${formData.firstName} ${formData.lastName}`;
+      localStorage.setItem('userFullName', fullName);
       if (userData.email) {
         localStorage.setItem('userEmail', userData.email);
       }
 
-      toast.success("Profile updated successfully!");
+      if (onProfileUpdate) {
+        onProfileUpdate(fullName);
+      }
+
+      window.dispatchEvent(new CustomEvent('profileUpdated', { 
+        detail: { fullName } 
+      }));
+
+    toast.success("Profile updated successfully!", {
+      duration: 2000,  
+    });
       setIsEditing(false);
       setAvatarFile(null);
     } catch (error: unknown) {
@@ -197,7 +209,8 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     if (!dateOfBirth) return null;
     
     try {
-      const birthDate = new Date(dateOfBirth);
+      const [year, month, day] = dateOfBirth.split('T')[0].split('-').map(Number);
+      const birthDate = new Date(year, month - 1, day);
       const today = new Date();
       let age = today.getFullYear() - birthDate.getFullYear();
       const monthDiff = today.getMonth() - birthDate.getMonth();
@@ -240,9 +253,11 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
               <div className="relative">
                 <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-blue-200 shadow-lg">
                   {avatarPreview ? (
-                    <img
+                    <Image
                       src={avatarPreview}
                       alt="Avatar"
+                      width={400}
+                      height={160}
                       className="w-full h-full object-cover"
                     />
                   ) : (

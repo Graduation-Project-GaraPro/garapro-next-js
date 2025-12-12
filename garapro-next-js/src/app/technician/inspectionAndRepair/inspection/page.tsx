@@ -113,7 +113,6 @@ export default function VehicleInspection() {
   useEffect(() => {
   const setupSignalR = async () => {
     try {
-      // Lấy technicianId TRỰC TIẾP từ endpoint riêng
       const id = await getTechnicianId();
       if (!id) {
         console.warn("Could not get technician ID");
@@ -122,18 +121,14 @@ export default function VehicleInspection() {
       setTechnicianId(id);
       console.log("TechnicianId:", id);
 
-      // Start SignalR connection
       await inspectionSignalRService.startConnection();
       setSignalRConnected(true);
       
-      // Join group
       await inspectionSignalRService.joinTechnicianGroup(id);
 
-      // Listen for events
       inspectionSignalRService.onInspectionAssigned(async (data: InspectionAssignedEvent) => {
         console.log("InspectionAssigned event:", data);
 
-        // Tự động refresh danh sách khi nhận được inspection mới
         await fetchInspections();
       });
 
@@ -145,7 +140,6 @@ export default function VehicleInspection() {
 
   setupSignalR();
 
-  // Cleanup
   return () => {
     if (technicianId) {
       inspectionSignalRService.leaveTechnicianGroup(technicianId);
@@ -307,62 +301,63 @@ export default function VehicleInspection() {
   );
 
   return (
-    <div className="flex gap-6 bg-gradient-to-br from-blue-200 via-slate-100 to-indigo-200 rounded-xl h-full">
-      <div className="max-w-7xl mx-auto p-4">
-        {/* Header Section */}
-        <div className="flex items-center justify-between mb-1 gap-4">
-          <div className="relative inline-block mb-2">
-            <div className="absolute inset-0 w-full max-w-xl bg-white/70 shadow-md rounded-lg"></div>
-            <div className="relative flex items-center gap-2 px-6 py-3">
+   <div className="bg-gradient-to-br from-blue-200 via-slate-100 to-indigo-200 rounded-xl h-full">
+    <div className="max-w-7xl mx-auto p-3 md:p-4">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-1 gap-4">
+          {/* Header Section */}
+          <div className="relative inline-block mb-2 w-full lg:w-auto">
+            <div className="absolute inset-0 w-full bg-white/70 shadow-md rounded-lg"></div>
+            <div className="relative flex items-center gap-2 px-4 md:px-6 py-3">
               <div className="p-2 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-lg">
-                <ClipboardCheck className="w-7 h-7 text-white" />
+                <ClipboardCheck className="w-6 md:w-7 h-6 md:h-7 text-white" />
               </div>
               <div className="flex flex-col items-start">
                 <div className="flex items-center gap-2">
-                <h2 className="text-[27px] font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent italic">
-                  Vehicle Condition Inspection
-                </h2>
-                <div 
-                  className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                    signalRConnected 
-                      ? "bg-green-500 animate-pulse shadow-lg shadow-green-400" 
-                      : "bg-red-500 shadow-lg shadow-red-400"
-                  }`}
-                  title={signalRConnected ? "Real-time Connected" : "Disconnected"}
-                />
-                 </div>
-                <p className="text-gray-700 italic">Advanced automotive diagnostics & quality assurance</p>
+                  <h2 className="text-xl md:text-2xl lg:text-[27px] font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent italic">
+                    Vehicle Condition Inspection
+                  </h2>
+                  <div 
+                    className={`w-2 h-2 md:w-3 md:h-3 rounded-full transition-all duration-300 ${
+                      signalRConnected 
+                        ? "bg-green-500 animate-pulse shadow-lg shadow-green-400" 
+                        : "bg-red-500 shadow-lg shadow-red-400"
+                    }`}
+                    title={signalRConnected ? "Real-time Connected" : "Disconnected"}
+                  />
+                </div>
+                <p className="text-gray-700 italic text-sm md:text-base">Advanced automotive diagnostics & quality assurance</p>
               </div>
             </div>
           </div>
 
-          <div className="px-5 mb-2 flex-1">
+          {/* Search and Filter Section */}
+          <div className="px-2 lg:px-5 mb-2 flex-1 w-full">
             <div className="relative mb-2">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500" />
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4 md:w-5 md:h-5" />
               <input
                 type="text"
                 placeholder="Search by vehicle, license plate or owner..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-12 pr-4 py-2 border-3 border-gray-300 rounded-[100px] focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white/80"
+                className="w-full pl-10 md:pl-12 pr-4 py-2 border-2 md:border-3 border-gray-300 rounded-full focus:outline-none focus:ring-1 md:focus:ring-2 focus:ring-blue-400 bg-white/80 text-sm md:text-base"
               />
             </div>
-            <div className="mb-6">          
+            <div className="mb-4 md:mb-6">          
               {/* Filter Section */}
-              <div className="flex items-center space-x-2 bg-white/40 rounded-xl p-1 shadow-sm border border-gray-200">
-                <h2 className="text-[16px] font-semibold text-gray-800 flex items-center gap-2">
-                  <Car className="w-6 h-6 text-blue-600" />
+              <div className="flex flex-col md:flex-row items-start md:items-center space-y-2 md:space-y-0 bg-white/40 rounded-xl p-2 md:p-3 shadow-sm border border-gray-200">
+                <h2 className="text-sm md:text-[16px] font-semibold text-gray-800 flex items-center gap-2">
+                  <Car className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />
                   Inspection Queue: ({totalCount})
                 </h2>
-                <div className="flex items-center gap-2 ml-auto">
-                  <Filter className="w-5 h-5 text-gray-800" />
-                  <span className="text-gray-900 font-medium text-[16px]">Filter: </span>
-                  <div className="flex space-x-2">
+                <div className="flex items-center gap-2 ml-auto w-full md:w-auto">
+                  <Filter className="w-4 h-4 md:w-5 md:h-5 text-gray-800" />
+                  <span className="text-gray-900 font-medium text-sm md:text-[16px]">Filter: </span>
+                  <div className="flex flex-wrap gap-1 md:space-x-2">
                     {(["all", "New", "InProgress", "Completed"] as const).map((status) => (
                       <button
                         key={status}
                         onClick={() => setFilter(status)}
-                        className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 capitalize ${
+                        className={`px-2 md:px-4 py-1.5 md:py-2 rounded-lg font-medium transition-all duration-200 capitalize text-xs md:text-sm ${
                           filter === status
                             ? "bg-blue-500 text-white hover:bg-blue-800"
                             : "bg-gray-100 text-gray-600 hover:bg-gray-400"
@@ -378,17 +373,17 @@ export default function VehicleInspection() {
           </div>
         </div>
         
-        <div className="grid grid-cols-1 xl:grid-cols-4 gap">      
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 md:gap-6 xl:gap-8">
           {/* Vehicle List */}
-          <div className="xl:col-span-3 max-h-[63vh] overflow-y-auto rounded-xl rounded-scroll">
+            <div className="xl:col-span-3 max-h-[63vh] overflow-y-auto rounded-xl xl:pr-4 md:xl:pr-6">
              {/* Loading state */}
             {loading && (
               <div className="text-center py-16">
-                <div className="bg-white rounded-2xl p-8 shadow-lg max-w-md mx-auto">
+                <div className="bg-white rounded-xl md:rounded-2xl p-6 md:p-8 shadow-lg max-w-md mx-auto">
                   <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <Loader className="w-8 h-8 text-gray-400 animate-spin" />
                   </div>
-                    <h3 className="text-xl font-semibold text-gray-600 mb-2">Loading your inspections...</h3>
+                    <h3 className="text-lg md:text-xl font-semibold text-gray-600 mb-2">Loading your inspections...</h3>
                     <p className="text-gray-500 mb-4">Please wait while we fetch your assigned inspections.</p>                 
               </div>
               </div>       
@@ -401,7 +396,7 @@ export default function VehicleInspection() {
                         <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                           <AlertTriangle className="w-8 h-8 text-gray-400" />
                         </div>
-                        <h3 className="text-xl font-semibold text-gray-600 mb-2">Error Loading Inspections</h3>
+                        <h3 className="text-lg md:text-xl font-semibold text-gray-600 mb-2">Error Loading Inspections</h3>
                         <p className="text-gray-500 mb-4">{error}</p>                 
                       </div>
                     </div>        
@@ -418,13 +413,13 @@ export default function VehicleInspection() {
                 </div>
               </div>
             )}
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-2 mt">
+           <div className="grid gap-4 md:gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-2">
               {searchedVehicles.map((vehicle) => (
                 <div
                   key={vehicle.id}
-                  className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden cursor-pointer transform hover:-translate-y-2"
+                  className="group bg-white rounded-xl md:rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden cursor-pointer transform hover:-translate-y-1 md:hover:-translate-y-2"
                 >
-                  <div className="relative h-40 bg-gradient-to-br from-gray-900 to-gray-700 overflow-hidden">
+                  <div className="relative h-32 md:h-40 bg-gradient-to-br from-gray-900 to-gray-700 overflow-hidden">
                     <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20"></div>
                     <Image 
                       src="/images/image24.png"
@@ -434,19 +429,19 @@ export default function VehicleInspection() {
                       className="w-full h-full object-cover opacity-80 group-hover:scale-110 transition-transform duration-700"
                     />
                     <div className="absolute top-4 right-4">
-                      <div className={`px-3 py-1 rounded-full bg-gradient-to-r ${getStatusColor(vehicle.status)} text-white font-medium flex items-center gap-2 shadow-lg text-sm`}>
+                      <div className={`px-2 md:px-3 py-1 rounded-full bg-gradient-to-r ${getStatusColor(vehicle.status)} text-white font-medium flex items-center gap-1 md:gap-2 shadow-lg text-xs md:text-sm`}>
                         {getStatusIcon(vehicle.status)}
                         {vehicle.status}
                       </div>
                     </div>
                   </div>
 
-                  <div className="p-3">
+                  <div className="p-3 md:p-4">
                     <div className="mb-2">
-                      <h3 className="text-xl font-bold text-gray-800 mb-2 group-hover:text-blue-600 transition-colors">
+                      <h3 className="text-lg md:text-xl font-bold text-gray-800 mb-2 group-hover:text-blue-600 transition-colors">
                         {vehicle.vehicle}
                       </h3>
-                      <div className="flex items-center justify-between">
+                      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2 md:gap-0">
                         <div className="flex items-center gap-2">
                           <User className="w-4 h-4" />
                           <span>{vehicle.customer}</span>
@@ -468,7 +463,7 @@ export default function VehicleInspection() {
                         <button 
                           onClick={() => handleStartInspection(vehicle.id)}
                           disabled={startingId === vehicle.id}
-                           className="w-full py-3 bg-gradient-to-r from-blue-400 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center gap-2"
+                           className="w-full py-2 md:py-3 bg-gradient-to-r from-blue-400 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center gap-2"
                          
                         >
                           {startingId === vehicle.id ? (
@@ -483,7 +478,7 @@ export default function VehicleInspection() {
                       {vehicle.status === "Pending" && (
                         <button 
                           onClick={() => handleNavigateToCheck(vehicle.id)}
-                          className="w-full py-3 bg-gradient-to-r from-purple-500 to-purple-800 hover:from-purple-600 hover:to-indigo-700 text-white font-semibold rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center gap-2"
+                          className="w-full py-2 md:py-3 bg-gradient-to-r from-purple-500 to-purple-800 hover:from-purple-600 hover:to-indigo-700 text-white font-semibold rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center gap-2"
                         >
                           <Clock className="w-5 h-5" />
                           Update Inspection
@@ -493,7 +488,7 @@ export default function VehicleInspection() {
                       {vehicle.status === "InProgress" && (
                         <button 
                           onClick={() => handleNavigateToCheck(vehicle.id)}
-                          className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-semibold rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center gap-2"
+                          className="w-full py-2 md:py-3 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-semibold rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center gap-2"
                         >
                           <Activity className="w-5 h-5" />
                           Continue Inspection
@@ -503,7 +498,7 @@ export default function VehicleInspection() {
                       {vehicle.status === "Completed" && (
                         <button 
                           onClick={() => handleNavigateToCheck(vehicle.id)}
-                          className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-semibold rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="w-full py-2 md:py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-semibold rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <Eye className="w-5 h-5" />
                           View Inspection
@@ -514,9 +509,6 @@ export default function VehicleInspection() {
                 </div>
               ))}
             </div>
-
-
-
             {!loading && !error && inspections.length > 0 && searchedVehicles.length === 0 && (
               <div className="text-center py-16">
                 <div className="bg-white rounded-2xl p-8 shadow-lg max-w-md mx-auto">
@@ -540,10 +532,10 @@ export default function VehicleInspection() {
 
                        {/* Pagination Controls */}
             {totalPages > 1 && (
-              <div className="sticky bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md rounded-xl p-1 border-t border-gray-300 mt-4 z-10">
+              <div className="sticky bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md rounded-xl p-2 md:p-3 border-t border-gray-300 mt-4 z-10">
                 <div className="flex items-center justify-between">
                   {/* Pagination info */}
-                  <div className="text-sm text-gray-700 font-medium">
+                  <div className="text-xs md:text-sm text-gray-700 font-medium hidden sm:block">
                     Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, totalCount)} of{" "}
                     {totalCount} inspections
                   </div>
@@ -583,7 +575,7 @@ export default function VehicleInspection() {
                           key={index}
                           onClick={() => typeof page === "number" && handlePageChange(page)}
                           disabled={page === "..."}
-                          className={`px-3 py-1 rounded-lg font-medium transition-all duration-200 ${
+                          className={`px-2 md:px-3 py-1 rounded-lg font-medium transition-all duration-200 text-sm md:text-base ${
                             page === currentPage
                               ? "bg-blue-500 text-white shadow-md"
                               : page === "..."
@@ -629,9 +621,9 @@ export default function VehicleInspection() {
 
           {/* Stats Panel */}
           <div className="xl:col-span-1">
-            <div className="sticky top-6 space-y-5">
-              <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-                <div className="relative h-64 overflow-hidden">
+            <div className="space-y-4 md:space-y-5 xl:pl-1">
+                 <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+               <div className="relative h-48 md:h-64 overflow-hidden">
                   <Image
                     src={inspectionImages[currentImageIndex].url}
                     alt={inspectionImages[currentImageIndex].title}
@@ -642,7 +634,7 @@ export default function VehicleInspection() {
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
                   
                   <div className="absolute bottom-4 left-4 right-4 text-white">
-                    <h3 className="text-lg font-bold mb-1">
+                   <h3 className="text-base md:text-lg font-bold mb-1">
                       {inspectionImages[currentImageIndex].title}
                     </h3>
                     <p className="text-sm opacity-90">
@@ -666,23 +658,23 @@ export default function VehicleInspection() {
                 </div>
               </div>
 
-              <div className="bg-white rounded-2xl shadow-lg p-5">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+              <div className="bg-white rounded-xl md:rounded-2xl shadow-lg p-4 md:p-5">
+                <h3 className="text-base md:text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
                   <Activity className="w-5 h-5 text-blue-600" />
                   Inspection Statistics
                 </h3>
-                <div className="flex items-center justify-between">
+              <div className="grid grid-cols-3 gap-2 md:flex md:items-center md:justify-between">
                   {[
                     { label: "New", count: inspections.filter(v => v.status === "New").length,color: "text-blue-600", bg: "bg-blue-50" },
-                    { label: "Pending", count: inspections.filter(v => v.status === "Pending").length, color: "text-purple-600", bg: "bg-indigo-50" },
+                   // { label: "Pending", count: inspections.filter(v => v.status === "Pending").length, color: "text-purple-600", bg: "bg-indigo-50" },
                     { label: "InProgress", count: inspections.filter(v => v.status === "InProgress").length, color: "text-amber-600", bg: "bg-amber-50" },
                     { label: "Completed", count: inspections.filter(v => v.status === "Completed").length, color: "text-emerald-600", bg: "bg-emerald-50"  }   
                   ].map((stat, index) => (
                     <div key={index} className={`${stat.bg} rounded-xl text-center`}>
-                      <div className={`text-[20px] font-bold ${stat.color}`}>
+                      <div className={`text-lg md:text-[22px] font-bold ${stat.color}`}>
                         {stat.count}
                       </div>
-                      <div className="text-[13px] text-gray-600 font-medium">
+                      <div className="text-xs md:text-[15px] text-gray-600 font-medium">
                         {stat.label}
                       </div>
                     </div>
