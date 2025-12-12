@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { CustomItem, QuotationData} from "./types"
 import { QuoteInfoSection } from "./QuoteInfoSection"
 import { ServicesTree } from "./ServicesTree"
-import { PartSelectionModal } from "./PartSelectionModal"
+import { PartSelectionModal, type PartWithQuantity } from "./PartSelectionModal"
 import { quotationService } from "@/services/manager/quotation-service"
 import { repairOrderService } from "@/services/manager/repair-order-service"
 import { quotationTreeService } from "@/services/manager/quotation-tree-service"
@@ -288,12 +288,14 @@ export function CreateQuotationDialog({ open, onOpenChange, roData, onSubmit }: 
     }
   }
 
-  // Add a part to a service
-  const addPartToService = (serviceId: string, part: { partId: string; name: string; price: number }) => {
+  // Add a part to a service with quantity
+  const addPartToService = (serviceId: string, part: { partId: string; name: string; price: number; quantity?: number }) => {
+    const quantity = part.quantity || 1
     const newItem: CustomItem = {
       id: `${serviceId}-${part.partId}`,
       name: part.name,
-      price: part.price,
+      price: part.price * quantity, // Total price for the quantity
+      quantity: quantity, // Store quantity for API submission
     }
 
     setCustomItems((prev) => ({
@@ -333,7 +335,7 @@ export function CreateQuotationDialog({ open, onOpenChange, roData, onSubmit }: 
         isSelected: true,
         isRecommended: false, // Set to false since we removed recommended functionality
         recommendationNote: "string", // Include recommendationNote as in the successful request
-        quantity: 1
+        quantity: item.quantity || 1 // Use the quantity from the custom item
       };
     });
   }
@@ -558,7 +560,14 @@ export function CreateQuotationDialog({ open, onOpenChange, roData, onSubmit }: 
                               <div className="space-y-1">
                                 {customItems[serviceId].map((item) => (
                                   <div key={item.id} className="flex justify-between items-center text-sm bg-gray-50 p-2 rounded">
-                                    <span>{item.name}</span>
+                                    <div className="flex-1">
+                                      <span>{item.name}</span>
+                                      {item.quantity && item.quantity > 1 && (
+                                        <span className="text-xs text-gray-500 ml-2">
+                                          (Qty: {item.quantity})
+                                        </span>
+                                      )}
+                                    </div>
                                     <div className="flex items-center gap-2">
                                       <span>{formatVND(item.price)}</span>
                                       <button
@@ -604,7 +613,7 @@ export function CreateQuotationDialog({ open, onOpenChange, roData, onSubmit }: 
           serviceName={findServiceName(partModalOpen)}
           parts={partsForService[partModalOpen] || []}
           isAdvancedService={true}
-          onSelect={(part) => addPartToService(partModalOpen!, part)}
+          onSelect={(part: PartWithQuantity) => addPartToService(partModalOpen!, part)}
           onClose={() => {
             setPartModalOpen(null)
             // If closing without selecting parts, still add the service
