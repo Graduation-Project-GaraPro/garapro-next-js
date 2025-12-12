@@ -32,8 +32,8 @@ export function QuoteInfoSection({ roData, formData, onInputChange }: QuoteInfoS
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div className="flex flex-col">
           <Label className="text-xs font-medium text-muted-foreground">RO Number</Label>
-          <div className="text-sm mt-1">
-            {roData?.roNumber || "Not available"}
+          <div className="text-medium mt-1">
+            {roData?.roNumber ? `#${roData.roNumber.slice(0, 4)}` : "Not available"}
           </div>
         </div>
 
