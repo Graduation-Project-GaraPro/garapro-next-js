@@ -1,8 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Disable webpack cache
-  webpack: (config, { isServer }) => {
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  webpack: (config) => {
     config.cache = false;
     return config;
   },

@@ -7,7 +7,7 @@ export * from './index';
 export * from './userValidation';
 
 // Rescue validations
-export * from './rescueValidation';
+// export * from './rescueValidation';
 
 // Technician validations
 export * from './technicianValidation';

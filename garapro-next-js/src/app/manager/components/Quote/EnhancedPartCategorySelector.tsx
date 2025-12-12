@@ -39,7 +39,7 @@ export function EnhancedPartCategorySelector({
       newSelected.delete(categoryId)
       // Remove all parts from this category
       parts.forEach(part => {
-        if (part.categoryId === categoryId) {
+        if (part.id === categoryId) {
           newSelectedParts.delete(part.id)
         }
       })
@@ -47,7 +47,7 @@ export function EnhancedPartCategorySelector({
       newSelected.add(categoryId)
       // Add all parts from this category
       parts.forEach(part => {
-        if (part.categoryId === categoryId) {
+        if (part.id === categoryId) {
           newSelectedParts.add(part.id)
         }
       })
@@ -65,7 +65,7 @@ export function EnhancedPartCategorySelector({
       newSelectedParts.delete(partId)
       
       // Check if this was the last part in the category
-      const categoryParts = parts.filter(p => p.categoryId === categoryId)
+      const categoryParts = parts.filter(p => p.id === categoryId)
       const remainingSelected = categoryParts.filter(p => 
         p.id !== partId && newSelectedParts.has(p.id)
       )
@@ -99,7 +99,7 @@ export function EnhancedPartCategorySelector({
   }
 
   const getPartsByCategory = (categoryId: string) => {
-    return parts.filter(part => part.categoryId === categoryId)
+    return parts.filter(part => part.id === categoryId)
   }
 
   const isCategoryFullySelected = (categoryId: string) => {
@@ -192,14 +192,17 @@ export function EnhancedPartCategorySelector({
                   >
                     <div className="flex items-start gap-3 mb-3">
                       <Checkbox
-                        id={category.id}
-                        checked={isFullySelected}
-                        ref={(el) => {
-                          if (el) el.indeterminate = isPartiallySelected
-                        }}
+                        checked={
+                          isFullySelected 
+                            ? true 
+                            : isPartiallySelected 
+                              ? "indeterminate" 
+                              : false
+                        }
                         onCheckedChange={() => toggleCategory(category.id)}
                         className="mt-1"
                       />
+
                       <div className="flex-1">
                         <label 
                           htmlFor={category.id}
@@ -241,8 +244,7 @@ export function EnhancedPartCategorySelector({
                                 {part.name}
                               </label>
                               <div className="flex items-center gap-4 text-xs text-gray-600 mt-1">
-                                <span>SKU: {part.sku}</span>
-                                <span>Qty: {part.quantity}</span>
+                                <span>Qty: {part.stock}</span>
                                 <span className="font-medium">{formatVND(part.price)}</span>
                               </div>
                             </div>

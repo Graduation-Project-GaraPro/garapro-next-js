@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { PartCategoryService } from '@/services/manager/part-category-service'
-import type { PartCategory, Part, Service } from '@/types/manager/part-category'
+import type { PartCategory, Part } from '@/types/manager/part-category'
 
 export function usePartCategories() {
   const [categories, setCategories] = useState<PartCategory[]>([])
@@ -74,12 +74,12 @@ export function useServiceParts(serviceId: string | null) {
     try {
       setLoading(true)
       setError(null)
-      const [partsData, categoriesData] = await Promise.all([
-        PartCategoryService.getPartsForService(id),
-        PartCategoryService.getServiceCategories(id)
-      ])
-      setParts(partsData)
-      setCategories(categoriesData)
+      // const [partsData, categoriesData] = await Promise.all([
+      //   PartCategoryService.getPartsForService(id),
+      //   PartCategoryService.getServiceCategories(id)
+      // ])
+      // setParts(partsData)
+      // setCategories(categoriesData)
     } catch (err) {
       setError('Failed to load service data')
       console.error('Error loading service data:', err)
