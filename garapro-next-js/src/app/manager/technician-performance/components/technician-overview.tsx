@@ -13,6 +13,8 @@ import {
 import { technicianService } from "@/services/manager/technician-service"
 import { authService } from "@/services/authService"
 import { branchService } from "@/services/branch-service"
+import { useJobHub } from "@/hooks/use-job-hub"
+import { useToast } from "@/hooks/use-toast"
 
 interface TechnicianStats {
   technicianId: string
@@ -35,6 +37,8 @@ interface TechnicianOverviewProps {
 }
 
 export function TechnicianOverview({ onSelectTechnician }: TechnicianOverviewProps) {
+  const { toast } = useToast()
+  const { isConnected, onJobStatusUpdated, onRepairCreated } = useJobHub()
   const [technicians, setTechnicians] = useState<TechnicianStats[]>([])
   const [loading, setLoading] = useState(true)
   const [summary, setSummary] = useState({
@@ -47,6 +51,41 @@ export function TechnicianOverview({ onSelectTechnician }: TechnicianOverviewPro
   useEffect(() => {
     fetchTechnicians()
   }, [])
+
+  // Real-time updates from job hub
+  useEffect(() => {
+    if (!isConnected) return;
+
+    // Handle job status updates (technician starts/finishes work)
+    const unsubscribeStatus = onJobStatusUpdated((notification) => {
+      // Refresh technician data when job status changes
+      fetchTechnicians();
+      
+      // Show toast notification
+      toast({
+        title: "Job Status Updated",
+        description: `${notification.technicianName} updated job "${notification.jobName}" to ${notification.newStatus}`,
+        duration: 3000,
+      });
+    });
+
+    const unsubscribeRepair = onRepairCreated((notification) => {
+      // Refresh technician data when work starts
+      fetchTechnicians();
+      
+      // Show toast notification
+      toast({
+        title: "Work Started",
+        description: `Technician started work on "${notification.jobName}"`,
+        duration: 3000,
+      });
+    });
+
+    return () => {
+      unsubscribeStatus();
+      unsubscribeRepair();
+    };
+  }, [isConnected, onJobStatusUpdated, onRepairCreated, toast])
 
   const fetchTechnicians = async () => {
     try {
@@ -153,6 +192,19 @@ export function TechnicianOverview({ onSelectTechnician }: TechnicianOverviewPro
 
   return (
     <div className="space-y-6">
+      {/* Real-time Status Indicator */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <div 
+            className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}
+            title={isConnected ? "Real-time updates active" : "Real-time updates disconnected"}
+          />
+          <span className="text-sm text-gray-600">
+            {isConnected ? "Live updates active" : "Real-time updates unavailable"}
+          </span>
+        </div>
+      </div>
+
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>

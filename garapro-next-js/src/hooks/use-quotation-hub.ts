@@ -1,8 +1,8 @@
 // src/hooks/use-quotation-hub.ts
 import { useEffect, useState, useCallback } from "react";
-import { quotationHubService, QuotationCustomerResponseEvent } from "@/services/manager/quotation-hub-service";
+import { quotationHubService, QuotationCustomerResponseEvent, QuotationUpdatedEvent } from "@/services/manager/quotation-hub-service";
 import { QuotationDto } from "@/types/manager/quotation";
-import { toast } from "sonner";
+// Note: Toast notifications are now handled by components using this hook
 
 interface UseQuotationHubOptions {
   userId?: string;
@@ -10,6 +10,7 @@ interface UseQuotationHubOptions {
   isManager?: boolean;
   onCustomerResponse?: (event: QuotationCustomerResponseEvent) => void;
   onQuotationUpdate?: (quotation: QuotationDto) => void;
+  onQuotationUpdated?: (event: QuotationUpdatedEvent) => void;
   autoConnect?: boolean;
 }
 
@@ -20,6 +21,7 @@ export function useQuotationHub(options: UseQuotationHubOptions = {}) {
     isManager = false,
     onCustomerResponse,
     onQuotationUpdate,
+    onQuotationUpdated,
     autoConnect = true
   } = options;
 
@@ -30,24 +32,7 @@ export function useQuotationHub(options: UseQuotationHubOptions = {}) {
   const handleCustomerResponse = useCallback((event: QuotationCustomerResponseEvent) => {
     console.log("Customer response event received:", event);
     
-    // Show toast notification
-    if (event.customerResponse === "Approved") {
-      toast.success(
-        `Customer approved quotation #${event.quotationId.substring(0, 8)}`,
-        {
-          description: event.message || "The customer has approved the quotation. You can now copy it to jobs.",
-          duration: 5000,
-        }
-      );
-    } else if (event.customerResponse === "Rejected") {
-      toast.error(
-        `Customer rejected quotation #${event.quotationId.substring(0, 8)}`,
-        {
-          description: event.message || "The customer has rejected the quotation.",
-          duration: 5000,
-        }
-      );
-    }
+    // Toast notifications are handled by components using this hook
     
     // Call custom handler if provided
     if (onCustomerResponse) {
@@ -64,14 +49,37 @@ export function useQuotationHub(options: UseQuotationHubOptions = {}) {
     }
   }, [onQuotationUpdate]);
 
+  // Handle quotation updated events
+  const handleQuotationUpdated = useCallback((event: QuotationUpdatedEvent) => {
+    console.log("Quotation updated event received:", event);
+    
+    if (onQuotationUpdated) {
+      onQuotationUpdated(event);
+    }
+  }, [onQuotationUpdated]);
+
   // Initialize connection
   useEffect(() => {
     if (!autoConnect) return;
 
     let mounted = true;
+    let connectionAttempted = false;
 
     const initializeConnection = async () => {
+      if (connectionAttempted) return;
+      connectionAttempted = true;
+
       try {
+        // Check if already connected
+        if (quotationHubService.isConnected()) {
+          if (mounted) {
+            setIsConnected(true);
+            setConnectionId(quotationHubService.getConnectionId());
+          }
+          return;
+        }
+
+        console.log("🔄 Initializing QuotationHub connection...");
         const connected = await quotationHubService.startConnection();
         
         if (mounted) {
@@ -97,6 +105,10 @@ export function useQuotationHub(options: UseQuotationHubOptions = {}) {
         }
       } catch (error) {
         console.error("Failed to initialize quotation hub:", error);
+        if (mounted) {
+          setIsConnected(false);
+          setConnectionId(null);
+        }
       }
     };
 
@@ -105,7 +117,7 @@ export function useQuotationHub(options: UseQuotationHubOptions = {}) {
     return () => {
       mounted = false;
     };
-  }, [autoConnect, userId, quotationId]);
+  }, [autoConnect, userId, quotationId, isManager]);
 
   // Set up event listeners
   useEffect(() => {
@@ -117,12 +129,16 @@ export function useQuotationHub(options: UseQuotationHubOptions = {}) {
     // Add general quotation update listener
     quotationHubService.addListener(handleQuotationUpdate);
 
+    // Add quotation updated event listener
+    quotationHubService.addQuotationUpdatedListener(handleQuotationUpdated);
+
     return () => {
       // Clean up listeners
       quotationHubService.removeCustomerResponseListener(handleCustomerResponse);
       quotationHubService.removeListener(handleQuotationUpdate);
+      quotationHubService.removeQuotationUpdatedListener(handleQuotationUpdated);
     };
-  }, [isConnected, handleCustomerResponse, handleQuotationUpdate]);
+  }, [isConnected, handleCustomerResponse, handleQuotationUpdate, handleQuotationUpdated]);
 
   // Clean up on unmount
   useEffect(() => {

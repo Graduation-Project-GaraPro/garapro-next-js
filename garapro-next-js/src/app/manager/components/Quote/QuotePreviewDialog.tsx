@@ -286,7 +286,6 @@ export default function QuotePreviewDialog({ open, onOpenChange, quotationId }: 
                 size="sm"
                 onClick={() => {
                   onOpenChange(false)
-                  // Small delay to ensure dialog closes smoothly before navigation
                   setTimeout(() => {
                     router.push(`/manager/repairOrderManagement/orders/${quotation.repairOrderId}?tab=inspections&highlightInspection=${quotation.inspectionId}`)
                   }, 100)
@@ -367,10 +366,13 @@ export default function QuotePreviewDialog({ open, onOpenChange, quotationId }: 
               onSend={handleSend} 
               onDelete={handleDelete} 
               onDownloadPDF={handleDownloadPDF}
-              onCopyToJobs={handleCopyToJobs} // Add copy to jobs handler
-              isApproved={quotation?.status === "Approved"} // Check if quotation is approved
-              jobsCreated={quotation?.jobsCreated || false} // Pass jobs created flag
-              jobsCreatedAt={quotation?.jobsCreatedAt || null} // Pass jobs created timestamp
+              onCopyToJobs={handleCopyToJobs} 
+              isApproved={quotation?.status === "Approved"} 
+              jobsCreated={quotation?.jobsCreated || false} 
+              jobsCreatedAt={quotation?.jobsCreatedAt || null} 
+              quoteSent={quotation.status === "Sent" || quotation.sentToCustomerAt !== null}
+              sentAt={quotation.sentToCustomerAt}
+              status={quotation.status as "Pending" | "Sent" | "Approved" | "Rejected" | "Expired" | "Good"}
             />
           )}
         </div>

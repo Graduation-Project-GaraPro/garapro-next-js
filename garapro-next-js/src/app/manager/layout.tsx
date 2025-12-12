@@ -11,6 +11,7 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { Toaster } from "@/components/ui/toaster";
 import AccessDenied from "@/app/access-denied/page";
 import { authService } from "@/services/authService";
+import { QuotationResponseListener } from "@/components/manager/quotation-response-listener";
 
 export default function ManagerLayout({ children }: { children: ReactNode }) {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -66,6 +67,7 @@ export default function ManagerLayout({ children }: { children: ReactNode }) {
         </div>
       </SidebarProvider>
       <Toaster />
+      {isManager && <QuotationResponseListener />}
     </div>
   );
 }

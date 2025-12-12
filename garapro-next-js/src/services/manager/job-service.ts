@@ -7,7 +7,7 @@ class JobService {
   async getJobsByRepairOrderId(repairOrderId: string): Promise<Job[]> {
     try {
       const response = await apiClient.get<Job[]>(`${this.baseUrl}/repairorder/${repairOrderId}`)
-      return response.data
+      return response.data ?? []
     } catch (error) {
       console.error('Failed to fetch jobs:', error)
       throw error
@@ -17,6 +17,9 @@ class JobService {
   async getJobById(jobId: string): Promise<Job> {
     try {
       const response = await apiClient.get<Job>(`${this.baseUrl}/${jobId}`)
+      if (!response.data) {
+        throw new Error('No job data returned from API')
+      }
       return response.data
     } catch (error) {
       console.error(`Failed to fetch job with id ${jobId}:`, error)
@@ -27,7 +30,7 @@ class JobService {
   async getAllJobs(): Promise<Job[]> {
     try {
       const response = await apiClient.get<Job[]>(this.baseUrl)
-      return response.data
+      return response.data ?? []
     } catch (error) {
       console.error('Failed to fetch all jobs:', error)
       throw error
@@ -37,6 +40,9 @@ class JobService {
   async createJob(jobData: Omit<Job, "jobId" | "createdAt" | "updatedAt">): Promise<Job> {
     try {
       const response = await apiClient.post<Job>(this.baseUrl, jobData)
+      if (!response.data) {
+        throw new Error('No job data returned from API')
+      }
       return response.data
     } catch (error) {
       console.error('Failed to create job:', error)
@@ -47,6 +53,9 @@ class JobService {
   async updateJob(jobId: string, jobData: Partial<Job>): Promise<Job> {
     try {
       const response = await apiClient.put<Job>(`${this.baseUrl}/${jobId}`, jobData)
+      if (!response.data) {
+        throw new Error('No job data returned from API')
+      }
       return response.data
     } catch (error) {
       console.error(`Failed to update job ${jobId}:`, error)
@@ -67,16 +76,11 @@ class JobService {
   async assignTechnician(jobId: string, technicianId: string): Promise<void> {
     try {
       const endpoint = `${this.baseUrl}/${jobId}/assign/${technicianId}`
-      // Use PUT request but handle 204 No Content responses properly
       await apiClient.put(endpoint)
-      // If we get here without exception, the assignment was successful
       console.log(`Successfully assigned technician ${technicianId} to job ${jobId}`)
     } catch (error) {
-      // Handle the case where API returns 404 even when assignment succeeds
-      // This is a known issue where the API returns 404 but the assignment still works
       if (typeof error === 'object' && error !== null && 'status' in error && error.status === 404) {
         console.warn(`Received 404 for assign technician API call, but assignment may have succeeded`)
-        // Don't throw the error to allow UI to update
         return
       }
       console.error(`Failed to assign technician ${technicianId} to job ${jobId}:`, error)
@@ -84,10 +88,8 @@ class JobService {
     }
   }
 
-  // Assign multiple jobs to a technician
   async assignJobsToTechnician(technicianId: string, jobIds: string[]): Promise<void> {
     try {
-      // Validate inputs
       if (!technicianId) {
         throw new Error('Technician ID is required')
       }

@@ -1,13 +1,15 @@
 "use client";
 
-import { Bell, PanelLeft, Settings, User } from "lucide-react";
+import { Bell, PanelLeft, User } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { authService } from "@/services/authService";
-import { SearchForm } from "@/app/manager/components/layout/search-form";
+import { useUserProfile } from "@/hooks/use-user-profile";
+import { useCurrentBranch } from "@/hooks/use-current-branch";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useSidebar } from "@/components/ui/sidebar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,6 +23,8 @@ import { Badge } from "@/components/ui/badge"
 
 export function SiteHeader() {
   const { toggleSidebar } = useSidebar();
+  const { user, loading } = useUserProfile();
+  const { branch, loading: branchLoading } = useCurrentBranch();
 
   const handleLogout = async () => {
       try {
@@ -72,8 +76,12 @@ export function SiteHeader() {
           </span>
         </Link>
 
-        {/* Search Form moved to left, next to logo */}
-        <SearchForm className="ml-4 w-74" />
+        {/* Branch Name next to logo */}
+        <div className="ml-4 flex items-center">
+          <span className="text-white/80 text-sm font-medium">
+            {branchLoading ? "Loading..." : (branch?.branchName || "No Branch")}
+          </span>
+        </div>
 
         {/* Spacer to push content to edges */}
         <div className="flex-1" />
@@ -115,30 +123,48 @@ export function SiteHeader() {
               <Button
                 variant="ghost"
                 className="h-8 px-2 gap-2 text-white hover:text-white hover:bg-white/10"
+                disabled={loading}
               >
-                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-medium">
-                  DA
-                </div>
-                <span className="text-sm font-medium">Admin</span>
+                <Avatar className="h-6 w-6">
+                  <AvatarFallback className="text-xs font-medium bg-primary text-primary-foreground">
+                    {loading ? "..." : (user?.initials || "U")}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-sm font-medium">
+                  {loading ? "Loading..." : (user?.fullName || "User")}
+                </span>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuContent align="end" className="w-64">
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="flex items-center gap-3 py-2">
-                  <User className="h-5 w-5 text-muted-foreground" />
+              
+              {user && (
+                <DropdownMenuItem asChild>
+                  <Link href="/manager/profile" className="flex items-center gap-3 py-2 cursor-pointer">
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback className="text-sm font-medium">
+                        {user.initials}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex flex-col leading-tight">
+                      <span className="font-medium">{user.fullName}</span>
+                      <span className="text-sm text-muted-foreground">{user.email}</span>
+                    </div>
+                  </Link>
+                </DropdownMenuItem>
+              )}
 
+              {!user && !loading && (
+                <DropdownMenuItem className="flex items-center gap-3 py-2">
+                  <User className="h-5 w-5 text-muted-foreground" />
                   <div className="flex flex-col leading-tight">
-                    <span className="font-medium">
-                      {authService.getCurrentFullName() || "Unknown User"}
-                    </span>
-                    <span className="text-sm text-muted-foreground">
-                      {authService.getCurrentUserEmail() || "No email"}
-                    </span>
+                    <span className="font-medium">Profile unavailable</span>
+                    <span className="text-sm text-muted-foreground">Please try again</span>
                   </div>
                 </DropdownMenuItem>
+              )}
 
-              
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={() => handleLogout()}

@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Search, User, MapPin, Wrench, RefreshCw } from "lucide-react"
+import { Search, User, /*MapPin, Wrench,*/ RefreshCw } from "lucide-react"
 import { technicianService } from "@/services/manager/technician-service"
 import type { Technician } from "@/types/manager/tech-schedule"
 import { branchService } from "@/services/branch-service"
@@ -55,7 +55,6 @@ export function TechnicianSelectionDialog({
   useEffect(() => {
     if (!open) {
       setSelectedTechnician(null)
-      // Don't reset hasLoadedRef here so we can check if we need to reload when reopening
     }
   }, [open])
 
@@ -71,7 +70,7 @@ export function TechnicianSelectionDialog({
   const loadTechnicians = async () => {
     try {
       setLoading(true)
-      setError(null); // Clear any previous errors
+      setError(null);
       
       // Load technicians based on branch filtering if provided
       let data: Technician[]
@@ -183,17 +182,17 @@ export function TechnicianSelectionDialog({
                         <div className="flex items-center justify-between">
                           <p className="text-sm font-medium truncate">{technician.name}</p>
                         </div>
-                        <div className="flex items-center text-xs text-gray-500 mt-1">
+                        {/* <div className="flex items-center text-xs text-gray-500 mt-1">
                           <MapPin className="w-3 h-3 mr-1" />
                           <span className="truncate">{technician.location}</span>
-                        </div>
+                        </div> */}
                       </div>
-                      <div className="flex items-center">
+                      {/* <div className="flex items-center">
                         <Wrench className="w-4 h-4 text-gray-400 mr-1" />
                         <span className="text-xs text-gray-500">
                           {technician.skills.length}
                         </span>
-                      </div>
+                      </div> */}
                     </div>
                   ))}
                 </div>

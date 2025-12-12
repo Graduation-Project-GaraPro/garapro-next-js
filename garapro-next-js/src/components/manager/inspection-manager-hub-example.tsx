@@ -7,6 +7,13 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import { Bell, CheckCircle, PlayCircle, AlertCircle } from "lucide-react"
+import type { 
+  InspectionStatusUpdatedNotification, 
+  InspectionStartedNotification, 
+  InspectionCompletedNotification 
+} from "@/services/manager/inspection-hub"
+
+type NotificationData = InspectionStatusUpdatedNotification | InspectionStartedNotification | InspectionCompletedNotification
 
 /**
  * Example component for managers to receive real-time inspection updates
@@ -17,7 +24,7 @@ export function InspectionManagerHubExample() {
     type: "status" | "started" | "completed";
     message: string;
     timestamp: string;
-    data: any;
+    data: NotificationData;
   }>>([]);
 
   const { isConnected } = useInspectionHub({

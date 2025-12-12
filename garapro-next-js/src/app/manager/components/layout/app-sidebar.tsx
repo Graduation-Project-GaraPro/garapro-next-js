@@ -3,18 +3,16 @@
 import type * as React from "react";
 import {
   Archive,
-  BarChart3,
   Calendar,
   CalendarDays,
   CircuitBoard,
-  ClipboardCheck,
-  CreditCard,
+  // ClipboardCheck,
   FileText,
   // Grid3X3,
   Package,
   Settings,
-  Star,
-  Truck,
+  // Star,
+  User,
   Users,
   // Wrench,
   LayoutDashboard,
@@ -85,31 +83,41 @@ const data = {
   // Manage section
   manageNav: [
     {
-      title: "Customers",
-      url: "/manager/customers",
-      icon: Users,
+      title: "Profile",
+      url: "/manager/profile",
+      icon: User,
+    },
+    // {
+    //   title: "Customers",
+    //   url: "/manager/customers",
+    //   icon: Users,
+    // },
+    {
+      title: "Part Management",
+      url: "/manager/partManagement",
+      icon: Package,
     },
     // {
     //   title: "Vendors",
     //   url: "/manager/vendors",
     //   icon: Truck,
     // },
-    {
-      title: "Canned Jobs",
-      url: "/manager/canned-jobs",
-      icon: Star,
-    },
-    {
-      title: "Inspections",
-      url: "/manager/inspections",
-      icon: ClipboardCheck,
-    },
+    // {
+    //   title: "Canned Jobs",
+    //   url: "/manager/canned-jobs",
+    //   icon: Star,
+    // },
+    // {
+    //   title: "Inspections",
+    //   url: "/manager/inspections",
+    //   icon: ClipboardCheck,
+    // },
   ],
   // Admin section
   adminNav: [
 
     {
-      title: "Garage Settings",
+      title: "Settings",
       url: "/manager/garageSetting",
       icon: Settings,
     },
@@ -154,7 +162,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavMain items={data.manageNav} groupLabel="MANAGE" />
 
         {/* Admin Section */}
-        <NavMain items={data.adminNav} groupLabel="ADMIN" />
+        <NavMain items={data.adminNav} groupLabel="SETTING" />
       </SidebarContent>
       <SidebarRail />
     </Sidebar>

@@ -5,10 +5,28 @@ import { QuotationDto } from "@/types/manager/quotation";
 // Event types for quotation updates
 export interface QuotationCustomerResponseEvent {
   quotationId: string;
-  quotation: QuotationDto;
-  customerResponse: "Approved" | "Rejected";
-  customerResponseAt: string;
-  message?: string;
+  repairOrderId: string;
+  inspectionId: string;
+  customerId: string;
+  customerName: string;
+  status: "Approved" | "Rejected";
+  totalAmount: number;
+  selectedServicesCount: number;
+  totalServicesCount: number;
+  customerNote: string;
+  respondedAt: string;
+  message: string;
+}
+
+export interface QuotationUpdatedEvent {
+  quotationId: string;
+  userId: string;
+  repairOrderId: string;
+  totalAmount: number;
+  status: "Approved" | "Rejected";
+  note: string;
+  updatedAt: string;
+  customerRespondedAt: string;
 }
 
 class QuotationHubService {
@@ -16,6 +34,7 @@ class QuotationHubService {
   private static instance: QuotationHubService;
   private listeners: Array<(quotation: QuotationDto) => void> = [];
   private customerResponseListeners: Array<(event: QuotationCustomerResponseEvent) => void> = [];
+  private quotationUpdatedListeners: Array<(event: QuotationUpdatedEvent) => void> = [];
   private connectionId: string | null = null;
 
   private constructor() {}
@@ -28,15 +47,39 @@ class QuotationHubService {
   }
 
   public async startConnection(): Promise<boolean> {
-    if (this.connection) {
+    // Check if connection already exists and is connected
+    if (this.connection && this.connection.state === "Connected") {
       return true;
+    }
+
+    // If connection exists but is not connected, stop it first
+    if (this.connection && this.connection.state !== "Disconnected") {
+      console.log("🔄 Stopping existing QuotationHub connection...");
+      try {
+        await this.connection.stop();
+      } catch (stopError) {
+        console.warn("Warning stopping existing connection:", stopError);
+      }
+      this.connection = null;
+      this.connectionId = null;
     }
 
     try {
       const { getHubBaseUrl, HUB_CONNECTION_OPTIONS, HUB_ENDPOINTS } = await import('./hub-config');
-      const hubUrl = `${getHubBaseUrl()}${HUB_ENDPOINTS.QUOTATION}`;
+      const baseUrl = getHubBaseUrl();
+      const hubUrl = `${baseUrl}${HUB_ENDPOINTS.QUOTATION}`;
       
       console.log("🔌 Connecting to QuotationHub:", hubUrl);
+      console.log("🔍 Base URL:", baseUrl);
+      console.log("🔍 Hub endpoint:", HUB_ENDPOINTS.QUOTATION);
+      
+      // Validate URL before creating connection
+      try {
+        new URL(hubUrl);
+      } catch (urlError) {
+        console.error("❌ Invalid hub URL:", hubUrl);
+        throw new Error(`Invalid hub URL: ${hubUrl}`);
+      }
       
       this.connection = new HubConnectionBuilder()
         .withUrl(hubUrl, HUB_CONNECTION_OPTIONS)
@@ -49,12 +92,13 @@ class QuotationHubService {
 
       await this.connection.start();
       this.connectionId = this.connection.connectionId || null;
-      console.log("✅ QuotationHub SignalR Connected. Connection ID:", this.connectionId);
+      console.log("QuotationHub SignalR Connected. Connection ID:", this.connectionId);
 
       return true;
     } catch (err) {
-      console.error("❌ QuotationHub SignalR connection failed:", err);
+      console.error("QuotationHub SignalR connection failed:", err);
       this.connection = null;
+      this.connectionId = null;
       return false;
     }
   }
@@ -74,14 +118,24 @@ class QuotationHubService {
       this.notifyListeners(quotation);
     });
 
-    // listen for customer responses
-    this.connection.on("CustomerResponseReceived", (event: QuotationCustomerResponseEvent) => {
-      console.log("Customer response received:", event);
+    // Listen for customer response notifications
+    this.connection.on("CustomerRespondedToQuotation", (event: QuotationCustomerResponseEvent) => {
+      console.log("Customer responded to quotation:", event);
       this.notifyCustomerResponseListeners(event);
-      this.notifyListeners(event.quotation);
     });
 
-    // Handle reconnection
+    // Listen for quotation updates
+    this.connection.on("QuotationUpdated", (event: QuotationUpdatedEvent) => {
+      console.log("Quotation updated:", event);
+      this.notifyQuotationUpdatedListeners(event);
+    });
+
+    // Handle connection events
+    this.connection.onclose((error) => {
+      console.warn("QuotationHub connection closed", error);
+      this.connectionId = null;
+    });
+
     this.connection.onreconnecting((error) => {
       console.warn("QuotationHub reconnecting...", error);
     });
@@ -90,18 +144,15 @@ class QuotationHubService {
       console.log("QuotationHub reconnected. Connection ID:", connectionId);
       this.connectionId = connectionId || null;
     });
-
-    this.connection.onclose((error) => {
-      console.warn("QuotationHub connection closed", error);
-      this.connectionId = null;
-    });
   }
 
   public async stopConnection(): Promise<void> {
     if (this.connection) {
       try {
-        await this.connection.stop();
-        console.log("QuotationHub SignalR Disconnected.");
+        if (this.connection.state !== "Disconnected") {
+          await this.connection.stop();
+          console.log("QuotationHub SignalR Disconnected.");
+        }
       } catch (err) {
         console.warn("Error stopping QuotationHub SignalR connection (may already be disconnected):", err);
       } finally {
@@ -110,7 +161,6 @@ class QuotationHubService {
       }
     }
   }
-
 
   public async joinManagersGroup(): Promise<void> {
     if (this.connection && this.connection.state === "Connected") {
@@ -133,7 +183,6 @@ class QuotationHubService {
       }
     }
   }
-
 
   public async joinUserGroup(userId: string): Promise<void> {
     if (this.connection && this.connection.state === "Connected") {
@@ -168,7 +217,6 @@ class QuotationHubService {
     }
   }
 
-  // Leave a specific quotation group
   public async leaveQuotationGroup(quotationId: string): Promise<void> {
     if (this.connection && this.connection.state === "Connected") {
       try {
@@ -205,6 +253,18 @@ class QuotationHubService {
     this.customerResponseListeners.forEach(listener => listener(event));
   }
 
+  public addQuotationUpdatedListener(callback: (event: QuotationUpdatedEvent) => void): void {
+    this.quotationUpdatedListeners.push(callback);
+  }
+
+  public removeQuotationUpdatedListener(callback: (event: QuotationUpdatedEvent) => void): void {
+    this.quotationUpdatedListeners = this.quotationUpdatedListeners.filter(listener => listener !== callback);
+  }
+
+  private notifyQuotationUpdatedListeners(event: QuotationUpdatedEvent): void {
+    this.quotationUpdatedListeners.forEach(listener => listener(event));
+  }
+
   // Get connection status
   public isConnected(): boolean {
     return this.connection !== null && this.connection.state === "Connected";
@@ -212,6 +272,10 @@ class QuotationHubService {
 
   public getConnectionId(): string | null {
     return this.connectionId;
+  }
+
+  public getConnectionState(): string {
+    return this.connection?.state || "Disconnected";
   }
 
   public async sendQuotationUpdate(quotationId: string, status: string): Promise<void> {

@@ -15,7 +15,6 @@ import { repairOrderService } from "@/services/manager/repair-order-service"
 import { 
   CreateQuotationDto, 
   QuotationServiceCreateDto, 
-  QuotationServicePartCreateDto 
 } from "@/types/manager/quotation"
 import type { RepairOrder } from "@/types/manager/repair-order"
 import type { PartItem } from "@/services/manager/quotation-tree-service"

@@ -6,9 +6,12 @@ import type { RoBoardCardDto } from "@/types/manager/repair-order-hub";
 // Re-export for backward compatibility
 export type { RoBoardCardDto }
 
+
+
 class RepairOrderHubService {
   private connection: HubConnection | null = null;
   private isConnected: boolean = false;
+  private isReconnecting: boolean = false;
 
   constructor() {
     // Connection will be initialized when needed
@@ -16,7 +19,7 @@ class RepairOrderHubService {
 
   // Initialize the SignalR connection
   public async initialize(): Promise<void> {
-    if (this.connection) {
+    if (this.connection && this.isConnected) {
       return;
     }
 
@@ -24,64 +27,68 @@ class RepairOrderHubService {
       const { getHubBaseUrl, HUB_CONNECTION_OPTIONS, HUB_ENDPOINTS } = await import('./hub-config');
       const hubUrl = `${getHubBaseUrl()}${HUB_ENDPOINTS.REPAIR_ORDER}`;
       
-      console.log("🔌 Connecting to RepairOrderHub:", hubUrl);
-      
-      // Configure the connection with authentication
+      // Configure the connection with authentication and automatic reconnection
       const builder = new HubConnectionBuilder()
         .withUrl(hubUrl, HUB_CONNECTION_OPTIONS)
-        .configureLogging(LogLevel.Information);
+        .withAutomaticReconnect([0, 2000, 10000, 30000]) // Retry after 0, 2, 10, 30 seconds
+        .configureLogging(LogLevel.Warning); // Reduced logging to warnings only
 
       this.connection = builder.build();
 
-      // Start
+      // Setup connection handlers
+      this.setupConnectionHandlers();
+
+      // Start the connection
       await this.connection.start();
       this.isConnected = true;
-      console.log("✅ RepairOrderHub Connected");
-
-      // Handle
-      this.connection.onclose(async () => {
-        this.isConnected = false;
-        console.log("SignalR Disconnected. Reconnecting...");
-        await this.reconnect();
-      });
       
       // The server will automatically send events to the client
     } catch (error) {
       console.error("❌ RepairOrderHub Connection Error:", error);
       this.isConnected = false;
+      this.connection = null;
     }
   }
 
-  // Reconnect logic
-  private async reconnect(): Promise<void> {
-    let retryCount = 0;
-    const maxRetries = 5;
-    const retryInterval = 5000; // 5 seconds
+  private setupConnectionHandlers(): void {
+    if (!this.connection) return;
 
-    while (retryCount < maxRetries && !this.isConnected) {
-      try {
-        await new Promise(resolve => setTimeout(resolve, retryInterval));
-        
-        // Check if connection still exists before attempting to start
-        if (!this.connection) {
-          console.warn("⚠️ Connection object is null, cannot reconnect");
-          break;
-        }
-        
-        await this.connection.start();
-        this.isConnected = true;
-        console.log("✅ RepairOrderHub Reconnected");
-        return;
-      } catch (error) {
-        console.error(`❌ Reconnection attempt ${retryCount + 1} failed:`, error);
-        retryCount++;
+    // Handle reconnecting state
+    this.connection.onreconnecting((error) => {
+      this.isReconnecting = true;
+      this.isConnected = false;
+      // Only log if there's an actual error
+      if (error) {
+        console.warn("RepairOrderHub reconnecting due to:", error.message);
       }
-    }
+    });
 
-    console.error("❌ Failed to reconnect to RepairOrderHub after maximum retries");
+    // Handle successful reconnection
+    this.connection.onreconnected(async (connectionId) => {
+      this.isReconnecting = false;
+      this.isConnected = true;
+      // Only log reconnection, not initial connection
+      if (connectionId) {
+        console.log("✅ RepairOrderHub reconnected");
+      }
+    });
+
+    // Handle connection closure
+    this.connection.onclose(async (error) => {
+      this.isConnected = false;
+      this.isReconnecting = false;
+      
+      // Only log errors, not normal disconnections
+      if (error) {
+        console.error("RepairOrderHub connection error:", error.message);
+      }
+    });
   }
+
+
 
   // Register event listeners
+  // SignalR .NET uses PascalCase by default
   public onRepairOrderMoved(callback: (repairOrderId: string, newStatusId: string, updatedCard: RoBoardCardDto) => void): void {
     this.connection?.on("RepairOrderMoved", callback);
   }
@@ -129,15 +136,27 @@ class RepairOrderHubService {
 
   // Check if connected
   public get IsConnected(): boolean {
-    return this.isConnected;
+    return this.isConnected && this.connection?.state === "Connected";
+  }
+
+  // Check if reconnecting
+  public get IsReconnecting(): boolean {
+    return this.isReconnecting;
+  }
+
+  // Get connection state
+  public getConnectionState(): string {
+    return this.connection?.state || "Disconnected";
   }
 
   // Disconnect
   public async disconnect(): Promise<void> {
     try {
-      await this.connection?.stop();
+      if (this.connection) {
+        await this.connection.stop();
+        this.connection = null;
+      }
       this.isConnected = false;
-      console.log("SignalR Disconnected");
     } catch (error) {
       console.error("Error disconnecting from SignalR:", error);
     }

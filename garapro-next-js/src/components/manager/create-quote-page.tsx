@@ -173,7 +173,7 @@ interface ItemSelectionModalProps {
   onClose: () => void
 }
 
-function ItemSelectionModal({ serviceId, serviceName, items, onSelect, onClose }: ItemSelectionModalProps) {
+function ItemSelectionModal({ serviceName, items, onSelect, onClose }: ItemSelectionModalProps) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <Card className="w-full max-w-md p-6">
@@ -569,19 +569,18 @@ export function CreateQuotePage() {
                       <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
                         <p className="text-sm font-medium text-blue-900 mb-2">Recommended Items</p>
                         <div className="flex flex-wrap gap-2">
-                          {Object.entries(customItems).map(([serviceId, items]) =>
-                            items
-                              .filter((item) => item.recommended)
-                              .map((item) => (
-                                <div
-                                  key={item.id}
-                                  className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded flex items-center gap-1"
-                                >
-                                  <Star className="w-3 h-3 fill-current" />
-                                  {item.name}
-                                </div>
-                              )),
-                          )}
+                          {Object.values(customItems)
+                            .flat()
+                            .filter((item) => item.recommended)
+                            .map((item) => (
+                              <div
+                                key={item.id}
+                                className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded flex items-center gap-1"
+                              >
+                                <Star className="w-3 h-3 fill-current" />
+                                {item.name}
+                              </div>
+                            ))}
                         </div>
                       </div>
                     )}

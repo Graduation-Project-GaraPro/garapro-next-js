@@ -182,7 +182,6 @@ export default function ListView() {
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1">
-                    <DollarSign className="w-3 h-3 text-green-600" />
                     <span className="text-sm font-semibold text-green-600">
                       {formatCurrency(ro.cost > 0 ? ro.cost : ro.estimatedAmount)}
                     </span>

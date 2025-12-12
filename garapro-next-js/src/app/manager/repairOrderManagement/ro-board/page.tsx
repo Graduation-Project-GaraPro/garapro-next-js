@@ -36,6 +36,7 @@ export default function BoardPage() {
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState<ViewMode>("board")
   const [signalRConnected, setSignalRConnected] = useState(false)
+  const [signalRReconnecting, setSignalRReconnecting] = useState(false)
   const [defaultLabels, setDefaultLabels] = useState<Map<string, { labelName: string; hexCode: string }>>(new Map())
   const router = useRouter()
 
@@ -46,6 +47,19 @@ export default function BoardPage() {
     return () => {
       repairOrderHubService.disconnect();
     };
+  }, []);
+
+  // Monitor SignalR connection status
+  useEffect(() => {
+    const checkConnectionStatus = setInterval(() => {
+      const isConnected = repairOrderHubService.IsConnected;
+      const isReconnecting = repairOrderHubService.IsReconnecting;
+      
+      setSignalRConnected(isConnected);
+      setSignalRReconnecting(isReconnecting);
+    }, 2000); // Check every 2 seconds
+
+    return () => clearInterval(checkConnectionStatus);
   }, []);
 
   const initializePage = async () => {
@@ -104,10 +118,7 @@ export default function BoardPage() {
       const data = await repairOrderService.getAllRepairOrders()
       setRepairOrders(data)
       
-      // Additional debugging
-      if (data.length > 0) {
-        console.log("First repair order statusId:", data[0].statusId);
-      }
+
     } catch (error) {
       console.error("Failed to load repair orders:", error)
     }
@@ -173,8 +184,7 @@ export default function BoardPage() {
         selectedServiceIds: additionalData.selectedServiceIds || []
       };
 
-      // Log the request data for debugging
-      console.log('Creating repair order with data:', JSON.stringify(createRequest, null, 2));
+
       
       // Call the repair order service to create the repair order
       const createdRepairOrder = await repairOrderService.createRepairOrder(createRequest);
@@ -184,7 +194,7 @@ export default function BoardPage() {
         setRepairOrders((prev) => [...prev, createdRepairOrder]);
         setShowCreateForm(false);
         toast.success("Repair order created successfully");
-        console.log("Successfully created repair order:", createdRepairOrder);
+
       } else {
         toast.error("Failed to create repair order");
         console.error("Failed to create repair order - API returned null");
@@ -209,7 +219,7 @@ export default function BoardPage() {
     try {
       // In a real implementation, you would call an API to delete the repair order
       setRepairOrders((prev) => prev.filter((ro) => ro.repairOrderId !== repairOrderId))
-      console.log(`Deleted repair order ${repairOrderId}`)
+
     } catch (error) {
       console.error("Failed to delete repair order:", error)
     }
@@ -340,7 +350,7 @@ export default function BoardPage() {
       const result = await repairOrderHubService.updateRepairOrderStatus(repairOrderId, newStatusId);
       
       if (result.success) {
-        console.log(`Successfully requested move of repair order ${repairOrderId} to status ${newStatusId}`);
+
         toast.success("Repair order status updated successfully");
         // The UI will be updated via SignalR notification, not directly here
       } else {
@@ -359,8 +369,6 @@ export default function BoardPage() {
 
   // SignalR Event Handlers
   const handleRepairOrderMoved = (repairOrderId: string, newStatusId: string, updatedCard: RoBoardCardDto) => {
-    console.log("Repair order moved via SignalR:", repairOrderId, newStatusId, updatedCard);
-    
     // Update the repair order in the local state
     setRepairOrders(prev => 
       prev.map(ro => 
@@ -372,18 +380,15 @@ export default function BoardPage() {
   };
 
   const handleRepairOrderCreated = (repairOrder: RoBoardCardDto) => {
-    console.log("Repair order created via SignalR:", repairOrder);
     // In a real implementation, you would convert the RoBoardCardDto to a RepairOrder
     // and add it to the local state
   };
 
   const handleRepairOrderUpdated = (repairOrder: RoBoardCardDto) => {
-    console.log("Repair order updated via SignalR:", repairOrder);
     // In a real implementation, you would update the repair order in the local state
   };
 
   const handleRepairOrderDeleted = (repairOrderId: string) => {
-    console.log("Repair order deleted via SignalR:", repairOrderId);
     setRepairOrders(prev => prev.filter(ro => ro.repairOrderId !== repairOrderId));
   };
 
@@ -399,17 +404,22 @@ export default function BoardPage() {
     }
   }, [statuses])
 
-  console.log("Rendering BoardPage - repair orders:", repairOrders, "statuses:", statuses);
+
 
   return (
     <div className="h-full flex flex-col bg-gray-50">
       {/* Main Header */}
       <div className="bg-white border-b px-6 py-[9.5px] flex items-center justify-between shrink-0">
         <h1 className="text-lg font-semibold text-gray-900">Repair Order Board</h1>
-        {/* For debugging - show number of statuses loaded */}
         <div className="text-sm text-gray-500">
-          Loaded {statuses.length} statuses, {repairOrders.length} repair orders
-          {signalRConnected && <span className="ml-2 text-green-600">●</span>}
+          Loaded: {repairOrders.length} Repair orders
+          {signalRReconnecting ? (
+            <span className="ml-2 text-yellow-600 animate-pulse" title="Reconnecting...">●</span>
+          ) : signalRConnected ? (
+            <span className="ml-2 text-green-600" title="Connected">●</span>
+          ) : (
+            <span className="ml-2 text-red-600" title="Disconnected">●</span>
+          )}
         </div>
       </div>
       {showCreateForm ? (
