@@ -13,6 +13,7 @@ import { PartSelectionModal } from "./PartSelectionModal"
 import { quotationService } from "@/services/manager/quotation-service"
 import { repairOrderService } from "@/services/manager/repair-order-service"
 import { quotationTreeService } from "@/services/manager/quotation-tree-service"
+import { serviceCatalog } from "@/services/service-catalog"
 import { formatVND } from "@/lib/currency"
 import { 
   CreateQuotationDto, 
@@ -39,7 +40,7 @@ export function CreateQuotationDialog({ open, onOpenChange, roData, onSubmit }: 
   const [requiredServices, setRequiredServices] = useState<Set<string>>(new Set())
   const [customItems, setCustomItems] = useState<Record<string, CustomItem[]>>({})
   const [partModalOpen, setPartModalOpen] = useState<string | null>(null)
-  const [partsForService, setPartsForService] = useState<Record<string, any[]>>({})
+  const [partsForService, setPartsForService] = useState<Record<string, Array<{ partId: string; name: string; price: number; stock: number }>>>({})
   const [currentServiceSelection, setCurrentServiceSelection] = useState<{
     serviceId: string
     serviceName: string
@@ -86,22 +87,23 @@ export function CreateQuotationDialog({ open, onOpenChange, roData, onSubmit }: 
     // Try to fetch parts for this service using the tree API first
     try {
       const serviceDetails = await quotationTreeService.getServiceDetails(serviceId)
-      
+      console.log("servicePart", serviceDetails.partCategories)
       // Check if part categories have parts included
       const hasPartsInCategories = serviceDetails.partCategories.some(
-        (cat: any) => cat.parts && cat.parts.length > 0
+        (cat: { parts?: Array<{ partId: string; name: string; price: number }> }) => cat.parts && cat.parts.length > 0
       )
       
       if (hasPartsInCategories) {
         // API includes parts in categories - extract them
-        const allParts: any[] = []
-        serviceDetails.partCategories.forEach((category: any) => {
+        const allParts: Array<{ partId: string; name: string; price: number, stock:number }> = []
+        serviceDetails.partCategories.forEach((category: { parts?: Array<{ partId: string; name: string; price: number; stock:number }> }) => {
           if (category.parts) {
-            category.parts.forEach((part: any) => {
+            category.parts.forEach((part) => {
               allParts.push({
                 partId: part.partId,
-                name: part.partName,
-                price: part.price
+                name: part.name,
+                price: part.price,
+                stock: part.stock
               })
             })
           }
@@ -111,19 +113,27 @@ export function CreateQuotationDialog({ open, onOpenChange, roData, onSubmit }: 
           [serviceId]: allParts
         }))
         setPartModalOpen(serviceId)
+
+         console.log("servicePart", allParts)
+
       } else {
         // API only returns category IDs - fetch parts for each category
         console.log("Fetching parts for each category...")
-        const allParts: any[] = []
+        const allParts: Array<{ partId: string; name: string; price: number; stock:number }> = []
         
         for (const category of serviceDetails.partCategories) {
           try {
             const categoryParts = await quotationTreeService.getPartsByCategory(category.partCategoryId)
-            categoryParts.forEach((part: any) => {
+
+         console.log("categoryParts", categoryParts )
+            
+            categoryParts.forEach((part) => {
+               console.log("item", part)
               allParts.push({
                 partId: part.partId,
                 name: part.name,
-                price: part.price
+                price: part.price,
+                stock: part.stock
               })
             })
           } catch (error) {
@@ -141,7 +151,7 @@ export function CreateQuotationDialog({ open, onOpenChange, roData, onSubmit }: 
           addServiceWithoutParts(serviceId, serviceName, price)
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.warn("Tree API error, falling back to service catalog:", error)
       
       // Fallback: Try to fetch parts using the old service catalog API
@@ -216,22 +226,23 @@ export function CreateQuotationDialog({ open, onOpenChange, roData, onSubmit }: 
         // Try tree API first
         try {
           const serviceDetails = await quotationTreeService.getServiceDetails(serviceId)
-          const allParts: any[] = []
+          const allParts: Array<{ partId: string; name: string; price: number; stock:number }> = []
           
           // Check if parts are included in categories
           const hasPartsInCategories = serviceDetails.partCategories.some(
-            (cat: any) => cat.parts && cat.parts.length > 0
+            (cat: { parts?: Array<{ partId: string; name: string; price: number }> }) => cat.parts && cat.parts.length > 0
           )
           
           if (hasPartsInCategories) {
             // Extract parts from categories
-            serviceDetails.partCategories.forEach((category: any) => {
+            serviceDetails.partCategories.forEach((category: { parts?: Array<{ partId: string; name: string; price: number; stock:number }> }) => {
               if (category.parts) {
-                category.parts.forEach((part: any) => {
+                category.parts.forEach((part) => {
                   allParts.push({
                     partId: part.partId,
-                    name: part.partName,
-                    price: part.price
+                    name: part.name,
+                    price: part.price,
+                    stock: part.stock
                   })
                 })
               }
@@ -241,11 +252,12 @@ export function CreateQuotationDialog({ open, onOpenChange, roData, onSubmit }: 
             for (const category of serviceDetails.partCategories) {
               try {
                 const categoryParts = await quotationTreeService.getPartsByCategory(category.partCategoryId)
-                categoryParts.forEach((part: any) => {
+                categoryParts.forEach((part) => {
                   allParts.push({
                     partId: part.partId,
                     name: part.name,
-                    price: part.price
+                    price: part.price,
+                    stock: part.stock
                   })
                 })
               } catch (error) {
@@ -277,7 +289,7 @@ export function CreateQuotationDialog({ open, onOpenChange, roData, onSubmit }: 
   }
 
   // Add a part to a service
-  const addPartToService = (serviceId: string, part: any) => {
+  const addPartToService = (serviceId: string, part: { partId: string; name: string; price: number }) => {
     const newItem: CustomItem = {
       id: `${serviceId}-${part.partId}`,
       name: part.name,

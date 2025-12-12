@@ -36,7 +36,7 @@ export const isValidPhone = (phone: string): boolean => {
 };
 
 // Define location interface
-interface Location {
+export interface Location {
   latitude: number | string;
   longitude: number | string;
 }

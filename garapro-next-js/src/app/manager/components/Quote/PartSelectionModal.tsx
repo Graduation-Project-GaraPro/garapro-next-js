@@ -14,10 +14,9 @@ import { Part } from "@/services/service-catalog"
 
 interface PartSelectionModalProps {
   serviceName: string
-  parts: Part[]
-  isAdvancedService?: boolean // Add this prop
+  parts: { partId: string; name: string; price: number; stock: number }[]
+  isAdvancedService?: boolean
   onSelect: (part: Part) => void
-  // Removed onToggleRecommendation since we're removing recommended functionality
   onClose: () => void
 }
 
@@ -36,6 +35,8 @@ export function PartSelectionModal({ serviceName, parts, isAdvancedService = tru
     e.stopPropagation();
     onClose();
   };
+
+  console.log("parts", parts)
 
   return (
     <div 
@@ -71,6 +72,7 @@ export function PartSelectionModal({ serviceName, parts, isAdvancedService = tru
         )}
 
         <div className="space-y-2 max-h-96 overflow-y-auto">
+          
           {parts.map((part) => (
             <div
               key={part.partId}

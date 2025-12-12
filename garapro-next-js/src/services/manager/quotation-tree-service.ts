@@ -24,8 +24,9 @@ export interface ServiceItem {
 
 export interface PartItem {
   partId: string;
-  partName: string;
+  name: string;
   price: number;
+  stock: number
 }
 
 export interface PartCategory {

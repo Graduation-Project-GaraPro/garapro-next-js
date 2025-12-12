@@ -121,7 +121,7 @@ interface InspectionItem {
   allPartCategories: PartCategoryDto[];
   suggestedParts: PartInspectionDto[];
   selectedPartCategories: string[];
-  selectedPartsByCategory: { [key: string]: any[] };
+  selectedPartsByCategory: { [key: string]: PartInspectionDto[] };
 }
 
 interface ServiceOption {
@@ -777,7 +777,7 @@ export default function CheckConditionPage() {
             );
 
             const suggestedParts = existingInspection?.suggestedParts || [];
-            const selectedPartsByCategory: { [key: string]: any[] } = {};
+            const selectedPartsByCategory: { [key: string]: PartInspectionDto[] } = {};
             const selectedPartCategories: string[] = [];
 
             suggestedParts.forEach((part: PartInspectionDto) => {
@@ -785,10 +785,7 @@ export default function CheckConditionPage() {
                 selectedPartsByCategory[part.partCategoryId] = [];
                 selectedPartCategories.push(part.partCategoryId);
               }
-              selectedPartsByCategory[part.partCategoryId].push({
-                partId: part.partId,
-                quantity: part.quantity || 1
-              });
+              selectedPartsByCategory[part.partCategoryId].push(part);
             });
 
            // let status: "good" | "needs-attention" | "replace" | "not-checked" = "not-checked";
@@ -820,7 +817,7 @@ export default function CheckConditionPage() {
         } else {
           mappedItems = serviceInspections.map((si: ServiceInspectionDto) => {
             const suggestedParts = si.suggestedParts || [];
-            const selectedPartsByCategory: { [key: string]: any[] } = {};
+            const selectedPartsByCategory: { [key: string]: PartInspectionDto[] } = {};
             const selectedPartCategories: string[] = [];
 
             suggestedParts.forEach((part: PartInspectionDto) => {
@@ -828,10 +825,7 @@ export default function CheckConditionPage() {
                 selectedPartsByCategory[part.partCategoryId] = [];
                 selectedPartCategories.push(part.partCategoryId);
               }
-              selectedPartsByCategory[part.partCategoryId].push({
-                partId: part.partId,
-                quantity: part.quantity || 1
-              });
+              selectedPartsByCategory[part.partCategoryId].push(part);
             });
 
             let status: "good" | "needs-attention" | "replace" = "good";
@@ -913,7 +907,7 @@ export default function CheckConditionPage() {
 
       const mappedItems: InspectionItem[] = serviceInspections.map((si: ServiceInspectionDto) => {
         const suggestedParts = si.suggestedParts || [];
-        const selectedPartsByCategory: { [key: string]: any[] } = {};
+        const selectedPartsByCategory: { [key: string]: PartInspectionDto[] } = {};
         const selectedPartCategories: string[] = [];
 
         suggestedParts.forEach((part: PartInspectionDto) => {
@@ -921,10 +915,7 @@ export default function CheckConditionPage() {
             selectedPartsByCategory[part.partCategoryId] = [];
             selectedPartCategories.push(part.partCategoryId);
           }
-          selectedPartsByCategory[part.partCategoryId].push({
-            partId: part.partId,
-            quantity: part.quantity || 1
-          });
+          selectedPartsByCategory[part.partCategoryId].push(part);
         });
 
         let status: "good" | "needs-attention" | "replace" = "good";
@@ -1054,12 +1045,12 @@ export default function CheckConditionPage() {
     setInspectionItems(prev => prev.map(item => {
       if (item.serviceId === serviceId) {
         const currentParts = item.selectedPartsByCategory[categoryId] || [];
-        let newParts: any[];
+        let newParts: PartInspectionDto[];
         
         if (selected) {
-          newParts = [...currentParts, { partId, quantity }];
+          newParts = [...currentParts, { partId, quantity } as PartInspectionDto];
         } else {
-          newParts = currentParts.filter((p: any) => p.partId !== partId);
+          newParts = currentParts.filter((p: PartInspectionDto) => p.partId !== partId);
         }
         
         return {
@@ -1188,12 +1179,12 @@ export default function CheckConditionPage() {
           ConditionStatus.Not_Checked,
         SelectedPartCategoryIds: item.selectedPartCategories,
         SuggestedPartsByCategory: Object.entries(item.selectedPartsByCategory).reduce((acc, [categoryId, parts]) => {
-          acc[categoryId] = parts.map((part: any) => ({
+          acc[categoryId] = parts.map((part: PartInspectionDto) => ({
             partId: part.partId,
             quantity: part.quantity || 1
           }));
           return acc;
-        }, {} as { [key: string]: any[] })
+        }, {} as { [key: string]: Array<{ partId: string; quantity: number }> })
       }));
 
       const hasAnyChange = serviceUpdates.some(su => 

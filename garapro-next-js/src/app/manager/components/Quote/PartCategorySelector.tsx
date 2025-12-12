@@ -150,7 +150,7 @@ export function PartCategorySelector({
                             key={part.partId}
                             className="text-sm text-gray-600 flex justify-between items-center py-1 px-2 bg-gray-50 rounded"
                           >
-                            <span>{part.partName}</span>
+                            <span>{part.name}</span>
                             <span className="font-medium">{formatVND(part.price)}</span>
                           </div>
                         ))}

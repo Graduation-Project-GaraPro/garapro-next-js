@@ -229,7 +229,7 @@ export function CreateQuotationDialogV2({
                                     key={part.partId}
                                     className="text-xs text-gray-600 flex justify-between bg-gray-50 p-2 rounded"
                                   >
-                                    <span>{part.partName}</span>
+                                    <span>{part.name}</span>
                                     <span>{formatVND(part.price)}</span>
                                   </div>
                                 ))}
