@@ -1,8 +1,20 @@
 # ---------- Builder stage ----------
 FROM node:20.9.0-bullseye-slim AS builder
 WORKDIR /app
-
 ENV NEXT_TELEMETRY_DISABLED=1
+
+# Build args for public envs
+ARG NEXT_PUBLIC_API_BASE_URL
+ARG NEXT_PUBLIC_BASE_URL
+ARG NEXT_PUBLIC_HUB_BASE_URL
+ARG NEXT_PUBLIC_GOOGLE_CLIENT_ID
+
+# Make them available during build
+ENV NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}
+ENV NEXT_PUBLIC_BASE_URL=${NEXT_PUBLIC_BASE_URL}
+ENV NEXT_PUBLIC_HUB_BASE_URL=${NEXT_PUBLIC_HUB_BASE_URL}
+ENV NEXT_PUBLIC_GOOGLE_CLIENT_ID=${NEXT_PUBLIC_GOOGLE_CLIENT_ID}
+
 
 # Install ALL build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \

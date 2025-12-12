@@ -1,17 +1,19 @@
 version: "3.8"
 services:
   web:
-    image: hoangminhfcb/garapro-frontend-admin:latest
+    container_name: garapro-frontend
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: "http://103.216.119.34:5000/api"
+        NEXT_PUBLIC_GOOGLE_CLIENT_ID: "1084409773693-btc73esvpdhn87m5cnqvpfus17af6k64.apps.googleusercontent.com"
+        NEXT_PUBLIC_HUB_BASE_URL: "http://103.216.119.34:5000"
+        NEXT_PUBLIC_BASE_URL: "http://103.216.119.34:5000"
+    image: garapro-frontend:latest
     ports:
-      - "3000:3000"
-    env_file:
-      - .env
+      - "3001:3000"
     environment:
       - NODE_ENV=production
       - PORT=3000
     restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: '0.50'
-          memory: 512M
