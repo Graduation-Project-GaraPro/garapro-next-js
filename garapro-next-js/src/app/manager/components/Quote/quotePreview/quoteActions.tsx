@@ -1,7 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Download, Send, Trash2, Wrench } from "lucide-react"
+import { /*Download,*/ Send, /*Trash2,*/ Wrench } from "lucide-react"
 
 interface QuoteActionsProps {
   onSend: () => void
@@ -18,15 +18,15 @@ interface QuoteActionsProps {
 
 export default function QuoteActions({ 
   onSend, 
-  onDelete, 
-  onDownloadPDF,
+  // onDelete, 
+  // onDownloadPDF,
   onCopyToJobs, // Destructure new props
-  isApproved = false, // Default to false
+  isApproved = false, 
   jobsCreated = false,
   jobsCreatedAt = null,
-  quoteSent = false,
+  // quoteSent = false,
   sentAt = null,
-  status = "Pending" // Default to Pending
+  status = "Pending"
 }: QuoteActionsProps) {
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
