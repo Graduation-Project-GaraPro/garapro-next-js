@@ -97,11 +97,11 @@ export default function JobsTab({ orderId, branchId, isArchived }: JobsTabProps)
       // Initialize assigned techs from job data
       const initialAssignedTechs: Record<string, { id: string; name: string; monogram: string } | null> = {}
       data.forEach(job => {
-        // Check if at least the assignedTechnicianId is present
-        if (job.assignedTechnicianId && job.assignedTechnicianName) {
-          const techName = job.assignedTechnicianName
+        // Check if technician is assigned - API returns technicianName field
+        const techName = job.technicianName || job.assignedTechnicianName
+        if (techName) {
           initialAssignedTechs[job.jobId] = {
-            id: job.assignedTechnicianId,
+            id: job.assignedTechnicianId || 'unknown',
             name: techName,
             monogram: getTechnicianMonogram(techName)
           }

@@ -23,6 +23,7 @@ export interface RepairOrder {
   repairRequestId: string
   customerName: string
   customerPhone: string
+  vehicleName?: string // Vehicle brand and model name
   technicianNames: string[]
   totalJobs: number
   completedJobs: number
@@ -146,6 +147,7 @@ export function mapApiToRepairOrder(apiResponse: RepairOrderApiResponse): Repair
     // Handle both nested customer object and flat customerName field (for archived ROs)
     customerName: (apiResponse as any).customerName || apiResponse.customer?.fullName || `${apiResponse.customer?.firstName || ''} ${apiResponse.customer?.lastName || ''}`.trim() || apiResponse.customer?.email || "Unknown",
     customerPhone: (apiResponse as any).customerPhone || apiResponse.customer?.phoneNumber || "",
+    vehicleName: apiResponse.vehicle ? `${apiResponse.vehicle.brandName} ${apiResponse.vehicle.modelName}`.trim() : undefined,
     technicianNames: [], // Default value as API doesn't provide this
     totalJobs: apiResponse.totalJobs || 0,
     completedJobs: apiResponse.completedJobs || 0,

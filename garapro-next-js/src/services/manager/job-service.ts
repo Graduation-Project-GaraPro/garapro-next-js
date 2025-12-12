@@ -76,13 +76,9 @@ class JobService {
   async assignTechnician(jobId: string, technicianId: string): Promise<void> {
     try {
       const endpoint = `${this.baseUrl}/${jobId}/assign/${technicianId}`
-      // Use PUT request but handle 204 No Content responses properly
       await apiClient.put(endpoint)
-      // If we get here without exception, the assignment was successful
       console.log(`Successfully assigned technician ${technicianId} to job ${jobId}`)
     } catch (error) {
-      // Handle the case where API returns 404 even when assignment succeeds
-      // This is a known issue where the API returns 404 but the assignment still works
       if (typeof error === 'object' && error !== null && 'status' in error && error.status === 404) {
         console.warn(`Received 404 for assign technician API call, but assignment may have succeeded`)
         return
@@ -94,7 +90,6 @@ class JobService {
 
   async assignJobsToTechnician(technicianId: string, jobIds: string[]): Promise<void> {
     try {
-      // Validate inputs
       if (!technicianId) {
         throw new Error('Technician ID is required')
       }

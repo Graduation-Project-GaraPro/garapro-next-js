@@ -227,6 +227,7 @@ export default function RepairOrderCard({
           <User className="w-2.5 h-2.5 text-gray-500 flex-shrink-0" />
           <span className="font-medium">
             {repairOrder.customerName || "No customer name"} • {repairOrder.customerPhone}
+            {repairOrder.vehicleName && ` • ${repairOrder.vehicleName}`}
           </span>
         </div>
 

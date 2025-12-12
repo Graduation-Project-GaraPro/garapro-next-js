@@ -47,22 +47,35 @@ export function CreateInspectionDialog({
 
   // Load services when dialog opens
   useEffect(() => {
-    if (open) {
+    if (open && repairOrderId) {
+      console.log("Dialog opened, loading services for repair order:", repairOrderId)
       loadServices()
       resetForm()
+    } else if (open && !repairOrderId) {
+      console.error("Dialog opened but no repair order ID provided")
+      setError("Repair order ID is required")
     }
   }, [open, repairOrderId])
 
   const loadServices = async () => {
+    if (!repairOrderId) {
+      setError("Repair order ID is required")
+      return
+    }
+
     try {
       setLoading(true)
       setError(null)
       
+      console.log("Loading services for repair order:", repairOrderId)
+      
       // Fetch available services (not in completed inspections)
       const availableServices = await inspectionService.getAvailableServices(repairOrderId)
+      console.log("Available services:", availableServices)
       
       // Fetch all active services from catalog
       const allCatalogServices = await serviceCatalog.getAllServices()
+      console.log("All catalog services:", allCatalogServices.length)
       
       // Create a map of available service IDs for quick lookup
       const availableServiceIds = new Set(availableServices.map(s => s.serviceId))
@@ -88,10 +101,39 @@ export function CreateInspectionDialog({
         return a.serviceName.localeCompare(b.serviceName)
       })
       
+      console.log("Services loaded successfully:", {
+        total: sortedServices.length,
+        available: sortedServices.filter(s => s.isAvailable).length,
+        inspected: sortedServices.filter(s => s.isInspected).length
+      })
+      
       setAllServices(sortedServices)
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Failed to load services:", err)
-      setError("Failed to load services. Please try again.")
+      
+      let errorMessage = "Failed to load services. Please try again."
+      
+      if (err && typeof err === 'object') {
+        const error = err as any
+        console.error("Error details:", {
+          status: error?.response?.status,
+          statusText: error?.response?.statusText,
+          data: error?.response?.data,
+          message: error?.message
+        })
+        
+        if (error?.response?.status === 401) {
+          errorMessage = "Authentication failed. Please log in again."
+        } else if (error?.response?.status === 403) {
+          errorMessage = "You don't have permission to access services."
+        } else if (error?.response?.status === 404) {
+          errorMessage = "Repair order not found."
+        } else if (error?.response?.status >= 500) {
+          errorMessage = "Server error. Please try again later."
+        }
+      }
+      
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -125,25 +167,66 @@ export function CreateInspectionDialog({
       return
     }
 
+    if (!repairOrderId) {
+      setError("Repair order ID is required")
+      return
+    }
+
     try {
       setSubmitting(true)
       setError(null)
       
-      // Create manager inspection with selected services
-      await inspectionService.createManagerInspection({
+      console.log("Creating inspection with data:", {
         repairOrderId,
         customerConcern,
         serviceIds: selectedServiceIds.length > 0 ? selectedServiceIds : undefined
       })
       
+      // Create manager inspection with selected services
+      const result = await inspectionService.createManagerInspection({
+        repairOrderId,
+        customerConcern,
+        serviceIds: selectedServiceIds.length > 0 ? selectedServiceIds : undefined
+      })
+      
+      console.log("Inspection created successfully:", result)
+      
       // Reset form and close dialog
       resetForm()
       onInspectionCreated()
       onOpenChange(false)
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Failed to create inspection:", err)
+      
       // Extract error message from API response
-      const errorMessage = err?.response?.data?.message || err?.message || "Failed to create inspection. Please try again."
+      let errorMessage = "Failed to create inspection. Please try again."
+      
+      if (err && typeof err === 'object') {
+        const error = err as any
+        console.error("Error details:", {
+          status: error?.response?.status,
+          statusText: error?.response?.statusText,
+          data: error?.response?.data,
+          message: error?.message
+        })
+        
+        if (error?.response?.data?.message) {
+          errorMessage = error.response.data.message
+        } else if (error?.response?.data?.error) {
+          errorMessage = error.response.data.error
+        } else if (error?.message) {
+          errorMessage = error.message
+        } else if (error?.response?.status === 401) {
+          errorMessage = "Authentication failed. Please log in again."
+        } else if (error?.response?.status === 403) {
+          errorMessage = "You don't have permission to create inspections."
+        } else if (error?.response?.status === 404) {
+          errorMessage = "Repair order not found."
+        } else if (error?.response?.status >= 500) {
+          errorMessage = "Server error. Please try again later."
+        }
+      }
+      
       setError(errorMessage)
     } finally {
       setSubmitting(false)
@@ -336,12 +419,14 @@ export function CreateInspectionDialog({
             variant="outline" 
             onClick={() => onOpenChange(false)}
             disabled={submitting}
+            type="button"
           >
             Cancel
           </Button>
           <Button 
             onClick={handleSubmit}
-            disabled={submitting || !customerConcern.trim()}
+            disabled={submitting || !customerConcern.trim() || !repairOrderId}
+            type="button"
           >
             {submitting ? (
               <>

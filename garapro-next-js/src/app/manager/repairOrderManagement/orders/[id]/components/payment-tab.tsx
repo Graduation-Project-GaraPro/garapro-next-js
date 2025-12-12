@@ -60,8 +60,8 @@ export default function PaymentTab({ orderId, repairOrderStatus, paidStatus, isA
   const { isConnected: isPaymentHubConnected } = usePaymentHub({
     repairOrderId: orderId,
     isManager: true,
-    autoConnect: isRepairOrderCompleted, // Only connect if repair order is completed
-    showToasts: false, // We'll handle toasts manually
+    autoConnect: isRepairOrderCompleted, 
+    showToasts: false, 
     onPaymentCreated: (event) => {
       console.log("Payment created for this RO:", event)
       // Reload payment summary when new payment is created

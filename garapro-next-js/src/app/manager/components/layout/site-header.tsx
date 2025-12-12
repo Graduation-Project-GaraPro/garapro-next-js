@@ -1,11 +1,11 @@
 "use client";
 
-import { Bell, PanelLeft, Settings, User } from "lucide-react";
+import { Bell, PanelLeft, User } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { authService } from "@/services/authService";
 import { useUserProfile } from "@/hooks/use-user-profile";
-import { SearchForm } from "@/app/manager/components/layout/search-form";
+import { useCurrentBranch } from "@/hooks/use-current-branch";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useSidebar } from "@/components/ui/sidebar";
@@ -24,6 +24,7 @@ import { Badge } from "@/components/ui/badge"
 export function SiteHeader() {
   const { toggleSidebar } = useSidebar();
   const { user, loading } = useUserProfile();
+  const { branch, loading: branchLoading } = useCurrentBranch();
 
   const handleLogout = async () => {
       try {
@@ -75,8 +76,12 @@ export function SiteHeader() {
           </span>
         </Link>
 
-        {/* Search Form moved to left, next to logo */}
-        <SearchForm className="ml-4 w-74" />
+        {/* Branch Name next to logo */}
+        <div className="ml-4 flex items-center">
+          <span className="text-white/80 text-sm font-medium">
+            {branchLoading ? "Loading..." : (branch?.branchName || "No Branch")}
+          </span>
+        </div>
 
         {/* Spacer to push content to edges */}
         <div className="flex-1" />

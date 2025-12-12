@@ -411,9 +411,8 @@ export default function BoardPage() {
       {/* Main Header */}
       <div className="bg-white border-b px-6 py-[9.5px] flex items-center justify-between shrink-0">
         <h1 className="text-lg font-semibold text-gray-900">Repair Order Board</h1>
-        {/* For debugging - show number of statuses loaded */}
         <div className="text-sm text-gray-500">
-          Loaded {statuses.length} statuses, {repairOrders.length} repair orders
+          Loaded: {repairOrders.length} Repair orders
           {signalRReconnecting ? (
             <span className="ml-2 text-yellow-600 animate-pulse" title="Reconnecting...">●</span>
           ) : signalRConnected ? (

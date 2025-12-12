@@ -22,12 +22,13 @@ export interface Job {
   note: string
   createdAt: string
   updatedAt: string
-  level: number
+  level?: number
   assignedByManagerId: string | null
   assignedAt: string | null
   assignedTechnicianId?: string | null
   assignedTechnicianName?: string | null
   assignedTechnicianMonogram?: string | null
+  technicianName?: string | null // API returns this field name
   parts: JobPart[]
 }
 

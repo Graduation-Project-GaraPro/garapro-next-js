@@ -7,7 +7,6 @@ import {
   FileText,
   Clipboard,
   Calculator,
-  Wrench,
   CreditCard,
   Settings,
   MessageSquare,
@@ -135,7 +134,7 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
     return {
       shortId: repairOrder.repairOrderId.substring(0, 4),
       customer: repairOrder.customerName || "Unknown Customer",
-      vehicle: `Vehicle #${repairOrder.vehicleId.substring(0, 4)}`, // Will be replaced with actual vehicle info
+      vehicle: repairOrder.vehicleName || `Vehicle #${repairOrder.vehicleId.substring(0, 4)}`,
       status: repairOrder.statusId || "Unknown",
       labels: repairOrder.assignedLabels || []
     }

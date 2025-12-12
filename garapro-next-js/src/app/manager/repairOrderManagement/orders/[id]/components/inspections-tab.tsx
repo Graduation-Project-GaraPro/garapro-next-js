@@ -14,6 +14,12 @@ import { CreateInspectionDialog } from "./create-inspection-dialog"
 import { TechnicianSelectionDialog } from "@/components/manager/technician-selection-dialog"
 import { InspectionDetailDialog } from "./inspection-detail-dialog"
 import { useInspectionHub } from "@/hooks/use-inspection-hub"
+import type { 
+  InspectionStatusUpdatedNotification, 
+  InspectionStartedNotification, 
+  InspectionCompletedNotification,
+  InspectionRetrievedNotification 
+} from "@/services/manager/inspection-hub"
 
 interface InspectionsTabProps {
   orderId: string
@@ -57,10 +63,9 @@ export default function InspectionsTab({ orderId, highlightInspectionId }: Inspe
     setTimeout(() => setHighlightedInspectionId(null), 3000)
   }, [])
 
-  // ✅ FIXED: Real-time SignalR callbacks with functional state updates
-  const handleInspectionStatusUpdated = useCallback((notification: any) => {
-    console.log("🔔 Received InspectionStatusUpdated:", notification)
-    console.log("🔍 Notification structure:", {
+  const handleInspectionStatusUpdated = useCallback((notification: InspectionStatusUpdatedNotification) => {
+    console.log(" Received InspectionStatusUpdated:", notification)
+    console.log(" Notification structure:", {
       inspectionId: notification.inspectionId,
       repairOrderId: notification.repairOrderId,
       newStatus: notification.newStatus,
@@ -70,28 +75,25 @@ export default function InspectionsTab({ orderId, highlightInspectionId }: Inspe
     
     // Only update if this notification is for the current repair order
     if (notification.repairOrderId === orderId) {
-      console.log("✅ Updating inspection status in UI")
+      console.log("Updating inspection status in UI")
       
-      // ✅ Use functional update to avoid stale closure
       setInspectionTasks(prev => {
         const updated = prev.map(task => {
           if (task.inspectionId === notification.inspectionId) {
-            // Merge the notification data properly
             const updatedTask = {
               ...task,
+              ...(notification.inspection || {}),
               status: notification.newStatus || task.status,
               technicianId: notification.technicianId || task.technicianId,
               technicianName: notification.technicianName || task.technicianName,
-              updatedAt: notification.updatedAt || new Date().toISOString(),
-              // Merge inspection object if provided
-              ...(notification.inspection || {})
+              updatedAt: notification.updatedAt || new Date().toISOString()
             }
-            console.log("🔄 Updated task:", { old: task, new: updatedTask })
+            console.log("Updated task:", { old: task, new: updatedTask })
             return updatedTask
           }
           return task
         })
-        console.log("📊 All inspections after update:", updated)
+        console.log("All inspections after update:", updated)
         return updated
       })
       
@@ -100,16 +102,16 @@ export default function InspectionsTab({ orderId, highlightInspectionId }: Inspe
         description: `By ${notification.technicianName}`
       })
     } else {
-      console.log("⏭️ Skipping update - different repair order", {
+      console.log("Skipping update - different repair order", {
         notificationOrderId: notification.repairOrderId,
         currentOrderId: orderId
       })
     }
   }, [orderId])
 
-  const handleInspectionCompleted = useCallback((notification: any) => {
-    console.log("🎉 Received InspectionCompleted:", notification)
-    console.log("🔍 Completion notification structure:", {
+  const handleInspectionCompleted = useCallback((notification: InspectionCompletedNotification) => {
+    console.log("Received InspectionCompleted:", notification)
+    console.log("Completion notification structure:", {
       inspectionId: notification.inspectionId,
       repairOrderId: notification.repairOrderId,
       hasInspectionDetails: !!notification.inspectionDetails,
@@ -118,27 +120,25 @@ export default function InspectionsTab({ orderId, highlightInspectionId }: Inspe
     
     // Only update if this notification is for the current repair order
     if (notification.repairOrderId === orderId) {
-      console.log("✅ Updating completed inspection in UI")
+      console.log(" Updating completed inspection in UI")
       
-      // ✅ Use functional update to avoid stale closure
       setInspectionTasks(prev => {
         const updated = prev.map(task => {
           if (task.inspectionId === notification.inspectionId) {
             const updatedTask = {
               ...task,
+              ...(notification.inspectionDetails || {}),
               status: "Completed",
               finding: notification.finding || task.finding,
               issueRating: notification.issueRating ?? task.issueRating,
-              updatedAt: notification.completedAt || new Date().toISOString(),
-              // Merge inspectionDetails if provided
-              ...(notification.inspectionDetails || {})
+              updatedAt: notification.completedAt || new Date().toISOString()
             }
-            console.log("🔄 Completed task:", { old: task, new: updatedTask })
+            console.log("Completed task:", { old: task, new: updatedTask })
             return updatedTask
           }
           return task
         })
-        console.log("📊 All inspections after completion:", updated)
+        console.log("All inspections after completion:", updated)
         return updated
       })
       
@@ -158,15 +158,14 @@ export default function InspectionsTab({ orderId, highlightInspectionId }: Inspe
     }
   }, [orderId, highlightInspection])
 
-  const handleInspectionRetrieved = useCallback((notification: any) => {
-    console.log("📥 Received InspectionRetrieved:", notification)
+  const handleInspectionRetrieved = useCallback((notification: InspectionRetrievedNotification) => {
+    console.log("Received InspectionRetrieved:", notification)
     
-    // ✅ Use functional update to check if inspection belongs to current order
     setInspectionTasks(prev => {
       const inspection = prev.find(t => t.inspectionId === notification.inspectionId)
       
       if (inspection) {
-        console.log("✅ Updating retrieved inspection in UI")
+        console.log("Updating retrieved inspection in UI")
         
         toast.info("Inspection retrieved by technician", {
           description: `Technician is now working on this inspection`
@@ -179,27 +178,25 @@ export default function InspectionsTab({ orderId, highlightInspectionId }: Inspe
         )
       }
       
-      console.log("⏭️ Skipping update - inspection not in current list")
+      console.log("Skipping update - inspection not in current list")
       return prev
     })
   }, [])
 
-  const handleInspectionStarted = useCallback((notification: any) => {
-    console.log("🚀 Received InspectionStarted:", notification)
-    console.log("🔍 Started notification structure:", {
+  const handleInspectionStarted = useCallback((notification: InspectionStartedNotification) => {
+    console.log("Received InspectionStarted:", notification)
+    console.log("Started notification structure:", {
       inspectionId: notification.inspectionId,
       repairOrderId: notification.repairOrderId,
       technicianName: notification.technicianName,
       startedAt: notification.startedAt
     })
     
-    // Only update if this notification is for the current repair order
     if (notification.repairOrderId === orderId) {
-      console.log("✅ Updating inspection to In Progress")
-      
-      // ✅ Use functional update to avoid stale closure
+      console.log(" Updating inspection to In Progress")
+
       setInspectionTasks(prev => {
-        console.log("📋 Current inspections before update:", prev.map(t => ({ 
+        console.log("Current inspections before update:", prev.map(t => ({ 
           id: t.inspectionId.slice(0, 8), 
           status: t.status 
         })))
@@ -208,7 +205,7 @@ export default function InspectionsTab({ orderId, highlightInspectionId }: Inspe
           if (task.inspectionId === notification.inspectionId) {
             const updatedTask = {
               ...task,
-              status: "InProgress", // Make sure this matches the status in getStatusDisplayName
+              status: "InProgress", 
               technicianId: notification.technicianId || task.technicianId,
               technicianName: notification.technicianName || task.technicianName,
               updatedAt: notification.startedAt || new Date().toISOString()
@@ -251,7 +248,7 @@ export default function InspectionsTab({ orderId, highlightInspectionId }: Inspe
       // Force a re-render to ensure UI updates
       forceUpdate({})
     } else {
-      console.log("⏭️ Skipping update - different repair order", {
+      console.log("Skipping update - different repair order", {
         notificationOrderId: notification.repairOrderId,
         currentOrderId: orderId
       })
@@ -282,8 +279,8 @@ export default function InspectionsTab({ orderId, highlightInspectionId }: Inspe
         
         // Fetch inspections
         const inspections = await inspectionService.getInspectionsByRepairOrderId(orderId)
-        console.log("📋 Loaded inspections:", inspections)
-        console.log("📋 Inspection statuses:", inspections.map(i => ({ id: i.inspectionId.slice(0, 8), status: i.status })))
+        console.log("Loaded inspections:", inspections)
+        console.log("Inspection statuses:", inspections.map(i => ({ id: i.inspectionId.slice(0, 8), status: i.status })))
         setInspectionTasks(inspections)
         
         // Check which inspections have quotations
@@ -292,7 +289,8 @@ export default function InspectionsTab({ orderId, highlightInspectionId }: Inspe
           try {
             const quotations = await quotationService.getQuotationsByInspectionId(inspection.inspectionId)
             quotationChecks[inspection.inspectionId] = quotations.length > 0
-          } catch (err) {
+          } catch (err: unknown) {
+            console.error("Failed to check quotation for inspection:", inspection.inspectionId, err)
             quotationChecks[inspection.inspectionId] = false
           }
         }
@@ -354,7 +352,7 @@ export default function InspectionsTab({ orderId, highlightInspectionId }: Inspe
     const fetchInspections = async () => {
       try {
         const inspections = await inspectionService.getInspectionsByRepairOrderId(orderId)
-        console.log("🔄 Refreshed inspections after creation:", inspections)
+        console.log("Refreshed inspections after creation:", inspections)
         setInspectionTasks(inspections)
         
         // Refresh quotation checks
@@ -363,7 +361,8 @@ export default function InspectionsTab({ orderId, highlightInspectionId }: Inspe
           try {
             const quotations = await quotationService.getQuotationsByInspectionId(inspection.inspectionId)
             quotationChecks[inspection.inspectionId] = quotations.length > 0
-          } catch (err) {
+          } catch (err: unknown) {
+            console.error("Failed to refresh quotation check for inspection:", inspection.inspectionId, err)
             quotationChecks[inspection.inspectionId] = false
           }
         }
@@ -382,7 +381,6 @@ export default function InspectionsTab({ orderId, highlightInspectionId }: Inspe
       await quotationService.convertInspectionToQuotation(inspectionId)
       toast.success("Inspection converted to quotation successfully")
       
-      // Mark this inspection as having a quotation
       setInspectionQuotations(prev => ({
         ...prev,
         [inspectionId]: true
@@ -390,9 +388,10 @@ export default function InspectionsTab({ orderId, highlightInspectionId }: Inspe
       
       // Optionally refresh the inspections list
       handleInspectionCreated()
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Failed to convert inspection to quotation:", err)
-      toast.error(err.message || "Failed to convert inspection to quotation")
+      const errorMessage = err instanceof Error ? err.message : "Failed to convert inspection to quotation"
+      toast.error(errorMessage)
     } finally {
       setConvertingInspectionId(null)
     }
@@ -426,18 +425,29 @@ export default function InspectionsTab({ orderId, highlightInspectionId }: Inspe
       
       // Refresh the inspections list to show the change
       const inspections = await inspectionService.getInspectionsByRepairOrderId(orderId)
-      console.log("🔄 Refreshed inspections after assignment:", inspections)
+      console.log("Refreshed inspections after assignment:", inspections)
       setInspectionTasks(inspections)
       
       toast.success("Technician assigned successfully")
       
       setIsAssignDialogOpen(false)
       setSelectedInspectionId(null)
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Failed to assign technician:", err)
       
       // Check if it's a validation error from backend
-      const errorMessage = err?.response?.data?.message || err?.message || "Failed to assign technician"
+      const getErrorMessage = (error: unknown): string => {
+        if (error && typeof error === 'object' && 'response' in error) {
+          const apiError = error as { response?: { data?: { message?: string } } };
+          return apiError.response?.data?.message || "Failed to assign technician";
+        }
+        if (error instanceof Error) {
+          return error.message;
+        }
+        return "Failed to assign technician";
+      };
+      
+      const errorMessage = getErrorMessage(err);
       
       toast.error("Assignment Failed", {
         description: errorMessage
@@ -451,6 +461,10 @@ export default function InspectionsTab({ orderId, highlightInspectionId }: Inspe
     const names = name.split(" ")
     if (names.length === 1) return names[0].substring(0, 2).toUpperCase()
     return (names[0][0] + names[names.length - 1][0]).toUpperCase()
+  }
+
+  const handleCreateButtonClick = () => {
+    setIsCreateDialogOpen(true)
   }
 
   if (loading) {
@@ -476,7 +490,11 @@ export default function InspectionsTab({ orderId, highlightInspectionId }: Inspe
         <CardHeader>
           <div className="flex justify-between items-center">
             <CardTitle className="text-lg">Inspection Forms</CardTitle>
-            <Button onClick={() => setIsCreateDialogOpen(true)}>
+            <Button 
+              onClick={handleCreateButtonClick}
+              disabled={loading || !orderId}
+              type="button"
+            >
               Create New Inspection
             </Button>
           </div>
@@ -487,7 +505,9 @@ export default function InspectionsTab({ orderId, highlightInspectionId }: Inspe
               <p className="text-gray-500">No inspections found for this repair order.</p>
               <Button 
                 className="mt-4" 
-                onClick={() => setIsCreateDialogOpen(true)}
+                onClick={handleCreateButtonClick}
+                disabled={loading || !orderId}
+                type="button"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Create First Inspection
