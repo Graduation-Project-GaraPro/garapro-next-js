@@ -1,330 +1,195 @@
 "use client";
 
-
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import * as React from "react";
 import {
-  FaHome,
-  FaClipboardList,
-  FaTools,
-  FaHistory,
-  FaCar,
-  FaWrench,
-  FaChartBar,
-  FaClipboardCheck,
-  FaCog,
-  FaUserCircle,
-} from "react-icons/fa";
-import { useState, useMemo, useCallback, memo, useEffect } from "react";
-import { IconType } from "react-icons";
+  Home,
+  ClipboardList,
+  Wrench,
+  History,
+  Car,
+  BarChart3,
+  ClipboardCheck,
+  Cog,
+  UserCircle2,
+  ChevronDown,
+} from "lucide-react";
+
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+
 import { authService } from "@/services/authService";
 
-
 interface TechnicianSidebarProps {
-  onClose?: () => void;  
-}
-interface ChildItem {
-  id: string;
-  label: string;
-  icon: IconType;
-  href: string;
+  onClose?: () => void;
 }
 
-
-interface SidebarItem {
+type Item = {
   id: string;
   label: string;
-  icon: IconType;
+  icon: React.ElementType;
   href?: string;
-  children?: ChildItem[];
-}
+  children?: { id: string; label: string; icon: React.ElementType; href: string }[];
+};
 
-
-// Sidebar configuration
-const sidebarItems: SidebarItem[] = [
-  { id: "home", label: "Home", icon: FaHome, href: "/technician" },
-  {
-    id: "task-management",
-    label: "My Task",
-    icon: FaClipboardList,
-    href: "/technician/taskManagement",
-  },
+const sidebarItems: Item[] = [
+  { id: "home", label: "Home", icon: Home, href: "/technician" },
+  { id: "task-management", label: "My Task", icon: ClipboardList, href: "/technician/taskManagement" },
   {
     id: "condition-inspection",
     label: "Inspection & Repair",
-    icon: FaTools,
+    icon: Wrench,
     children: [
-      {
-        id: "vehicle-inspection",
-        label: "Vehicle Inspection",
-        icon: FaClipboardCheck,
-        href: "/technician/inspectionAndRepair/inspection",
-      },
-      {
-        id: "repair-progress",
-        label: "Repair Progress",
-        icon: FaCog,
-        href: "/technician/inspectionAndRepair/repair",
-      },
+      { id: "vehicle-inspection", label: "Vehicle Inspection", icon: ClipboardCheck, href: "/technician/inspectionAndRepair/inspection" },
+      { id: "repair-progress", label: "Repair Progress", icon: Cog, href: "/technician/inspectionAndRepair/repair" },
     ],
   },
-  {
-    id: "repair-history",
-    label: "Repair History",
-    icon: FaHistory,
-    href: "/technician/repairHistory",
-  },
-  {
-    id: "vehicle-lookup",
-    label: "Information Lookup",
-    icon: FaCar,
-    href: "/technician/vehicleLookup",
-  },
-  {
-    id: "statistical",
-    label: "Statistical",
-    icon: FaChartBar,
-    href: "/technician/statistical",
-  },
+  { id: "repair-history", label: "Repair History", icon: History, href: "/technician/repairHistory" },
+  { id: "vehicle-lookup", label: "Information Lookup", icon: Car, href: "/technician/vehicleLookup" },
+  { id: "statistical", label: "Statistical", icon: BarChart3, href: "/technician/statistical" },
 ];
 
-
-// Child Menu Item Component (Memoized)
-const ChildMenuItem = memo(({ child, isActive , onClick}: { child: ChildItem; isActive: boolean ; onClick: () => void; }) => {
-  const ChildIcon = child.icon;
- 
-  return (
-    <Link
-      href={child.href}
-       onClick={onClick}
-      className={`flex items-center px-3 py-2 rounded-md text-sm font-medium ${
-        isActive
-          ? "bg-blue-200 text-blue-800 font-medium"
-          : "text-gray-600 hover:bg-gray-100"
-      }`}
-    >
-      <ChildIcon className="mr-2" />
-      {child.label}
-    </Link>
-  );
-});
-
-
-ChildMenuItem.displayName = "ChildMenuItem";
-
-
-// Parent Menu Item Component (Memoized)
-const ParentMenuItem = memo(({
-  item,
-  isExpanded,
-  isParentActive,
-  pathname,
-  onToggle,
-   onClick
-}: {
-  item: SidebarItem;
-  isExpanded: boolean;
-  isParentActive: boolean;
-  pathname: string;
-  onToggle: () => void;
-  onClick: () => void;
-}) => {
-  const IconComponent = item.icon;
-
-
-  return (
-    <div>
-      <button
-        onClick={onToggle}
-        className={`w-full flex items-center px-4 py-4 text-left rounded-lg mb-2 transition-colors bg-white/10 ${
-          isParentActive
-            ? "bg-gradient-to-r from-blue-300 to-teal-300 text-blue-800 border-r-2 border-blue-600"
-            : "text-gray-600 hover:bg-gray-100"
-        }`}
-      >
-        <IconComponent className="mr-3 text-lg" />
-        <span className="text-[15px] font-medium">{item.label}</span>
-      </button>
-      {isExpanded && item.children && (
-        <div className="ml-8 mt-1 space-y-1">
-          {item.children.map((child) => (
-            <ChildMenuItem
-              key={child.id}
-              child={child}
-              isActive={pathname.startsWith(child.href)}
-              onClick={onClick}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-});
-
-
-ParentMenuItem.displayName = "ParentMenuItem";
-
-
-// Simple Menu Item Component (Memoized)
-const SimpleMenuItem = memo(({
-  item,
-  isActive,
-  onClick
-}: {
-  item: SidebarItem;
-  isActive: boolean;
-  onClick: () => void;
-}) => {
-  const IconComponent = item.icon;
-
-
-  return (
-    <Link
-      href={item.href!}
-       onClick={onClick}
-      className={`w-full flex items-center px-4 py-4 text-left rounded-lg mb-2 transition-colors bg-white/10 ${
-        isActive
-          ? "bg-gradient-to-r from-blue-300 to-teal-300 text-blue-800 border-r-2 border-blue-600"
-          : "text-gray-600 hover:bg-gray-100"
-      }`}
-    >
-      <IconComponent className="mr-3 text-lg" />
-      <span className="text-[15px] font-medium">{item.label}</span>
-    </Link>
-  );
-});
-
-
-SimpleMenuItem.displayName = "SimpleMenuItem";
-
-
-// User Profile Component (Memoized)
-const UserProfile = memo(({ fullName, email }: { fullName: string; email: string }) => (
-  <div className="p-4 border-t border-gray-200 bg-white">
-    <div className="flex items-center space-x-3">
-      <FaUserCircle className="text-3xl text-gray-400" />
-      <div>
-        <p className="text-sm font-medium text-gray-800">{fullName}</p>
-        <p className="text-xs text-gray-500">{email}</p>
-      </div>
-    </div>
-  </div>
-));
-
-
-UserProfile.displayName = "UserProfile";
-
-
-// Main Sidebar Component
 export default function TechnicianSidebar({ onClose }: TechnicianSidebarProps) {
-  const pathname = usePathname();
-  const [expandedMenu, setExpandedMenu] = useState<string | null>(null);
-  const [userFullName, setUserFullName] = useState<string>("");
-  const handleClick = () => {
-  if (onClose && window.innerWidth < 1024) {
-    onClose();
-  }
-};
+  const pathname = usePathname() || "";
+  const [expanded, setExpanded] = React.useState<string | null>(null);
+  const [userFullName, setUserFullName] = React.useState("");
 
+  const activeClass =
+  "bg-primary/15 text-primary font-semibold hover:bg-primary/20";
 
-  // Get user info (only once)
-  const userInfo = useMemo(() => {
-    if (typeof window === "undefined") {
-      return {
-        fullName: "Technician",
-        email: "technnician@example.com",
-      };
-    }
+  const handleNavClick = () => {
+    if (onClose && window.innerWidth < 1024) onClose();
+  };
+
+  const userInfo = React.useMemo(() => {
+    if (typeof window === "undefined") return { fullName: "Technician", email: "technician@example.com" };
     const currentUser = authService.getCurrentUser();
-    console.log("Technician",currentUser)
-    const fullName = userFullName || currentUser.fullName || "Technician";
     return {
-      fullName,  
+      fullName: userFullName || currentUser.fullName || "Technician",
       email: currentUser.email || "technician@example.com",
     };
-
-
   }, [userFullName]);
- 
-  useEffect(() => {
-    const handleProfileUpdate = (event: CustomEvent) => {
-      const { fullName } = event.detail;
-      setUserFullName(fullName);
-    };
 
-
-    window.addEventListener('profileUpdated', handleProfileUpdate as EventListener);
-   
-    return () => {
-      window.removeEventListener('profileUpdated', handleProfileUpdate as EventListener);
-    };
+  React.useEffect(() => {
+    const handler = (event: CustomEvent) => setUserFullName(event.detail?.fullName ?? "");
+    window.addEventListener("profileUpdated", handler as EventListener);
+    return () => window.removeEventListener("profileUpdated", handler as EventListener);
   }, []);
 
-  // Memoize active parent check
-  const activeParentMap = useMemo(() => {
-    const map = new Map<string, boolean>();
-    sidebarItems.forEach((item) => {
-      if (item.children) {
-        map.set(item.id, item.children.some((child) => pathname.startsWith(child.href)));
-      }
-    });
-    return map;
+  // auto expand parent khi route nằm trong children
+  React.useEffect(() => {
+    const parent = sidebarItems.find((it) => it.children?.some((c) => pathname.startsWith(c.href)));
+    if (parent?.id) setExpanded(parent.id);
   }, [pathname]);
 
-useEffect(() => {
-  sidebarItems.forEach((item) => {
-    if (item.children && activeParentMap.get(item.id)) {
-      setExpandedMenu(item.id);
-    }
-  });
-}, [pathname, activeParentMap]);
-  // Toggle handler with useCallback
-  const handleToggle = useCallback((itemId: string) => {
-    setExpandedMenu((prev) => (prev === itemId ? null : itemId));
-  }, []);
-
-
   return (
-    <div className="w-64 bg-gradient-to-r from-gray-300 to-teal-100 shadow-lg flex flex-col">
-      <nav className="mt-6 flex-1">
-        <div className="px-4">
-          <p className="text-[16px] font-bold text-gray-700 uppercase tracking-wider mb-3 flex items-center italic">
-            <FaWrench className="text-xl text-gray-500 mr-2" />
-            TECHNICIAN
-          </p>
+    <div className="h-full bg-background flex flex-col">
+      <div className="px-4 py-4">
+        <div className="flex items-center gap-2">
+          <Wrench className="h-5 w-5 text-muted-foreground" />
+          <p className="text-sm font-semibold tracking-wide text-muted-foreground">TECHNICIAN</p>
+        </div>
+      </div>
 
+      <Separator />
 
+      <ScrollArea className="flex-1">
+        <div className="p-2">
           {sidebarItems.map((item) => {
-            if (item.children) {
+            const Icon = item.icon;
+
+            if (item.children?.length) {
+              const isParentActive = item.children.some((c) => pathname.startsWith(c.href));
+              const open = expanded === item.id;
+
               return (
-                <ParentMenuItem
+                <Collapsible
                   key={item.id}
-                  item={item}
-                  isExpanded={expandedMenu === item.id}
-                  isParentActive={activeParentMap.get(item.id) || false}
-                  pathname={pathname}
-                  onToggle={() => handleToggle(item.id)}
-                  onClick={handleClick}
-                />
+                  open={open}
+                  onOpenChange={() => setExpanded(open ? null : item.id)}
+                >
+                  <CollapsibleTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className={cn(
+                        "w-full justify-between h-11",
+                        isParentActive ? activeClass : "hover:bg-muted"
+                      )}
+                    >
+                      <span className="flex items-center gap-3">
+                        <Icon className="h-4 w-4" />
+                        {item.label}
+                      </span>
+                      <ChevronDown
+                        className={cn(
+                          "h-4 w-4 transition-transform",
+                          open && "rotate-180"
+                        )}
+                      />
+                    </Button>
+                  </CollapsibleTrigger>
+
+                  <CollapsibleContent className="mt-1 space-y-1 pl-4">
+                    {item.children.map((child) => {
+                      const ChildIcon = child.icon;
+                      const active = pathname.startsWith(child.href);
+
+                      return (
+                        <Link
+                          key={child.id}
+                          href={child.href}
+                          onClick={handleNavClick}
+                        >
+                          <Button
+                            variant="ghost"
+                            className={cn(
+                              "w-full justify-start h-10",
+                              active
+                                ? activeClass : "hover:bg-muted"
+                                
+                            )}
+                          >
+                            <ChildIcon className="h-4 w-4 mr-3" />
+                            {child.label}
+                          </Button>
+                        </Link>
+                      );
+                    })}
+                  </CollapsibleContent>
+                </Collapsible>
               );
             }
 
+            const active = item.href ? pathname === item.href : false;
 
             return (
-              <SimpleMenuItem
-                key={item.id}
-                item={item}
-                isActive={pathname === item.href}
-                onClick={handleClick}
-              />
+              <Link key={item.id} href={item.href!} onClick={handleNavClick}>
+                <Button
+                  variant={active ? "secondary" : "ghost"}
+                  className={cn("w-full justify-start h-11", active && "font-semibold")}
+                >
+                  <Icon className="h-4 w-4 mr-3" />
+                  {item.label}
+                </Button>
+              </Link>
             );
           })}
         </div>
-      </nav>
+      </ScrollArea>
 
+      <Separator />
 
-      <UserProfile fullName={userInfo.fullName} email={userInfo.email} />
+      <div className="p-4 flex items-center gap-3">
+        <UserCircle2 className="h-9 w-9 text-muted-foreground" />
+        <div className="min-w-0">
+          <p className="text-sm font-medium truncate">{userInfo.fullName}</p>
+          <p className="text-xs text-muted-foreground truncate">{userInfo.email}</p>
+        </div>
+      </div>
     </div>
   );
 }
-
