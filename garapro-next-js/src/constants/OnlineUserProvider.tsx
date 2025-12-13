@@ -27,7 +27,7 @@ export const OnlineUserProvider: React.FC<{ children: React.ReactNode }> = ({
 
   useEffect(() => {
     const connection = new signalR.HubConnectionBuilder()
-      .withUrl(`${process.env.NEXT_PUBLIC_HUB_BASE_URL}api/onlineuserhub`)
+      .withUrl(`${process.env.NEXT_PUBLIC_HUB_BASE_URL}/api/onlineuserhub`)
       .withAutomaticReconnect()
       .configureLogging(signalR.LogLevel.Information)
       .build();
