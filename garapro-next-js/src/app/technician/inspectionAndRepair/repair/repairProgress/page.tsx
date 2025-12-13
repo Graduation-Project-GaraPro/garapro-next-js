@@ -5,7 +5,7 @@ import {
   CheckCircle, Clock, Play, Pause, ArrowLeft, Car, FileText,
   Save,Settings,Plus,Edit,X,Loader, AlertTriangle, ChevronDown, ChevronUp,  Package  
 } from "lucide-react";
-const API_URL = process.env.NEXT_PUBLIC_BASE_URL ;
+const API_URL = process.env.NEXT_PUBLIC_BASE_URL;
 import {
   getRepairOrderDetails,
   createRepair,
