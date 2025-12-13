@@ -210,7 +210,7 @@ export default function PaymentTab({ orderId, repairOrderStatus, paidStatus, isA
       setProcessingPayment(true)
       
       const paymentRequest = {
-        method: 0,
+        method: 1,
         description: cashPaymentData.description || `Cash payment for repair order ${orderId}`,
       };
       

@@ -44,10 +44,10 @@ export function getPaymentMethodName(method: string | number): string {
   if (typeof method === 'string') return method;
   
   switch (method) {
-    case 0:
+    case 1:
     case PaymentMethodEnum.Cash:
       return 'Cash';
-    case 1:
+    case 0:
     case PaymentMethodEnum.PayOs:
       return 'PayOs';
     default:
