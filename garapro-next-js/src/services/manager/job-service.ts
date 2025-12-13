@@ -111,10 +111,8 @@ class JobService {
   // Assign a technician to a job with optional deadline
   async assignTechnicianWithDeadline(jobId: string, technicianId: string, deadline?: string | null): Promise<void> {
     try {
-      // First assign the technician
+
       await this.assignTechnician(jobId, technicianId);
-      
-      // Then update the deadline if provided
       if (deadline) {
         await this.updateJob(jobId, { deadline });
       }
@@ -124,7 +122,6 @@ class JobService {
     }
   }
 
-  // Assign multiple jobs to technician with optional deadline
   async assignJobsToTechnicianWithDeadline(technicianId: string, jobIds: string[], deadline?: string | null): Promise<void> {
     try {
       if (!technicianId) {
@@ -135,7 +132,6 @@ class JobService {
         throw new Error('At least one job ID is required')
       }
       
-      // For multiple jobs, assign technician and set deadline for each
       for (const jobId of jobIds) {
         await this.assignTechnicianWithDeadline(jobId, technicianId, deadline);
       }
@@ -145,10 +141,8 @@ class JobService {
     }
   }
 
-  // Get job by ID after assignment to return updated data
   async getJobAfterAssignment(jobId: string): Promise<Job> {
     try {
-      // Add a small delay to ensure the assignment has been processed
       await new Promise(resolve => setTimeout(resolve, 100));
       return await this.getJobById(jobId);
     } catch (error) {

@@ -20,7 +20,6 @@ class CustomerService {
       return response.data ?? [];
     } catch (error) {
       console.error('Failed to search customers:', error);
-      // Return empty array on error to prevent app crash
       return [];
     }
   }
@@ -34,7 +33,6 @@ class CustomerService {
       return response.data;
     } catch (error) {
       console.error(`Failed to fetch customer with id ${id}:`, error);
-      // Throw error to let caller handle it appropriately
       throw error;
     }
   }
@@ -42,13 +40,10 @@ class CustomerService {
   async createCustomer(customerData: CreateCustomerDto): Promise<Customer> {
     const response = await apiClient.post<Customer>(this.baseUrl, customerData);
     
-    // The API client returns { data, status, success }
-    // Check if we have data or if the response itself is the customer object
     if (response.data) {
       return response.data;
     }
     
-    // Some APIs return the data directly in the response
     if (response && 'userId' in response) {
       return response as unknown as Customer;
     }
@@ -63,14 +58,11 @@ class CustomerService {
     email?: string;
   }): Promise<Customer> {
     const response = await apiClient.post<Customer>(`${this.baseUrl}/quick`, customerData);
-    
-    // The API client returns { data, status, success }
-    // Check if we have data or if the response itself is the customer object
+
     if (response.data) {
       return response.data;
     }
     
-    // Some APIs return the data directly in the response
     if (response && 'userId' in response) {
       return response as unknown as Customer;
     }

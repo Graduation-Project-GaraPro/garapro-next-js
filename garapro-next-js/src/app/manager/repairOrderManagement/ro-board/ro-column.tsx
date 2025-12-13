@@ -12,9 +12,6 @@ interface RoColumnProps {
   statusId: string
   bgColor: string
   borderColor: string
-  onDragStart: (repairOrder: RepairOrder) => void
-  onDragEnd: () => void
-  onDrop: (statusId: string) => void
   onEditRepairOrder: (repairOrder: RepairOrder) => void
   onDeleteRepairOrder: (repairOrderId: string) => void
   onCancelRepairOrder?: (repairOrderId: string) => void
@@ -28,7 +25,6 @@ interface RoColumnProps {
   }>) => void
   isPending?: boolean
   isCompleted?: boolean
-  isDragOver: boolean
   defaultLabel?: { labelName: string; hexCode: string } | null
 }
 
@@ -52,9 +48,6 @@ export default function RoColumn({
   repairOrders,
   statusId,
   bgColor,
-  onDragStart,
-  onDragEnd,
-  onDrop,
   onEditRepairOrder,
   onDeleteRepairOrder,
   onCancelRepairOrder,
@@ -62,24 +55,11 @@ export default function RoColumn({
   onLabelsUpdated,
   isPending = false,
   isCompleted = false,
-  isDragOver,
   defaultLabel = null,
 }: RoColumnProps) {
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault()
-  }
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault()
-    onDrop(statusId)
-  }
 
   return (
-    <div
-      className={`flex-1 border-r bg-white h-full min-h-0 flex flex-col ${isDragOver ? bgColor : ""}`}
-      onDragOver={handleDragOver}
-      onDrop={handleDrop}
-    >
+    <div className="flex-1 border-r bg-white h-full min-h-0 flex flex-col">
       <div className="p-1 border-b bg-gray-50">
         <div className="flex items-center justify-between">
           <h2 className="font-semibold text-gray-800">{title}</h2>
@@ -92,8 +72,6 @@ export default function RoColumn({
           <RepairOrderCard
             key={repairOrder.repairOrderId}
             repairOrder={repairOrder}
-            onDragStart={() => onDragStart(repairOrder)}
-            onDragEnd={onDragEnd}
             onEdit={() => onEditRepairOrder(repairOrder)}
             onDelete={() => onDeleteRepairOrder(repairOrder.repairOrderId)}
             onCancel={onCancelRepairOrder ? () => onCancelRepairOrder(repairOrder.repairOrderId) : undefined}

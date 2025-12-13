@@ -26,8 +26,8 @@ class InspectionService {
   private baseUrl = "/Inspection"
   private categoriesBaseUrl = "/ServiceCategories"
 
-  /**
-   * Fetch all inspections for a specific repair order
+  /*
+   Fetch all inspections for a specific repair order
    */
   async getInspectionsByRepairOrderId(repairOrderId: string): Promise<InspectionDto[]> {
     try {
@@ -40,8 +40,8 @@ class InspectionService {
     }
   }
 
-  /**
-   * Fetch a specific inspection by ID
+  /*
+    Fetch a specific inspection by ID
    */
   async getInspectionById(inspectionId: string): Promise<InspectionDto> {
     try {
@@ -57,8 +57,8 @@ class InspectionService {
     }
   }
 
-  /**
-   * Create a new inspection for a repair order
+  /*
+    Create a new inspection for a repair order
    */
   async createInspection(request: CreateInspectionRequest): Promise<InspectionDto> {
     try {
@@ -73,8 +73,8 @@ class InspectionService {
     }
   }
 
-  /**
-   * Get available services for a repair order (excludes completed inspection services)
+  /*
+   Get available services for a repair order (excludes completed inspection services)
    */
   async getAvailableServices(repairOrderId: string): Promise<AvailableServiceDto[]> {
     try {
@@ -87,8 +87,8 @@ class InspectionService {
     }
   }
 
-  /**
-   * Create a manager inspection with optional services
+  /*
+    Create a manager inspection with optional services
    */
   async createManagerInspection(request: CreateManagerInspectionRequest): Promise<InspectionDto> {
     try {
@@ -104,22 +104,17 @@ class InspectionService {
     }
   }
 
-  /**
-   * Assign a technician to an inspection
+  /*
+    Assign a technician to an inspection
    */
   async assignTechnician(inspectionId: string, technicianId: string): Promise<void> {
     try {
       const endpoint = `${this.baseUrl}/${inspectionId}/assign/${technicianId}`
-      // Use PUT request but handle 204 No Content responses properly
       await apiClient.put(endpoint)
-      // If we get here without exception, the assignment was successful
       console.log(`Successfully assigned technician ${technicianId} to inspection ${inspectionId}`)
     } catch (error) {
-      // Handle the case where API returns 404 even when assignment succeeds
-      // This is a known issue where the API returns 404 but the assignment still works
       if (typeof error === 'object' && error !== null && 'status' in error && error.status === 404) {
         console.warn(`Received 404 for assign technician API call, but assignment may have succeeded`)
-        // Don't throw the error to allow UI to update
         return
       }
       console.error(`Failed to assign technician ${technicianId} to inspection ${inspectionId}:`, error)
@@ -127,8 +122,8 @@ class InspectionService {
     }
   }
 
-  /**
-   * Get inspection status display name
+  /*
+   Get inspection status display name
    */
   getStatusDisplayName(status: InspectionStatus): string {
     switch (status) {
@@ -145,8 +140,8 @@ class InspectionService {
     }
   }
 
-  /**
-   * Get status badge class based on inspection status
+  /*
+    Get status badge class based on inspection status
    */
   getStatusBadgeClass(status: InspectionStatus): string {
     switch (status) {
@@ -163,8 +158,8 @@ class InspectionService {
     }
   }
 
-  /**
-   * Get service categories
+  /*
+    Get service categories
    */
   async getServiceCategories(): Promise<ServiceCategory[]> {
     try {
@@ -175,8 +170,8 @@ class InspectionService {
     }
   }
 
-  /**
-   * Get inspection service category by name
+  /*
+    Get inspection service category by name
    */
   async getInspectionCategory(): Promise<ServiceCategory | null> {
     try {
@@ -186,7 +181,6 @@ class InspectionService {
         return response.data[0]
       }
       
-      // If not found by name, fallback to getting all categories and filtering
       const categories = await serviceCatalog.getCategories()
       const inspectionCategory = categories.find(
         category => category.categoryName.toLowerCase().includes("inspection")
@@ -195,7 +189,6 @@ class InspectionService {
       return inspectionCategory || null
     } catch (error) {
       console.error("Failed to fetch inspection category:", error)
-      // Fallback to getting all categories
       try {
         const categories = await serviceCatalog.getCategories()
         const inspectionCategory = categories.find(
@@ -209,8 +202,8 @@ class InspectionService {
     }
   }
 
-  /**
-   * Get services by category ID
+  /*
+    Get services by category ID
    */
   async getServicesByCategoryId(categoryId: string): Promise<GarageServiceCatalogItem[]> {
     try {
@@ -221,8 +214,8 @@ class InspectionService {
     }
   }
 
-  /**
-   * Get inspection services only
+  /*
+    Get inspection services only
    */
   async getInspectionServices(): Promise<GarageServiceCatalogItem[]> {
     try {
