@@ -108,6 +108,43 @@ class JobService {
     }
   }
 
+  // Assign a technician to a job with optional deadline
+  async assignTechnicianWithDeadline(jobId: string, technicianId: string, deadline?: string | null): Promise<void> {
+    try {
+      // First assign the technician
+      await this.assignTechnician(jobId, technicianId);
+      
+      // Then update the deadline if provided
+      if (deadline) {
+        await this.updateJob(jobId, { deadline });
+      }
+    } catch (error) {
+      console.error(`Failed to assign technician ${technicianId} to job ${jobId} with deadline:`, error)
+      throw error
+    }
+  }
+
+  // Assign multiple jobs to technician with optional deadline
+  async assignJobsToTechnicianWithDeadline(technicianId: string, jobIds: string[], deadline?: string | null): Promise<void> {
+    try {
+      if (!technicianId) {
+        throw new Error('Technician ID is required')
+      }
+      
+      if (!jobIds || jobIds.length === 0) {
+        throw new Error('At least one job ID is required')
+      }
+      
+      // For multiple jobs, assign technician and set deadline for each
+      for (const jobId of jobIds) {
+        await this.assignTechnicianWithDeadline(jobId, technicianId, deadline);
+      }
+    } catch (error) {
+      console.error(`Failed to assign jobs to technician ${technicianId} with deadline:`, error)
+      throw error
+    }
+  }
+
   // Get job by ID after assignment to return updated data
   async getJobAfterAssignment(jobId: string): Promise<Job> {
     try {

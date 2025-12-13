@@ -1,9 +1,15 @@
 import { apiClient } from "./api-client"
 import type { RepairOrder, CreateRepairOrderRequest, UpdateRepairOrderRequest, RepairOrderApiResponse, UpdateRepairOrderStatusRequest, CancelRepairOrderDto, ArchiveRepairOrderDto, CustomerVehicleInfo } from "@/types/manager/repair-order"
 import type { OrderStatus, OrderStatusResponse } from "@/types/manager/order-status"
-import { authService } from "@/services/authService"
-import { branchService } from "@/services/branch-service"
 import { mapApiToRepairOrder } from "@/types/manager/repair-order"
+
+// We'll get branch ID from auth context via a helper function
+let getBranchIdFromContext: (() => string | null) | null = null;
+
+// Helper to set the context getter (called from components)
+export const setBranchIdGetter = (getter: () => string | null) => {
+  getBranchIdFromContext = getter;
+};
 
 class RepairOrderService {
   private baseUrl = "/RepairOrder"
@@ -14,34 +20,21 @@ class RepairOrderService {
    */
   async getAllRepairOrders(): Promise<RepairOrder[]> {
     try {
-      // Get current user ID
-      const currentUser = authService.getCurrentUser();
-      const userId = currentUser.userId;
+      // Get branch ID from auth context (no API call needed!)
+      const branchId = getBranchIdFromContext?.() || null;
       
-      if (!userId) {
-        console.error("User not authenticated");
+      if (!branchId) {
+        console.error("No branch ID available in auth context");
         return [];
       }
       
-      // Get the user's branch
-      const userBranch = await branchService.getCurrentUserBranch(userId);
-      console.log("User branch:", userBranch);
-      if (!userBranch) {
-        console.error("Unable to determine user's branch");
-        return [];
-      }
-      
-      // Call the branch-specific endpoint with the actual branch ID
-      const response = await apiClient.get<RepairOrderApiResponse[]>(`${this.baseUrl}/branch/${userBranch.branchId}`)
-      console.log("Repair orders API response:", response);
+      // Call the branch-specific endpoint with the cached branch ID
+      const response = await apiClient.get<RepairOrderApiResponse[]>(`${this.baseUrl}/branch/${branchId}`)
       
       // Map API response to RepairOrder interface
       if (response.data) {
         const mappedOrders = response.data.map(mapApiToRepairOrder);
-        // Log progress info for debugging
-        mappedOrders.forEach(order => {
-          console.log(`RO ${order.repairOrderId.substring(0, 4)}: Progress=${order.progressPercentage}%, Jobs=${order.completedJobs}/${order.totalJobs}`);
-        });
+        console.log(`Loaded ${mappedOrders.length} repair orders for branch ${branchId}`);
         return mappedOrders;
       }
       
@@ -383,19 +376,8 @@ class RepairOrderService {
     sortOrder: 'Asc' | 'Desc' = 'Desc'
   ): Promise<RepairOrder[]> {
     try {
-      // Get current user's branch if not provided
-      let targetBranchId = branchId;
-      if (!targetBranchId) {
-        const currentUser = authService.getCurrentUser();
-        const userId = currentUser.userId;
-        
-        if (userId) {
-          const userBranch = await branchService.getCurrentUserBranch(userId);
-          if (userBranch) {
-            targetBranchId = userBranch.branchId;
-          }
-        }
-      }
+      // Get branch ID from auth context or use provided one
+      let targetBranchId = branchId || getBranchIdFromContext?.();
 
       if (!targetBranchId) {
         console.error("Unable to determine branch ID for archived repair orders");

@@ -30,8 +30,8 @@ class RepairOrderHubService {
       // Configure the connection with authentication and automatic reconnection
       const builder = new HubConnectionBuilder()
         .withUrl(hubUrl, HUB_CONNECTION_OPTIONS)
-        .withAutomaticReconnect([0, 2000, 10000, 30000]) // Retry after 0, 2, 10, 30 seconds
-        .configureLogging(LogLevel.Warning); // Reduced logging to warnings only
+        .withAutomaticReconnect([2000, 5000, 10000, 30000, 60000]) // Less aggressive: 2s, 5s, 10s, 30s, 60s
+        .configureLogging(LogLevel.Error); // Only log errors to reduce noise
 
       this.connection = builder.build();
 

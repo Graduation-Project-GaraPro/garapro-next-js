@@ -5,12 +5,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { DateTimePicker } from "@/components/ui/date-time-picker"
 import { jobService } from "@/services/manager/job-service"
 import { useToast } from "@/hooks/use-toast"
 import type { Job } from "@/types/job"
 import { Loader2 } from "lucide-react"
+import { isAfter } from "date-fns"
 
 interface EditJobDialogProps {
   open: boolean
@@ -34,18 +35,35 @@ export default function EditJobDialog({
   const { toast } = useToast()
   const [status, setStatus] = useState<number>(job.status)
   const [note, setNote] = useState(job.note)
-  const [deadline, setDeadline] = useState<string>(job.deadline || "")
+  const [deadline, setDeadline] = useState<string | null>(job.deadline || null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [deadlineError, setDeadlineError] = useState<string | null>(null)
 
   useEffect(() => {
     if (open) {
       setStatus(job.status)
       setNote(job.note)
-      setDeadline(job.deadline || "")
+      setDeadline(job.deadline || null)
       setError(null)
+      setDeadlineError(null)
     }
   }, [open, job])
+
+  const validateDeadline = (deadlineValue: string | null): boolean => {
+    if (!deadlineValue) return true
+    
+    const deadlineDate = new Date(deadlineValue)
+    const now = new Date()
+    
+    if (!isAfter(deadlineDate, now)) {
+      setDeadlineError("Deadline must be in the future")
+      return false
+    }
+    
+    setDeadlineError(null)
+    return true
+  }
 
   const getStatusText = (statusValue: number) => {
     switch (statusValue) {
@@ -62,11 +80,17 @@ export default function EditJobDialog({
     setIsLoading(true)
     setError(null)
 
+    // Validate deadline before submitting
+    if (!validateDeadline(deadline)) {
+      setIsLoading(false)
+      return
+    }
+
     try {
       const updateData: UpdateJobData = {
         status,
         note: note.trim(),
-        deadline: deadline ? new Date(deadline).toISOString() : null
+        deadline: deadline
       }
 
       await jobService.updateJob(job.jobId, updateData)
@@ -133,15 +157,23 @@ export default function EditJobDialog({
 
           {/* Deadline */}
           <div className="space-y-2">
-            <Label htmlFor="deadline">Deadline</Label>
-            <Input
-              id="deadline"
-              type="datetime-local"
-              value={deadline ? new Date(deadline).toISOString().slice(0, 16) : ""}
-              onChange={(e) => setDeadline(e.target.value)}
+            <DateTimePicker
+              label="Deadline"
+              value={deadline}
+              onChange={(value) => {
+                setDeadline(value)
+                if (value) {
+                  validateDeadline(value)
+                } else {
+                  setDeadlineError(null)
+                }
+              }}
+              placeholder="Set a deadline for this job"
+              minDate={new Date()}
+              error={deadlineError || undefined}
             />
             <p className="text-xs text-gray-500">
-              Optional: Set a deadline for this job
+              Set a deadline for this job. Must be in the future.
             </p>
           </div>
 
@@ -168,7 +200,7 @@ export default function EditJobDialog({
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={isLoading}
+            disabled={isLoading || !!deadlineError}
             className="text-white"
             style={{ backgroundColor: "#154c79" }}
           >

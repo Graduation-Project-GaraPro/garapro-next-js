@@ -58,12 +58,28 @@ export function InspectionDetailDialog({
   const [error, setError] = useState<string | null>(null)
   const [converting, setConverting] = useState(false)
   const [conversionError, setConversionError] = useState<string | null>(null)
+  const [hasQuotation, setHasQuotation] = useState(false)
+  const [checkingQuotation, setCheckingQuotation] = useState(false)
 
   useEffect(() => {
     if (open && inspectionId) {
       loadInspectionDetails()
     }
   }, [open, inspectionId])
+
+  const checkQuotationStatus = async (inspectionId: string) => {
+    try {
+      setCheckingQuotation(true)
+      const quotations = await quotationService.getQuotationsByInspectionId(inspectionId)
+      setHasQuotation(quotations.length > 0)
+    } catch (error) {
+      console.error("Failed to check quotation status:", error)
+      // Don't set error state for this, just assume no quotation exists
+      setHasQuotation(false)
+    } finally {
+      setCheckingQuotation(false)
+    }
+  }
 
   const loadInspectionDetails = async () => {
     try {
@@ -73,6 +89,9 @@ export function InspectionDetailDialog({
       // Fetch inspection details
       const inspectionData = await inspectionService.getInspectionById(inspectionId!)
       setInspection(inspectionData)
+      
+      // Check if inspection has already been converted to quotation
+      await checkQuotationStatus(inspectionId!)
       
       // Use services from the inspection data directly
       if (inspectionData.services && inspectionData.services.length > 0) {
@@ -209,8 +228,11 @@ export function InspectionDetailDialog({
       // Show success toast message
       toast.success('Inspection converted to quotation successfully')
       
-      // Close the dialog after successful conversion
-      onOpenChange(false)
+      // Update quotation status to hide the button
+      setHasQuotation(true)
+      
+      // Optionally close the dialog after successful conversion
+      // onOpenChange(false)
     } catch (err: any) {
       console.error('Failed to convert inspection to quote:', err)
       const errorMessage = err?.message || 'Failed to convert inspection to quotation'
@@ -342,18 +364,23 @@ export function InspectionDetailDialog({
                 </div>
               )}
               
-              {/* Convert to Quote Button - only show for completed inspections */}
-              {inspection.status.toLowerCase() === "completed" && (
+              {/* Convert to Quote Button - only show for completed inspections that haven't been converted yet */}
+              {inspection.status.toLowerCase() === "completed" && !hasQuotation && (
                 <div className="pt-4 border-t border-gray-200">
                   <Button 
                     onClick={convertToQuote}
-                    disabled={converting}
+                    disabled={converting || checkingQuotation}
                     className="w-full bg-green-600 hover:bg-green-700"
                   >
                     {converting ? (
                       <>
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                         Converting...
+                      </>
+                    ) : checkingQuotation ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Checking...
                       </>
                     ) : (
                       "Convert to Quotation"
@@ -362,6 +389,16 @@ export function InspectionDetailDialog({
                   {conversionError && (
                     <p className="text-red-500 text-sm mt-2 text-center">{conversionError}</p>
                   )}
+                </div>
+              )}
+              
+              {/* Show message when inspection has already been converted */}
+              {inspection.status.toLowerCase() === "completed" && hasQuotation && (
+                <div className="pt-4 border-t border-gray-200">
+                  <div className="bg-blue-50 border border-blue-200 rounded-md p-3 text-center">
+                    <p className="text-blue-800 font-medium">✓ Already Converted to Quotation</p>
+                    <p className="text-blue-600 text-sm mt-1">This inspection has been converted to a quotation.</p>
+                  </div>
                 </div>
               )}
             </CardContent>
