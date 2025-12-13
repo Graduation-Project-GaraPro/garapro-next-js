@@ -1,6 +1,5 @@
 // src/services/manager/payment-hub.ts
 // NOTE: This service uses RepairOrderHub for payment events
-// The backend sends payment events through RepairOrderHub, not a separate PaymentHub
 import { HubConnection, HubConnectionBuilder, LogLevel } from "@microsoft/signalr";
 import { PaymentSummaryResponse } from "@/types/manager/payment";
 

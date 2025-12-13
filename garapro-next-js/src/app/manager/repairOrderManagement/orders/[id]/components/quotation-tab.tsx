@@ -14,7 +14,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { 
-  Plus,
   RefreshCw,
   Send,
   Briefcase,
@@ -22,7 +21,8 @@ import {
   Trash2,
   AlertTriangle,
   Wifi,
-  WifiOff
+  WifiOff,
+  Check
 } from "lucide-react"
 import { toast } from "sonner"
 import { CreateQuotationDialog } from "@/app/manager/components/Quote"
@@ -36,9 +36,12 @@ import { authService } from "@/services/authService"
 
 interface QuotationTabProps {
   orderId: string
+  repairOrderStatus?: number
+  isArchived?: boolean
+  onRepairOrderCompleted?: () => void
 }
 
-export default function QuotationTab({ orderId }: QuotationTabProps) {
+export default function QuotationTab({ orderId, repairOrderStatus, isArchived, onRepairOrderCompleted }: QuotationTabProps) {
   const [quotations, setQuotations] = useState<QuotationDto[]>([])
   const [isCreateFormOpen, setIsCreateFormOpen] = useState(false)
   const [isPreviewOpen, setIsPreviewOpen] = useState(false)
@@ -48,13 +51,15 @@ export default function QuotationTab({ orderId }: QuotationTabProps) {
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [quotationToDelete, setQuotationToDelete] = useState<string | null>(null)
+  const [canCompleteRepairOrder, setCanCompleteRepairOrder] = useState<boolean>(false)
+  const [checkingCompletion, setCheckingCompletion] = useState<boolean>(false)
+  const [completingRepairOrder, setCompletingRepairOrder] = useState<boolean>(false)
 
   // Get current user for SignalR
   const currentUser = authService.getCurrentUser();
   const userId = currentUser?.userId || undefined;
 
-  // ✨ Initialize SignalR connection for real-time customer response updates
-  const { isConnected, connectionId } = useQuotationHub({
+  const { isConnected} = useQuotationHub({
     userId: userId,
     isManager: true, // Manager should receive all quotation updates
     onCustomerResponse: (event) => {
@@ -78,8 +83,6 @@ export default function QuotationTab({ orderId }: QuotationTabProps) {
     // Load initial quotations
     loadQuotations();
     
-    // Set up polling for updates (as fallback if SignalR is not connected)
-    // Reduce polling frequency when SignalR is connected
     const pollingFrequency = isConnected ? 60000 : 30000; // 60s if connected, 30s if not
     pollingInterval = setInterval(loadQuotations, pollingFrequency);
 
@@ -91,6 +94,30 @@ export default function QuotationTab({ orderId }: QuotationTabProps) {
       }
     };
   }, [orderId, isConnected]);
+
+  // Check if repair order can be completed when quotations change
+  useEffect(() => {
+    const checkCanComplete = async () => {
+      const isRepairOrderInProgress = repairOrderStatus === 2;
+      
+      if (isRepairOrderInProgress && !isArchived && quotations.length > 0) {
+        try {
+          setCheckingCompletion(true);
+          const result = await quotationService.canCompleteRepairOrder(orderId);
+          setCanCompleteRepairOrder(result.canComplete);
+        } catch (error) {
+          console.error("Failed to check completion eligibility:", error);
+          setCanCompleteRepairOrder(false);
+        } finally {
+          setCheckingCompletion(false);
+        }
+      } else {
+        setCanCompleteRepairOrder(false);
+      }
+    };
+
+    checkCanComplete();
+  }, [orderId, repairOrderStatus, isArchived, quotations]);
 
   const loadQuotations = async () => {
     try {
@@ -186,6 +213,55 @@ export default function QuotationTab({ orderId }: QuotationTabProps) {
     }
   };
 
+  const handleCompleteRepairOrder = async () => {
+    if (isArchived) {
+      toast.error("Cannot complete repair order", {
+        description: "This repair order is archived and cannot be modified."
+      });
+      return;
+    }
+
+    if (repairOrderStatus !== 2) {
+      toast.error("Cannot complete repair order", {
+        description: "Repair order must be in progress to be completed."
+      });
+      return;
+    }
+
+    try {
+      setCompletingRepairOrder(true);
+      
+      const response = await quotationService.completeRepairOrder(orderId);
+
+      toast.success("Repair Order Completed", {
+        description: response.message || "Repair order has been successfully completed."
+      });
+
+      // Notify parent component about the completion
+      if (onRepairOrderCompleted) {
+        onRepairOrderCompleted();
+      }
+
+      // Reload quotations to reflect any changes
+      loadQuotations();
+    } catch (error: any) {
+      console.error("Failed to complete repair order:", error);
+      
+      let errorMessage = "Failed to complete repair order";
+      if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+
+      toast.error("Completion Failed", {
+        description: errorMessage
+      });
+    } finally {
+      setCompletingRepairOrder(false);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     // Normalize status to lowercase for comparison
     const normalizedStatus = status.toLowerCase();
@@ -267,6 +343,46 @@ export default function QuotationTab({ orderId }: QuotationTabProps) {
           </Button>
         </div>
       </div>
+
+      {/* Complete Repair Order Button (only show if RO is in progress and all quotations are Good) */}
+      {canCompleteRepairOrder && repairOrderStatus === 2 && !isArchived && (
+        <Card className="border-green-200 bg-green-50">
+          <CardHeader>
+            <CardTitle className="text-green-800 flex items-center gap-2">
+              <Check className="w-5 h-5" />
+              Complete Repair Order
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">Ready to Complete</h3>
+                <p className="text-gray-600">
+                  All quotations have been approved with "Good" status. You can now complete this repair order to enable payment processing.
+                </p>
+              </div>
+              <Button
+                onClick={handleCompleteRepairOrder}
+                disabled={completingRepairOrder || checkingCompletion}
+                className="bg-green-600 hover:bg-green-700 text-white ml-4"
+                size="lg"
+              >
+                {completingRepairOrder ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Completing...
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-4 h-4 mr-2" />
+                    Complete Repair Order
+                  </>
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Quotations List */}
       <Card>

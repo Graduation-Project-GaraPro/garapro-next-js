@@ -171,7 +171,7 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
     const tabComponents = {
       "vehicle-info": <VehicleInformation orderId={orderId} />,
       inspections: <InspectionsTab orderId={orderId} highlightInspectionId={highlightInspectionId} />,
-      quotation: <QuotationTab orderId={orderId} />,
+      quotation: <QuotationTab orderId={orderId} repairOrderStatus={repairOrder ? parseInt(repairOrder.statusId) : undefined} isArchived={repairOrder?.isArchived} onRepairOrderCompleted={handleOrderUpdated} />,
       jobs: <JobsTab 
         orderId={orderId} 
         branchId={userBranchId || undefined} 
