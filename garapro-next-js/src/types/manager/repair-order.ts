@@ -97,6 +97,7 @@ export interface RepairOrderApiResponse {
     phoneNumber: string
   }
   assignedLabels: AssignedLabel[]
+  technicianNames: string[] // Add technician names to API response
   orderIndex: number
   isOverdue: boolean
   completionPercentage: number
@@ -148,7 +149,7 @@ export function mapApiToRepairOrder(apiResponse: RepairOrderApiResponse): Repair
     customerName: (apiResponse as any).customerName || apiResponse.customer?.fullName || `${apiResponse.customer?.firstName || ''} ${apiResponse.customer?.lastName || ''}`.trim() || apiResponse.customer?.email || "Unknown",
     customerPhone: (apiResponse as any).customerPhone || apiResponse.customer?.phoneNumber || "",
     vehicleName: apiResponse.vehicle ? `${apiResponse.vehicle.brandName} ${apiResponse.vehicle.modelName}`.trim() : undefined,
-    technicianNames: [], // Default value as API doesn't provide this
+    technicianNames: apiResponse.technicianNames || [], // Map technician names from API
     totalJobs: apiResponse.totalJobs || 0,
     completedJobs: apiResponse.completedJobs || 0,
     progressPercentage: apiResponse.completionPercentage,
