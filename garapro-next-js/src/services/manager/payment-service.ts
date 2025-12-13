@@ -50,7 +50,7 @@ export const paymentService = {
   ): Promise<GenerateQRCodeResponse> {
     const response = await apiClient.post<GenerateQRCodeResponse>(
       `/Payments/manager-qr-payment/${repairOrderId}`,
-      { method: 0 } // Backend expects method field (0 = Cash, but for QR it creates PayOs payment)
+      { method: 0 }
     );
     if (!response.data) {
       throw new Error('No QR code response data received');
@@ -58,10 +58,7 @@ export const paymentService = {
     return response.data;
   },
 
-  /**
-   * Get payment preview for a repair order
-   * Shows detailed breakdown of services, parts, and costs before payment
-   */
+
   async getPaymentPreview(repairOrderId: string): Promise<PaymentPreviewResponse> {
     const response = await apiClient.get<PaymentPreviewResponse>(
       `/Payments/preview/${repairOrderId}`

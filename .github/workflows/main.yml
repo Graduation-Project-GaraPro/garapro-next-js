@@ -3,7 +3,7 @@ name: Build Push & Trigger Coolify
 on:
   push:
     branches:
-      - deploy1
+      - depoy1
   workflow_dispatch:
 
 jobs:
@@ -45,7 +45,7 @@ jobs:
     name: Deploy to VPS
     needs: build-and-push
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
@@ -56,7 +56,7 @@ jobs:
           port: ${{ secrets.VPS_PORT || 24700 }}
           script: |
             echo "🚀 Starting deployment..."
-            
+
             cd ${{ secrets.VPS_PROJECT_PATH || '~/deploy/fe' }}
 
             echo "🛑 Stopping existing container..."
@@ -89,7 +89,7 @@ jobs:
           port: ${{ secrets.VPS_PORT || 22 }}
           script: |
             cd ${{ secrets.VPS_PROJECT_PATH || '~/deploy/fe' }}
-            
+
             if docker compose ps | grep -q "web.*Up"; then
               echo "✅ Frontend admin is running!"
               exit 0

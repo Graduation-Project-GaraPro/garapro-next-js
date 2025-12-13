@@ -16,7 +16,7 @@ export interface GarageServiceCatalogItem {
   isAdvanced: boolean
   createdAt: string
   updatedAt: string
-  categoryName?: string // Optional - populated when fetching with category info
+  categoryName?: string
 }
 
 export interface ServiceCategory {
