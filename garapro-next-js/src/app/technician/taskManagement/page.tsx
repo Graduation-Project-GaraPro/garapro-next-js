@@ -133,6 +133,23 @@ export default function TaskManagement() {
 
   const router = useRouter();
 
+  const formatDeadline = (deadline: string | undefined): string => {
+    if (!deadline) return "N/A";
+    
+    try {
+      const date = new Date(deadline);
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      
+      return `${day}/${month}/${year} ${hours}:${minutes}`;
+    } catch {
+      return "N/A";
+    }
+  };
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearchTerm(searchTerm);
@@ -205,7 +222,7 @@ export default function TaskManagement() {
               progress = 0;
           }
 
-          const deadlineStr = item.deadline ? new Date(item.deadline).toLocaleDateString("en-GB") : "N/A";
+          const deadlineStr = formatDeadline(item.deadline);
 
           return {
             id: item.jobId || (item.repairOrderId ?? Math.random()),
@@ -333,7 +350,7 @@ useEffect(() => {
                   progress = 0;
               }
 
-              const deadlineStr = item.deadline ? new Date(item.deadline).toLocaleDateString("en-GB") : "N/A";
+              const deadlineStr = formatDeadline(item.deadline);
 
               return {
                 id: item.jobId || (item.repairOrderId ?? Math.random()),
