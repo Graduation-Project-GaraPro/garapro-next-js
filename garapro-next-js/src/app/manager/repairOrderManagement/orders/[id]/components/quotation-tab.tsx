@@ -335,10 +335,8 @@ export default function QuotationTab({ orderId }: QuotationTabProps) {
                               )}
                             </Button>
                           )}
-                          
-                          {/* Good status quotations are view-only, no actions needed */}
-                          
-                          {/* Jobs Created Badge - show if jobs were already created */}
+                                                   
+
                           {q.jobsCreated && (
                             <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium bg-blue-100 text-blue-800">
                               <Briefcase className="h-3 w-3" />
