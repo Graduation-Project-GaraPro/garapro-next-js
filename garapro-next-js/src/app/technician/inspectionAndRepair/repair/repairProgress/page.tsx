@@ -1153,40 +1153,41 @@ export default function RepairProgressPage() {
                           </div>
                         )}
                       </div>
-                      <div className="flex space-x-1">
-                        {(
-                          ["New", "InProgress", "OnHold", "Completed"] as const
-                        ).map((status) => {
-                          const config = statusConfig[status];
-                          const isNewLocked =
-                            step.status !== "New" && status === "New";
-                          const isCompletedLocked = step.status === "Completed";
-                          const isDisabled =
-                            !step.description ||
-                            !isMyJob ||
-                            isNewLocked ||
-                            isCompletedLocked;
-                          return (
-                            <button
-                              key={status}
-                              onClick={() =>
-                                updateStepStatus(step.jobId, status)
-                              }
-                              className={`p-1.5 md:p-2 rounded-lg transition-all duration-200 ${
-                                step.status === status
-                                  ? config.color
-                                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                              } ${
-                                isDisabled
-                                  ? "opacity-50 cursor-not-allowed"
-                                  : ""
-                              }`}
-                            >
-                              <config.icon className="w-4 h-4" />
-                            </button>
-                          );
-                        })}
-                      </div>
+<div className="flex space-x-1">
+  {(
+    ["New", "InProgress", "OnHold", "Completed"] as const
+  ).map((status) => {
+    const config = statusConfig[status];
+    const isNewLocked =
+      step.status !== "New" && status === "New";
+    const isCompletedLocked = step.status === "Completed";
+    const isDisabled =
+      !step.description ||
+      !isMyJob ||
+      isNewLocked ||
+      isCompletedLocked;
+    return (
+      <button
+        key={status}
+        onClick={() =>
+          updateStepStatus(step.jobId, status)
+        }
+        disabled={isDisabled} 
+        className={`p-1.5 md:p-2 rounded-lg transition-all duration-200 ${
+          step.status === status
+            ? config.color
+            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+        } ${
+          isDisabled
+            ? "opacity-50 cursor-not-allowed"
+            : ""
+        }`}
+      >
+        <config.icon className="w-4 h-4" />
+      </button>
+    );
+  })}
+</div>
                     </div>
                   </div>
                   <div>

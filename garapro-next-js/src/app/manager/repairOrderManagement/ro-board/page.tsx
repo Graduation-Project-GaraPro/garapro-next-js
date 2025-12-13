@@ -9,7 +9,8 @@ import CreateTask from "@/app/manager/repairOrderManagement/components/create-ta
 import CancelRODialog from "./cancel-ro-dialog"
 import ArchiveRODialog from "./archive-ro-dialog"
 import { useRouter } from "next/navigation"
-import { repairOrderService } from "@/services/manager/repair-order-service"
+import { repairOrderService, setBranchIdGetter } from "@/services/manager/repair-order-service"
+import { useManagerSession } from "@/contexts/manager-session-context"
 import { repairOrderHubService, type RoBoardCardDto } from "@/services/manager/repair-order-hub"
 import { labelService } from "@/services/manager/label-service"
 import { jobService } from "@/services/manager/job-service"
@@ -39,15 +40,19 @@ export default function BoardPage() {
   const [signalRReconnecting, setSignalRReconnecting] = useState(false)
   const [defaultLabels, setDefaultLabels] = useState<Map<string, { labelName: string; hexCode: string }>>(new Map())
   const router = useRouter()
+  const { getBranchId } = useManagerSession()
 
   useEffect(() => {
+    // Set up branch ID getter for repair order service
+    setBranchIdGetter(getBranchId);
+    
     initializePage();
     
     // Cleanup on unmount
     return () => {
       repairOrderHubService.disconnect();
     };
-  }, []);
+  }, [getBranchId]);
 
   // Monitor SignalR connection status
   useEffect(() => {
@@ -117,8 +122,6 @@ export default function BoardPage() {
     try {
       const data = await repairOrderService.getAllRepairOrders()
       setRepairOrders(data)
-      
-
     } catch (error) {
       console.error("Failed to load repair orders:", error)
     }

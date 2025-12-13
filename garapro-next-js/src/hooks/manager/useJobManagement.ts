@@ -34,21 +34,29 @@ export function useJobManagement() {
     }
   }
 
-  const assignJobsToTechnician = async (technicianId: string, jobIds: string[]) => {
+  const assignJobsToTechnician = async (technicianId: string, jobIds: string[], deadline?: string | null) => {
     try {
-      if (jobIds.length === 1) {
-        // Single job assignment
-        await jobService.assignTechnician(jobIds[0], technicianId)
-      } else if (jobIds.length > 1) {
-        // Batch job assignment
-        await jobService.assignJobsToTechnician(technicianId, jobIds)
+      if (deadline) {
+        // Use the new method that supports deadline setting
+        if (jobIds.length === 1) {
+          await jobService.assignTechnicianWithDeadline(jobIds[0], technicianId, deadline)
+        } else if (jobIds.length > 1) {
+          await jobService.assignJobsToTechnicianWithDeadline(technicianId, jobIds, deadline)
+        }
+      } else {
+        // Use the original methods without deadline
+        if (jobIds.length === 1) {
+          await jobService.assignTechnician(jobIds[0], technicianId)
+        } else if (jobIds.length > 1) {
+          await jobService.assignJobsToTechnician(technicianId, jobIds)
+        }
       }
       
       // Update local job status - use status 1 (New) for assigned jobs
       setJobs(prevJobs => 
         prevJobs.map(job => 
           jobIds.includes(job.jobId) 
-            ? { ...job, status: 1, assignedTechnicianId: technicianId } 
+            ? { ...job, status: 1, assignedTechnicianId: technicianId, deadline: deadline || job.deadline } 
             : job
         )
       )

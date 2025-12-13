@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Search, User, /*MapPin, Wrench,*/ RefreshCw } from "lucide-react"
+import { Search, User, RefreshCw } from "lucide-react"
 import { technicianService } from "@/services/manager/technician-service"
 import type { Technician } from "@/types/manager/tech-schedule"
 import { branchService } from "@/services/branch-service"
