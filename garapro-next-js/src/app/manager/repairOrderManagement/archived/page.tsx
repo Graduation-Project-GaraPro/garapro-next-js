@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Archive, Eye, Search, Calendar, User, Car, DollarSign, FileText } from "lucide-react"
+import { Archive, Search, Calendar, User, FileText, XCircle, CheckCircle } from "lucide-react"
 import ArchivedRODetailDialog from "./archived-ro-detail-dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,7 +16,10 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { repairOrderService } from "@/services/manager/repair-order-service"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { repairOrderService, setBranchIdGetter } from "@/services/manager/repair-order-service"
+import { useManagerSession } from "@/contexts/manager-session-context"
+import { formatVND } from "@/lib/currency"
 import type { RepairOrder } from "@/types/manager/repair-order"
 
 export default function ArchivedOrdersPage() {
@@ -27,10 +30,13 @@ export default function ArchivedOrdersPage() {
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false)
   const router = useRouter()
+  const { getBranchId } = useManagerSession()
 
   useEffect(() => {
+    // Set up branch ID getter for repair order service
+    setBranchIdGetter(getBranchId);
     loadArchivedOrders()
-  }, [])
+  }, [getBranchId])
 
   useEffect(() => {
     filterOrders()
@@ -60,7 +66,9 @@ export default function ArchivedOrdersPage() {
       return (
         order.repairOrderId?.toLowerCase().includes(query) ||
         order.customerName?.toLowerCase().includes(query) ||
-        order.roTypeName?.toLowerCase().includes(query)
+        order.roTypeName?.toLowerCase().includes(query) ||
+        (order.isCancelled && "cancelled".includes(query)) ||
+        (!order.isCancelled && "completed".includes(query))
       )
     })
     setFilteredOrders(filtered)
@@ -81,11 +89,8 @@ export default function ArchivedOrdersPage() {
   }
 
   const formatCurrency = (amount?: number) => {
-    if (amount === undefined || amount === null) return "$0.00"
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount)
+    if (amount === undefined || amount === null) return "0₫"
+    return formatVND(amount)
   }
 
   const handleViewDetails = (orderId: string) => {
@@ -93,8 +98,39 @@ export default function ArchivedOrdersPage() {
     setIsDetailDialogOpen(true)
   }
 
-  const handleViewFullPage = (orderId: string) => {
-    router.push(`/manager/repairOrderManagement/orders/${orderId}`)
+  const getArchiveStatusBadge = (order: RepairOrder) => {
+    if (order.isCancelled) {
+      const badge = (
+        <Badge variant="destructive" className="bg-red-100 text-red-700 border-red-300">
+          <XCircle className="w-3 h-3 mr-1" />
+          Cancelled
+        </Badge>
+      )
+      
+      // Show tooltip with cancel reason if available
+      if (order.cancelReason) {
+        return (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                {badge}
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="max-w-xs">Reason: {order.cancelReason}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )
+      }
+      return badge
+    } else {
+      return (
+        <Badge variant="default" className="bg-green-100 text-green-700 border-green-300">
+          <CheckCircle className="w-3 h-3 mr-1" />
+          Completed
+        </Badge>
+      )
+    }
   }
 
   return (
@@ -117,7 +153,7 @@ export default function ArchivedOrdersPage() {
             <div className="relative w-80">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search by order ID, customer, vehicle..."
+                placeholder="Search by order ID, customer, status..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
@@ -135,7 +171,11 @@ export default function ArchivedOrdersPage() {
             <CardDescription>
               {loading
                 ? "Loading archived orders..."
-                : `${filteredOrders.length} archived order${filteredOrders.length !== 1 ? "s" : ""} found`}
+                : (() => {
+                    const cancelledCount = filteredOrders.filter(order => order.isCancelled).length
+                    const completedCount = filteredOrders.length - cancelledCount
+                    return `${filteredOrders.length} archived order${filteredOrders.length !== 1 ? "s" : ""} found (${completedCount} completed, ${cancelledCount} cancelled)`
+                  })()}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -161,6 +201,7 @@ export default function ArchivedOrdersPage() {
                       <TableHead>Customer</TableHead>
                       <TableHead>Phone</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead>Archive Reason</TableHead>
                       <TableHead>Created Date</TableHead>
                       <TableHead>Archived Date</TableHead>
                       <TableHead className="text-right">Cost</TableHead>
@@ -169,7 +210,10 @@ export default function ArchivedOrdersPage() {
                   </TableHeader>
                   <TableBody>
                     {filteredOrders.map((order) => (
-                      <TableRow key={order.repairOrderId}>
+                      <TableRow 
+                        key={order.repairOrderId}
+                        className={order.isCancelled ? "bg-red-50/50 hover:bg-red-50" : "hover:bg-gray-50"}
+                      >
 
                         <TableCell>
                           <div className="flex items-center gap-2">
@@ -186,6 +230,9 @@ export default function ArchivedOrdersPage() {
                           </Badge>
                         </TableCell>
                         <TableCell>
+                          {getArchiveStatusBadge(order)}
+                        </TableCell>
+                        <TableCell>
                           <div className="flex items-center gap-2 text-sm">
                             <Calendar className="h-4 w-4 text-muted-foreground" />
                             {formatDate(order.createdAt)}
@@ -198,8 +245,7 @@ export default function ArchivedOrdersPage() {
                           </div>
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <DollarSign className="h-4 w-4 text-muted-foreground" />
+                          <div className="flex items-center justify-end gap-1">                            
                             <span className="font-medium">
                               {formatCurrency(order.cost)}
                             </span>

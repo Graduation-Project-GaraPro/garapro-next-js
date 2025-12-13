@@ -26,7 +26,6 @@ export function TechnicianMonogram({ name, size = "sm", className }: TechnicianM
       hash = name.charCodeAt(i) + ((hash << 5) - hash)
     }
     
-    // Generate HSL color with good contrast
     const hue = Math.abs(hash) % 360
     return `hsl(${hue}, 65%, 45%)`
   }

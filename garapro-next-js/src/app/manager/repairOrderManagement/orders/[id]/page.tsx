@@ -22,10 +22,9 @@ import {
   QuotationTab,
   EditRepairOrderDialog
 } from "./components"
-import { repairOrderService } from "@/services/manager/repair-order-service"
+import { repairOrderService, setBranchIdGetter } from "@/services/manager/repair-order-service"
 import type { RepairOrder } from "@/types/manager/repair-order"
-import { authService } from "@/services/authService"
-import { branchService } from "@/services/branch-service"
+import { useManagerSession } from "@/contexts/manager-session-context"
 
 interface OrderDetailsProps {
   params: Promise<{ id: string }>
@@ -36,11 +35,12 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
   const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState("vehicle-info")
   const [orderId, setOrderId] = useState<string>("")
-  const [userBranchId, setUserBranchId] = useState<string | null>(null)
-  const [loadingBranch, setLoadingBranch] = useState(true)
   const [repairOrder, setRepairOrder] = useState<RepairOrder | null>(null)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isLoadingOrder, setIsLoadingOrder] = useState(true)
+  const [allJobsCompleted, setAllJobsCompleted] = useState(false)
+  const { getBranchId, isLoading: sessionLoading } = useManagerSession()
+  const userBranchId = getBranchId()
 
   // Handle async params
   useEffect(() => {
@@ -49,19 +49,15 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
     })
   }, [params])
 
-  // Get user's branch and repair order data
+  // Set up branch ID getter and fetch repair order data
+  useEffect(() => {
+    setBranchIdGetter(getBranchId);
+  }, [getBranchId]);
+
+  // Fetch repair order data
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const currentUser = authService.getCurrentUser()
-        if (currentUser.userId) {
-          const branch = await branchService.getCurrentUserBranch(currentUser.userId)
-          if (branch) {
-            setUserBranchId(branch.branchId)
-          }
-        }
-
-        // Fetch repair order data if orderId is available
         if (orderId) {
           const orderData = await repairOrderService.getRepairOrderById(orderId)
           setRepairOrder(orderData)
@@ -69,15 +65,14 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
       } catch (error) {
         console.error("Failed to fetch data:", error)
       } finally {
-        setLoadingBranch(false)
         setIsLoadingOrder(false)
       }
     }
 
-    if (orderId) {
+    if (orderId && !sessionLoading) {
       fetchData()
     }
-  }, [orderId])
+  }, [orderId, sessionLoading])
 
   const handleOrderUpdated = async () => {
     // Refresh repair order data after update
@@ -85,6 +80,24 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
       const orderData = await repairOrderService.getRepairOrderById(orderId)
       setRepairOrder(orderData)
     }
+  }
+
+  const handleAllJobsCompleted = async () => {
+    console.log("All jobs completed, reloading repair order...")
+    setAllJobsCompleted(true)
+    
+    // Automatically reload the repair order when all jobs are completed
+    await handleOrderUpdated()
+  }
+
+  const handleProcessPayment = () => {
+    // Switch to payment tab
+    setActiveTab("payment")
+    
+    // Also update URL to reflect the tab change
+    const currentUrl = new URL(window.location.href)
+    currentUrl.searchParams.set("tab", "payment")
+    window.history.pushState({}, "", currentUrl.toString())
   }
 
   // Apply tab from query when available
@@ -108,7 +121,7 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
   }, [repairOrder?.isCancelled, activeTab])
 
   // Show loading while params are being resolved
-  if (!orderId || loadingBranch || isLoadingOrder) {
+  if (!orderId || sessionLoading || isLoadingOrder) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="text-center">
@@ -159,7 +172,13 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
       "vehicle-info": <VehicleInformation orderId={orderId} />,
       inspections: <InspectionsTab orderId={orderId} highlightInspectionId={highlightInspectionId} />,
       quotation: <QuotationTab orderId={orderId} />,
-      jobs: <JobsTab orderId={orderId} branchId={userBranchId || undefined} isArchived={repairOrder?.isArchived} />,
+      jobs: <JobsTab 
+        orderId={orderId} 
+        branchId={userBranchId || undefined} 
+        isArchived={repairOrder?.isArchived}
+        onAllJobsCompleted={handleAllJobsCompleted}
+        onProcessPayment={handleProcessPayment}
+      />,
       payment: <PaymentTab orderId={orderId} repairOrderStatus={repairOrder ? parseInt(repairOrder.statusId) : undefined} paidStatus={repairOrder?.paidStatus} isArchived={repairOrder?.isArchived} onPaymentSuccess={handleOrderUpdated} />
     }
 

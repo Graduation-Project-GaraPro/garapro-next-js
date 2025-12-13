@@ -170,7 +170,7 @@ export default function ArchivedRODetailDialog({
             {/* Header Info */}
             <div className="bg-gray-50 p-4 rounded-lg">
               <div className="flex items-center justify-between mb-2">
-                <h3 className="text-lg font-semibold">RO #{data.repairOrderId.substring(0, 8)}</h3>
+                <h3 className="text-lg font-semibold">RO #{data.repairOrderId.substring(0, 4)}</h3>
                 <Badge style={{ backgroundColor: data.statusColor, color: "#fff" }}>
                   {data.statusName}
                 </Badge>
@@ -251,17 +251,13 @@ export default function ArchivedRODetailDialog({
                   <div className="font-semibold">{formatVND(data.estimatedAmount)}</div>
                 </div>
                 <div>
-                  <div className="text-gray-600">Actual Cost</div>
-                  <div className="font-semibold">{formatVND(data.cost)}</div>
-                </div>
-                <div>
-                  <div className="text-gray-600">Paid Amount</div>
-                  <div className="font-semibold text-green-600">{formatVND(data.paidAmount)}</div>
+                  <div className="text-gray-600">Final Cost</div>
+                  <div className="font-semibold text-green-600">{formatVND(data.cost)}</div>
                 </div>
               </div>
             </div>
 
-            {/* Services */}
+            {/* Services
             {data.services && data.services.length > 0 && (
               <div className="border rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-3">
@@ -304,7 +300,7 @@ export default function ArchivedRODetailDialog({
                   ))}
                 </div>
               </div>
-            )}
+            )} */}
 
             {/* Jobs */}
             {data.jobs && data.jobs.length > 0 && (

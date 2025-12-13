@@ -227,15 +227,11 @@ export default function PaymentTab({ orderId, repairOrderStatus, paidStatus, isA
         description: response.message || "Cash payment processed successfully. Repair order status updated.",
       })
 
-      // Reload payment summary to update transaction history
       await loadPaymentSummary()
-
-      // Notify parent component to refresh repair order data
       if (onPaymentSuccess) {
         onPaymentSuccess()
       }
 
-      // Close dialog and reset
       setShowPaymentPreview(false)
       setPaymentPreview(null)
       setCashPaymentData({
@@ -269,7 +265,6 @@ export default function PaymentTab({ orderId, repairOrderStatus, paidStatus, isA
           onPaymentSuccess()
         }
 
-        // Close dialog and reset
         setShowPaymentPreview(false)
         setPaymentPreview(null)
         setCashPaymentData({
