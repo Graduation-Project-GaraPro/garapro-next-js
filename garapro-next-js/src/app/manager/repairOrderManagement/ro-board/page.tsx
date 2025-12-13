@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Plus, Filter, LayoutGrid, List, Link } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import RoDragDropBoard from "./ro-drag-drop-board"
+import RepairOrderBoard from "./ro-board"
 import ListView from "./ro-list-view"
 import CreateTask from "@/app/manager/repairOrderManagement/components/create-task"
 import CancelRODialog from "./cancel-ro-dialog"
@@ -316,59 +316,8 @@ export default function BoardPage() {
     }
   }
 
-  // Handle drag and drop - this is the main function for moving repair orders
-  const handleMoveRepairOrder = async (repairOrderId: string, newStatusId: string) => {
-    try {
-      // Find the repair order
-      const repairOrder = repairOrders.find(ro => ro.repairOrderId === repairOrderId)
-      
-      if (!repairOrder) {
-        toast.error("Repair order not found")
-        return
-      }
-      
-      const fromStatusId = repairOrder.statusId
-      
-      // Fetch jobs and quotations for validation
-      const [jobs, quotations] = await Promise.all([
-        jobService.getJobsByRepairOrderId(repairOrderId).catch(() => []),
-        quotationService.getQuotationsByRepairOrderId(repairOrderId).catch(() => [])
-      ])
-      
-      // Validate the status transition
-      const validation = validateStatusTransition(
-        repairOrder,
-        fromStatusId,
-        newStatusId,
-        jobs,
-        quotations
-      )
-      
-      if (!validation.isValid) {
-        toast.error(validation.message || "This status transition is not allowed")
-        return
-      }
-      
-      // Call the API to update the status
-      const result = await repairOrderHubService.updateRepairOrderStatus(repairOrderId, newStatusId);
-      
-      if (result.success) {
-
-        toast.success("Repair order status updated successfully");
-        // The UI will be updated via SignalR notification, not directly here
-      } else {
-        console.error(`Failed to move repair order ${repairOrderId} to status ${newStatusId}: ${result.message}`);
-        // Show specific error message from backend if available
-        const errorMessage = result.message || "Failed to update repair order status";
-        toast.error(errorMessage);
-        // Revert the UI change if the API call failed
-        // In a real implementation, you might want to show an error message to the user
-      }
-    } catch (error) {
-      console.error("Failed to move repair order:", error);
-      toast.error("An unexpected error occurred while updating repair order status");
-    }
-  }
+  // Status updates will now happen automatically through the system
+  // No manual drag & drop functionality needed
 
   // SignalR Event Handlers
   const handleRepairOrderMoved = (repairOrderId: string, newStatusId: string, updatedCard: RoBoardCardDto) => {
@@ -491,10 +440,9 @@ export default function BoardPage() {
           </div>
           <div className="flex-1 h-0 min-h-0 overflow-hidden">
             {viewMode === "board" ? (
-              <RoDragDropBoard
+              <RepairOrderBoard
                 repairOrders={repairOrders}
                 loading={loading}
-                onMoveRepairOrder={handleMoveRepairOrder}
                 onEditRepairOrder={setEditingRepairOrder}
                 onDeleteRepairOrder={handleDeleteRepairOrder}
                 onCancelRepairOrder={setCancelingRepairOrderId}

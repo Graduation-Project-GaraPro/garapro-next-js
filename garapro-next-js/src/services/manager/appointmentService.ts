@@ -19,8 +19,7 @@ export const enrichRepairRequest = (request: ManagerRepairRequestDto): ManagerRe
   console.log(`[enrichRepairRequest] requestDate: ${request.requestDate}`)
   console.log(`[enrichRepairRequest] Using timeSource: ${timeSource}`)
   
-  // Extract date FIRST from the string before timezone conversion (to avoid timezone offset issues)
-  // This ensures we get the date as it appears in the ISO string, not converted to local timezone
+
   const dateString = dateSource.split('T')[0]
   console.log(`[enrichRepairRequest] Extracted date string (before conversion): ${dateString}`)
   
@@ -73,11 +72,9 @@ export const enrichRepairRequest = (request: ManagerRepairRequestDto): ManagerRe
     
     console.log(`[enrichRepairRequest] Using fallback - time: ${fallbackTimeString}, date: ${fallbackDateString}`)
     
-    // Calculate status and other properties for fallback
-    // Use the status from the API if it exists, otherwise use the old logic
     let status: "pending" | "completed" | "cancelled" | "in-progress" | "confirmed" | "accept" | undefined = "pending"
     if ('status' in request && request.status) {
-      // Normalize the status to lowercase and map to our expected values
+      // map to expected values
       const apiStatus = (request.status as string).toLowerCase()
       switch (apiStatus) {
         case "completed":
@@ -104,7 +101,6 @@ export const enrichRepairRequest = (request: ManagerRepairRequestDto): ManagerRe
           break
       }
     } else {
-      // Old logic for determining status
       if (request.isCompleted || request.completedDate) {
         status = "completed"
       } else if (request.description?.toLowerCase().includes("cancelled") || 
@@ -133,10 +129,8 @@ export const enrichRepairRequest = (request: ManagerRepairRequestDto): ManagerRe
   
   console.log(`[enrichRepairRequest] Final - time: ${timeString}, date: ${dateString}`)
   
-  // Determine status based on API status field if it exists, otherwise use old logic
   let status: "pending" | "completed" | "cancelled" | "in-progress" | "confirmed" | "accept" | undefined = undefined
   if ('status' in request && request.status) {
-    // Normalize the status to lowercase and map to our expected values
     const apiStatus = (request.status as string).toLowerCase()
     switch (apiStatus) {
       case "completed":
@@ -163,7 +157,6 @@ export const enrichRepairRequest = (request: ManagerRepairRequestDto): ManagerRe
         break
     }
   } else {
-    // Old logic for determining status
     if (request.isCompleted || request.completedDate) {
       status = "completed"
     } else if (request.description?.toLowerCase().includes("cancelled") || 
@@ -199,12 +192,8 @@ export const enrichRepairRequest = (request: ManagerRepairRequestDto): ManagerRe
 class RepairRequestService {
   private baseUrl = "/ManagerRepairRequest"
 
-  /** 
-   * Fetch all repair requests for the current user's branch
-   */
   private async getRepairRequestsByBranch(): Promise<ManagerRepairRequestDto[]> {
     try {
-      // Get current user ID
       const currentUser = authService.getCurrentUser()
       const userId = currentUser.userId
       
@@ -230,13 +219,11 @@ class RepairRequestService {
       console.log("[RepairRequestService] Response.data:", response.data)
       console.log("[RepairRequestService] Is response.data an array?", Array.isArray(response.data))
       
-      // The API returns an array directly, but apiClient wraps it in response.data
       if (Array.isArray(response.data)) {
         console.log("[RepairRequestService] Returning response.data array with", response.data.length, "items")
         return response.data
       }
       
-      // Handle edge cases - sometimes API might return array directly
       if (Array.isArray(response)) {
         console.log("[RepairRequestService] Response itself is an array with", response.length, "items")
         return response as ManagerRepairRequestDto[]

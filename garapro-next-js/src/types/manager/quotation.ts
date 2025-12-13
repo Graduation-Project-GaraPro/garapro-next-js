@@ -1,23 +1,23 @@
 // src/types/manager/quotation.ts
 export interface CreateQuotationDto {
-  repairOrderId: string; // guid (from RepairOrder)
-  userId: string; // required
-  vehicleId: string; // guid (auto-filled from RO)
-  inspectionId?: string | null; // guid (optional, can be null)
+  repairOrderId: string;
+  userId: string; 
+  vehicleId: string; 
+  inspectionId?: string | null; 
   note?: string;
   quotationServices: QuotationServiceCreateDto[];
 }
 
 export interface QuotationServiceCreateDto {
-  serviceId: string; // guid (required)
+  serviceId: string;
   isSelected: boolean;
-  isRequired: boolean; // Add isRequired property
-  isGood?: boolean; // ✅ NEW - optional for creation
+  isRequired: boolean; 
+  isGood?: boolean; 
   quotationServiceParts: QuotationServicePartCreateDto[];
 }
 
 export interface QuotationServicePartCreateDto {
-  partId: string; // guid (required)
+  partId: string; 
   isSelected: boolean;
   isRecommended: boolean;
   recommendationNote?: string;
@@ -30,20 +30,20 @@ export interface QuotationDto {
   repairOrderId: string;
   userId: string;
   vehicleId: string;
-  createdAt: string; // datetime
+  createdAt: string; 
   sentToCustomerAt: string | null;
   customerResponseAt: string | null;
-  status: "Pending" | "Sent" | "Approved" | "Rejected" | "Expired" | "Good"; // ✅ Added "Good" status
+  status: "Pending" | "Sent" | "Approved" | "Rejected" | "Expired" | "Good";
   totalAmount: number; // decimal
   discountAmount: number; // decimal
-  inspectionFee: number; // ✅ NEW - inspection fee for the entire quotation
+  inspectionFee: number; 
   note?: string;
   customerNote?: string | null;
   expiresAt: string | null;
   customerName: string;
   vehicleInfo: string | null;
-  jobsCreated: boolean; // ✅ NEW - flag to track if jobs were created from this quotation
-  jobsCreatedAt: string | null; // ✅ NEW - timestamp when jobs were created
+  jobsCreated: boolean; 
+  jobsCreatedAt: string | null;
   quotationServices: QuotationServiceDto[];
   quotationServiceParts: unknown | null;
   inspection: unknown | null;
@@ -55,9 +55,9 @@ export interface QuotationServiceDto {
   quotationId: string;
   serviceId: string;
   isSelected: boolean;
-  isRequired: boolean; // Add isRequired property
-  isGood: boolean; // ✅ NEW - true = view only, no repair needed
-  price: number; // decimal
+  isRequired: boolean; 
+  isGood: boolean; 
+  price: number; 
   quantity: number;
   totalPrice: number;
   createdAt: string;
@@ -67,7 +67,7 @@ export interface QuotationServiceDto {
   appliedPromotion: unknown | null;
   serviceName: string;
   serviceDescription: string;
-  parts: QuotationServicePartDto[]; // Changed from quotationServiceParts to parts to match API response
+  parts: QuotationServicePartDto[];
 }
 
 export interface QuotationServicePartDto {
@@ -86,7 +86,6 @@ export interface QuotationServicePartDto {
 }
 
 // Frontend specific types
-// Using type aliases instead of empty interfaces
 export type QuotationService = QuotationServiceDto;
 
 export type QuotationServicePart = QuotationServicePartDto;

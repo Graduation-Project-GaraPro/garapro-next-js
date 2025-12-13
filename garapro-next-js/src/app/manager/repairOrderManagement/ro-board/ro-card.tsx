@@ -1,7 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { MoreHorizontal, Clock, DollarSign, User, ExternalLink, Calendar, XCircle, Archive, Tag } from "lucide-react"
+import { MoreHorizontal, Clock, User, ExternalLink, Calendar, XCircle, Archive, Tag } from "lucide-react"
+
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -15,8 +16,6 @@ import { PaidStatus } from "@/types/manager/repair-order"
 
 interface RepairOrderCardProps {
   repairOrder: RepairOrder
-  onDragStart: () => void
-  onDragEnd: () => void
   onEdit: () => void
   onDelete: () => void
   onCancel?: () => void
@@ -35,10 +34,8 @@ interface RepairOrderCardProps {
 
 export default function RepairOrderCard({ 
   repairOrder, 
-  onDragStart, 
-  onDragEnd, 
-  onEdit, 
-  onDelete, 
+  // onEdit, 
+  // onDelete, 
   onCancel,
   onArchive,
   onLabelsUpdated,
@@ -122,14 +119,11 @@ export default function RepairOrderCard({
 
   return (
     <Card
-      className={`group rounded-sm border cursor-move hover:shadow-md transition-shadow ${
+      className={`group rounded-sm border cursor-pointer hover:shadow-md transition-shadow ${
         repairOrder.isCancelled 
           ? 'border-red-300 bg-red-50/30 opacity-75' 
           : 'border-gray-200 hover:border-blue-300'
       }`}
-      draggable
-      onDragStart={onDragStart}
-      onDragEnd={onDragEnd}
       onClick={handleCardClick}
     >
       <CardHeader className="px-2">

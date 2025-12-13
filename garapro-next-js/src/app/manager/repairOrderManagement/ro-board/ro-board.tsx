@@ -1,14 +1,15 @@
 "use client"
 
-import { useState } from "react"
 import RoColumn from "./ro-column"
 import type { RepairOrder } from "@/types/manager/repair-order"
 import type { OrderStatus } from "@/types/manager/order-status"
 
-interface DragDropBoardProps {
+// This board displays repair orders in columns by status
+// Status updates happen automatically through the system - no manual drag & drop
+
+interface RepairOrderBoardProps {
   repairOrders: RepairOrder[]
   loading: boolean
-  onMoveRepairOrder: (repairOrderId: string, newStatusId: string) => void
   onEditRepairOrder: (repairOrder: RepairOrder) => void
   onDeleteRepairOrder: (repairOrderId: string) => void
   onCancelRepairOrder?: (repairOrderId: string) => void
@@ -24,10 +25,9 @@ interface DragDropBoardProps {
   defaultLabels?: Map<string, { labelName: string; hexCode: string }> // Default label per status
 }
 
-export default function RoDragDropBoard({ 
+export default function RepairOrderBoard({ 
   repairOrders, 
   loading, 
-  onMoveRepairOrder, 
   onEditRepairOrder, 
   onDeleteRepairOrder,
   onCancelRepairOrder,
@@ -35,24 +35,7 @@ export default function RoDragDropBoard({
   onLabelsUpdated,
   statuses, // Accept statuses as prop
   defaultLabels = new Map() // Accept default labels
-}: DragDropBoardProps) {
-  const [draggedRepairOrder, setDraggedRepairOrder] = useState<RepairOrder | null>(null)
-
-  const handleDragStart = (repairOrder: RepairOrder) => {
-    setDraggedRepairOrder(repairOrder)
-  }
-
-  const handleDragEnd = () => {
-    setDraggedRepairOrder(null)
-  }
-
-  const handleDrop = (statusId: string) => {
-    if (draggedRepairOrder && draggedRepairOrder.statusId !== statusId) {
-      // Call the parent handler to move the repair order
-      onMoveRepairOrder(draggedRepairOrder.repairOrderId, statusId)
-    }
-    setDraggedRepairOrder(null)
-  }
+}: RepairOrderBoardProps) {
 
   const getRepairOrdersByStatus = (statusId: string) => {
     const filtered = repairOrders.filter((repairOrder) => {
@@ -146,9 +129,6 @@ export default function RoDragDropBoard({
           statusId={column.id}
           bgColor={column.bgColor}
           borderColor={column.borderColor}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-          onDrop={handleDrop}
           onEditRepairOrder={onEditRepairOrder}
           onDeleteRepairOrder={onDeleteRepairOrder}
           onCancelRepairOrder={onCancelRepairOrder}
@@ -156,7 +136,6 @@ export default function RoDragDropBoard({
           onLabelsUpdated={onLabelsUpdated}
           isPending={isPendingStatus(column.title)}
           isCompleted={isCompletedStatus(column.title)}
-          isDragOver={draggedRepairOrder?.statusId !== column.id}
           defaultLabel={defaultLabels.get(column.id) || null}
         />
       ))}
