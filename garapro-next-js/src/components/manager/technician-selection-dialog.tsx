@@ -12,7 +12,8 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Search, User, MapPin, Wrench, RefreshCw } from "lucide-react"
+import { DateTimePicker } from "@/components/ui/date-time-picker"
+import { Search, User, RefreshCw, Calendar } from "lucide-react"
 import { technicianService } from "@/services/manager/technician-service"
 import type { Technician } from "@/types/manager/tech-schedule"
 import { branchService } from "@/services/branch-service"
@@ -20,7 +21,7 @@ import { branchService } from "@/services/branch-service"
 interface TechnicianSelectionDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onAssign: (technicianId: string) => void
+  onAssign: (technicianId: string, deadline?: string | null) => void
   jobIds: string[]
   branchId?: string 
 }
@@ -36,6 +37,7 @@ export function TechnicianSelectionDialog({
   const [filteredTechnicians, setFilteredTechnicians] = useState<Technician[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedTechnician, setSelectedTechnician] = useState<string | null>(null)
+  const [deadline, setDeadline] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [branchName, setBranchName] = useState<string | null>(null)
@@ -55,7 +57,7 @@ export function TechnicianSelectionDialog({
   useEffect(() => {
     if (!open) {
       setSelectedTechnician(null)
-      // Don't reset hasLoadedRef here so we can check if we need to reload when reopening
+      setDeadline(null)
     }
   }, [open])
 
@@ -71,7 +73,7 @@ export function TechnicianSelectionDialog({
   const loadTechnicians = async () => {
     try {
       setLoading(true)
-      setError(null); // Clear any previous errors
+      setError(null);
       
       // Load technicians based on branch filtering if provided
       let data: Technician[]
@@ -110,7 +112,7 @@ export function TechnicianSelectionDialog({
 
   const handleAssign = () => {
     if (selectedTechnician) {
-      onAssign(selectedTechnician)
+      onAssign(selectedTechnician, deadline)
     }
   }
 
@@ -139,6 +141,20 @@ export function TechnicianSelectionDialog({
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
+          </div>
+
+          {/* Deadline Setting */}
+          <div className="space-y-2">
+            <DateTimePicker
+              label="Set Deadline"
+              value={deadline}
+              onChange={setDeadline}
+              placeholder="Set a deadline for the assigned jobs"
+              minDate={new Date()}
+            />
+            <p className="text-xs text-gray-500">
+              Set a deadline for all {jobIds.length} job{jobIds.length !== 1 ? 's' : ''} being assigned
+            </p>
           </div>
           
           {error ? (
@@ -183,17 +199,17 @@ export function TechnicianSelectionDialog({
                         <div className="flex items-center justify-between">
                           <p className="text-sm font-medium truncate">{technician.name}</p>
                         </div>
-                        <div className="flex items-center text-xs text-gray-500 mt-1">
+                        {/* <div className="flex items-center text-xs text-gray-500 mt-1">
                           <MapPin className="w-3 h-3 mr-1" />
                           <span className="truncate">{technician.location}</span>
-                        </div>
+                        </div> */}
                       </div>
-                      <div className="flex items-center">
+                      {/* <div className="flex items-center">
                         <Wrench className="w-4 h-4 text-gray-400 mr-1" />
                         <span className="text-xs text-gray-500">
                           {technician.skills.length}
                         </span>
-                      </div>
+                      </div> */}
                     </div>
                   ))}
                 </div>

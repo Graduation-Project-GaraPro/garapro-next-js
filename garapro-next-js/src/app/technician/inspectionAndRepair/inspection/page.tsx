@@ -375,7 +375,7 @@ export default function VehicleInspection() {
         
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 md:gap-6 xl:gap-8">
           {/* Vehicle List */}
-            <div className="xl:col-span-3 max-h-[63vh] overflow-y-auto rounded-xl xl:pr-4 md:xl:pr-6">
+            <div className="xl:col-span-3 max-h-[61vh] overflow-y-auto rounded-xl xl:pr-4 md:xl:pr-6">
              {/* Loading state */}
             {loading && (
               <div className="text-center py-16">

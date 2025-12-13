@@ -9,6 +9,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { useRouter } from "next/navigation"
 import LabelSelectionDialog from "./label-selection-dialog"
+import { TechnicianMonogramGroup } from "@/components/ui/technician-monogram"
 import type { RepairOrder } from "@/types/manager/repair-order"
 import { PaidStatus } from "@/types/manager/repair-order"
 
@@ -82,7 +83,7 @@ export default function RepairOrderCard({
     ? [defaultLabel]
     : []
 
-  console.log("paidstatus",repairOrder.paidStatus)
+
   const canArchive = repairOrder.isCancelled || (isCompleted && repairOrder.paidStatus === PaidStatus.Paid)
 
   const getPaidStatusColor = (status: PaidStatus) => {
@@ -151,27 +152,35 @@ export default function RepairOrderCard({
             <span className="text-xs font-semibold text-blue-600">RO #{repairOrder.repairOrderId.substring(0, 4)}</span>
             <ExternalLink className="w-3 h-3 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
           </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-4 w-4 p-0">
-                <MoreHorizontal className="w-2.5 h-2.5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {!repairOrder.isCancelled && !isCompleted && onCancel && (
-                <DropdownMenuItem onClick={onCancel} className="text-orange-600">
-                  <XCircle className="w-4 h-4 mr-2" />
-                  Cancel
-                </DropdownMenuItem>
-              )}
-              {canArchive && onArchive && (
-                <DropdownMenuItem onClick={onArchive} className="text-blue-600">
-                  <Archive className="w-4 h-4 mr-2" />
-                  Archive
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div className="flex items-center gap-2">
+            {/* Technician Monograms */}
+            <TechnicianMonogramGroup 
+              technicianNames={repairOrder.technicianNames}
+              maxVisible={2}
+              size="sm"
+            />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-4 w-4 p-0">
+                  <MoreHorizontal className="w-2.5 h-2.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {!repairOrder.isCancelled && !isCompleted && onCancel && (
+                  <DropdownMenuItem onClick={onCancel} className="text-orange-600">
+                    <XCircle className="w-4 h-4 mr-2" />
+                    Cancel
+                  </DropdownMenuItem>
+                )}
+                {canArchive && onArchive && (
+                  <DropdownMenuItem onClick={onArchive} className="text-blue-600">
+                    <Archive className="w-4 h-4 mr-2" />
+                    Archive
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
         <div className="mt-0.5">
           <div className="text-xs text-gray-900 font-medium leading-tight">
@@ -227,6 +236,7 @@ export default function RepairOrderCard({
           <User className="w-2.5 h-2.5 text-gray-500 flex-shrink-0" />
           <span className="font-medium">
             {repairOrder.customerName || "No customer name"} • {repairOrder.customerPhone}
+            {repairOrder.vehicleName && ` • ${repairOrder.vehicleName}`}
           </span>
         </div>
 

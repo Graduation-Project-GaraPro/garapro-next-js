@@ -16,7 +16,7 @@ export interface GarageServiceCatalogItem {
   isAdvanced: boolean
   createdAt: string
   updatedAt: string
-  categoryName?: string // Optional - populated when fetching with category info
+  categoryName?: string
 }
 
 export interface ServiceCategory {
@@ -173,8 +173,26 @@ class ServiceCatalogService {
   // New method to get parts by service ID
   async getPartsByServiceId(serviceId: string): Promise<Part[]> {
     try {
-      const response = await apiClient.get<Part[]>(`/Parts/service/${serviceId}`);
-      return response.data || [];
+      // Define the API response type that includes stockQuantity
+      interface ApiPartItem {
+        partId: string;
+        name: string;
+        price: number;
+        stockQuantity: number;
+        description?: string;
+        partCategoryId?: string;
+      }
+      
+      const response = await apiClient.get<ApiPartItem[]>(`/Parts/service/${serviceId}`);
+      const apiParts = response.data || [];
+      
+      // Map API response to Part interface
+      return apiParts.map(part => ({
+        partId: part.partId,
+        name: part.name,
+        price: part.price,
+        stock: part.stockQuantity // Map stockQuantity to stock
+      }));
     } catch (error) {
       console.error(`Failed to fetch parts for service ${serviceId}:`, error);
       return [];

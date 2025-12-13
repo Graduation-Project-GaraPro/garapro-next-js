@@ -12,10 +12,9 @@ import {
   BarChart3,
   ClipboardCheck,
   Cog,
-  UserCircle2,
   ChevronDown,
 } from "lucide-react";
-
+import {FaUserCircle}from "react-icons/fa";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -87,11 +86,11 @@ export default function TechnicianSidebar({ onClose }: TechnicianSidebarProps) {
   }, [pathname]);
 
   return (
-    <div className="h-full bg-background flex flex-col">
+    <div className="h-full bg-background flex flex-col rounded">
       <div className="px-4 py-4">
         <div className="flex items-center gap-2">
-          <Wrench className="h-5 w-5 text-muted-foreground" />
-          <p className="text-sm font-semibold tracking-wide text-muted-foreground">TECHNICIAN</p>
+          <Wrench className="h-6 w-6 text-muted-foreground" />
+          <p className="text-base font-bold tracking-wide text-muted-foreground italic">TECHNICIAN</p>
         </div>
       </div>
 
@@ -116,7 +115,7 @@ export default function TechnicianSidebar({ onClose }: TechnicianSidebarProps) {
                     <Button
                       variant="ghost"
                       className={cn(
-                        "w-full justify-between h-11",
+                        "w-full justify-between h-11 text-[16px]",
                         isParentActive ? activeClass : "hover:bg-muted"
                       )}
                     >
@@ -149,8 +148,7 @@ export default function TechnicianSidebar({ onClose }: TechnicianSidebarProps) {
                             className={cn(
                               "w-full justify-start h-10",
                               active
-                                ? activeClass : "hover:bg-muted"
-                                
+                                ? activeClass : "hover:bg-muted" ,active && "font-bold text-[15px]"                              
                             )}
                           >
                             <ChildIcon className="h-4 w-4 mr-3" />
@@ -170,9 +168,9 @@ export default function TechnicianSidebar({ onClose }: TechnicianSidebarProps) {
               <Link key={item.id} href={item.href!} onClick={handleNavClick}>
                 <Button
                   variant={active ? "secondary" : "ghost"}
-                  className={cn("w-full justify-start h-11", active && "font-semibold")}
+                  className={cn("w-full justify-start h-15 text-[16px] font-semibold", active && "font-bold text-[17px] bg-stone-200 ")}
                 >
-                  <Icon className="h-4 w-4 mr-3" />
+                  <Icon className="h-4 w-4 mr-4" />
                   {item.label}
                 </Button>
               </Link>
@@ -184,7 +182,7 @@ export default function TechnicianSidebar({ onClose }: TechnicianSidebarProps) {
       <Separator />
 
       <div className="p-4 flex items-center gap-3">
-        <UserCircle2 className="h-9 w-9 text-muted-foreground" />
+        <FaUserCircle className="h-9 w-9 text-muted-foreground" />
         <div className="min-w-0">
           <p className="text-sm font-medium truncate">{userInfo.fullName}</p>
           <p className="text-xs text-muted-foreground truncate">{userInfo.email}</p>

@@ -53,6 +53,8 @@ export default function EmergencyList() {
   const [selectedTech, setSelectedTech] = useState<string | null>(null);
   const [technicians, setTechnicians] = useState<any[]>([]);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [openDetailModal, setOpenDetailModal] = useState(false);
+  const [detailData, setDetailData] = useState<EmergencyRequest | null>(null);
 
   const apiBase =
     process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5000/api";
@@ -177,6 +179,21 @@ export default function EmergencyList() {
     }
   };
 
+  const handleOpenDetail = async (id: string) => {
+    try {
+      const res = await apiClient.get(`/EmergencyRequest/${id}`);
+
+      if (res.success) {
+        setDetailData(res.data as EmergencyRequest);
+        setOpenDetailModal(true);
+      } else {
+        toast.error("Failed to load details");
+      }
+    } catch {
+      toast.error("Failed to load details");
+    }
+  };
+
   // ===== ASSIGN TECHNICIAN =====
   const handleAssignTech = async () => {
     if (!selectedTech || !selectedEmergencyId) return;
@@ -262,12 +279,12 @@ export default function EmergencyList() {
                       </div>
 
                       <div className="flex flex-col gap-2 items-end">
-                        <Link
-                          href={`/manager/test?erId=${r.emergencyRequestId}`}
+                        <button
+                          onClick={() => handleOpenDetail(r.emergencyRequestId)}
                           className="text-sky-600 text-sm hover:underline"
                         >
                           View details
-                        </Link>
+                        </button>
 
                         <div className="flex gap-2">
                           {/* ACCEPT */}
@@ -360,6 +377,57 @@ export default function EmergencyList() {
                 }`}
               >
                 Assign
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {openDetailModal && detailData && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-[450px] max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-semibold mb-4">Emergency Details</h2>
+
+            <div className="space-y-2 text-sm">
+              <p>
+                <strong>Issue:</strong> {detailData.issueDescription ?? "—"}
+              </p>
+              <p>
+                <strong>Address:</strong> {detailData.address ?? "—"}
+              </p>
+              <p>
+                <strong>Status:</strong> {statusLabel(detailData.status).text}
+              </p>
+
+              <p>
+                <strong>Customer:</strong>{" "}
+                {detailData.customerName ?? detailData.customerPhone ?? "—"}
+              </p>
+
+              <p>
+                <strong>Vehicle:</strong> {detailData.vehicleName ?? "—"}
+              </p>
+
+              <p>
+                <strong>Request Time:</strong>{" "}
+                {detailData.requestTime
+                  ? new Date(detailData.requestTime).toLocaleString()
+                  : "—"}
+              </p>
+
+              {detailData.distanceToGarageKm && (
+                <p>
+                  <strong>Distance:</strong>{" "}
+                  {detailData.distanceToGarageKm.toFixed(1)} km
+                </p>
+              )}
+            </div>
+
+            <div className="flex justify-end mt-6">
+              <button
+                onClick={() => setOpenDetailModal(false)}
+                className="px-4 py-1 rounded bg-gray-200"
+              >
+                Close
               </button>
             </div>
           </div>

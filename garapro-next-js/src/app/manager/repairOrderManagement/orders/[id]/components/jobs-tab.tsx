@@ -1,7 +1,7 @@
 // src/app/manager/repairOrderManagement/orders/[id]/components/jobs-tab.tsx
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect} from "react"
 import { useJobHub } from "@/hooks/use-job-hub"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -15,7 +15,8 @@ import {
   User,
   Users,
   AlertCircle,
-  Edit
+  Edit,
+  CreditCard
 } from "lucide-react"
 import { jobService } from "@/services/manager/job-service"
 import { TechnicianSelectionDialog } from "@/components/manager/technician-selection-dialog"
@@ -25,11 +26,13 @@ import type { Job } from "@/types/job"
 
 interface JobsTabProps {
   orderId: string
-  branchId?: string // Optional branch ID for branch-specific technician filtering
-  isArchived?: boolean // Flag to indicate if the RO is archived (read-only mode)
+  branchId?: string 
+  isArchived?: boolean 
+  onAllJobsCompleted?: () => void 
+  onProcessPayment?: () => void
 }
 
-export default function JobsTab({ orderId, branchId, isArchived }: JobsTabProps) {
+export default function JobsTab({ orderId, branchId, isArchived, onAllJobsCompleted, onProcessPayment }: JobsTabProps) {
   const { toast } = useToast()
   const { isConnected, onJobStatusUpdated, onRepairCreated } = useJobHub()
   const [jobs, setJobs] = useState<Job[]>([])
@@ -41,6 +44,7 @@ export default function JobsTab({ orderId, branchId, isArchived }: JobsTabProps)
   const [assignmentError, setAssignmentError] = useState<string | null>(null)
   const [isEditJobOpen, setIsEditJobOpen] = useState(false)
   const [selectedJob, setSelectedJob] = useState<Job | null>(null)
+  const [hasNotifiedCompletion, setHasNotifiedCompletion] = useState(false)
 
   // Get technician monogram from name
   const getTechnicianMonogram = (name: string | null): string => {
@@ -59,21 +63,29 @@ export default function JobsTab({ orderId, branchId, isArchived }: JobsTabProps)
 
     // Handle job status updates (technician starts/finishes work)
     const unsubscribeStatus = onJobStatusUpdated((notification) => {
-      console.log("📋 Job status updated:", notification);
-      
       if (notification.repairOrderId === orderId) {
         loadJobs();
+        toast({
+          title: "Job Status Updated",
+          description: `Job "${notification.jobName}" status updated by ${notification.technicianName}`,
+        });
+        
+        // Check if this was a completion and trigger RO reload after a short delay
+        setTimeout(() => {
+          loadJobs()
+        }, 1000)
       }
     });
 
     const unsubscribeRepair = onRepairCreated((notification) => {
-      console.log("🚀 Technician started work:", notification);
-      
       // Check if this repair is for a job in this RO
       const job = jobs.find(j => j.jobId === notification.jobId);
       if (job) {
-        // Silently refresh jobs list
         loadJobs();
+        toast({
+          title: "Work Started",
+          description: `Technician started work on "${notification.jobName}"`,
+        });
       }
     });
 
@@ -94,11 +106,11 @@ export default function JobsTab({ orderId, branchId, isArchived }: JobsTabProps)
       // Initialize assigned techs from job data
       const initialAssignedTechs: Record<string, { id: string; name: string; monogram: string } | null> = {}
       data.forEach(job => {
-        // Check if at least the assignedTechnicianId is present
-        if (job.assignedTechnicianId && job.assignedTechnicianName) {
-          const techName = job.assignedTechnicianName
+        // Check if technician is assigned - API returns technicianName field
+        const techName = job.technicianName || job.assignedTechnicianName
+        if (techName) {
           initialAssignedTechs[job.jobId] = {
-            id: job.assignedTechnicianId,
+            id: job.assignedTechnicianId || 'unknown',
             name: techName,
             monogram: getTechnicianMonogram(techName)
           }
@@ -155,9 +167,16 @@ export default function JobsTab({ orderId, branchId, isArchived }: JobsTabProps)
 
   const handleJobUpdated = () => {
     loadJobs()
+    // Also trigger RO reload when jobs are updated
+    if (onAllJobsCompleted) {
+      // Small delay to ensure job status is updated before checking completion
+      setTimeout(() => {
+        loadJobs()
+      }, 500)
+    }
   }
 
-  const handleTechAssignment = async (technicianId: string) => {
+  const handleTechAssignment = async (technicianId: string, deadline?: string | null) => {
     if (!selectedJobIds.length) return
 
     try {
@@ -167,26 +186,39 @@ export default function JobsTab({ orderId, branchId, isArchived }: JobsTabProps)
         // Single job assignment/reassignment
         const jobId = selectedJobIds[0];
         
-        console.log(`Assigning/reassigning job ${jobId} to technician ${technicianId}`);
-        // Use the new assignTechnician method
-        await jobService.assignTechnician(jobId, technicianId);
+        console.log(`Assigning/reassigning job ${jobId} to technician ${technicianId}`, deadline ? `with deadline ${deadline}` : '');
+        
+        if (deadline) {
+          await jobService.assignTechnicianWithDeadline(jobId, technicianId, deadline);
+        } else {
+          await jobService.assignTechnician(jobId, technicianId);
+        }
         
         // Show success toast for single assignment
         toast({
           variant: "success",
           title: "Technician Assigned",
-          description: "The technician has been successfully assigned to the job.",
+          description: deadline 
+            ? "The technician has been successfully assigned with a deadline."
+            : "The technician has been successfully assigned to the job.",
         })
       } else {
         // Batch job assignment
-        console.log(`Assigning ${selectedJobIds.length} jobs to technician ${technicianId}`);
-        await jobService.assignJobsToTechnician(technicianId, selectedJobIds);
+        console.log(`Assigning ${selectedJobIds.length} jobs to technician ${technicianId}`, deadline ? `with deadline ${deadline}` : '');
+        
+        if (deadline) {
+          await jobService.assignJobsToTechnicianWithDeadline(technicianId, selectedJobIds, deadline);
+        } else {
+          await jobService.assignJobsToTechnician(technicianId, selectedJobIds);
+        }
         
         // Show success toast for batch assignment
         toast({
           variant: "success",
           title: "Technician Assigned",
-          description: `Successfully assigned technician to ${selectedJobIds.length} jobs.`,
+          description: deadline
+            ? `Successfully assigned technician to ${selectedJobIds.length} jobs with deadline.`
+            : `Successfully assigned technician to ${selectedJobIds.length} jobs.`,
         })
       }
 
@@ -197,11 +229,22 @@ export default function JobsTab({ orderId, branchId, isArchived }: JobsTabProps)
       setIsTechSelectionOpen(false);
       setSelectedJobIds([]);
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to assign technician:", error);
       
       // Extract error message from backend response or Error object
-      const errorMessage = error?.response?.data?.message || error?.message || "Failed to assign technician to job(s)";
+      const getErrorMessage = (err: unknown): string => {
+        if (err && typeof err === 'object' && 'response' in err) {
+          const apiError = err as { response?: { data?: { message?: string } } };
+          return apiError.response?.data?.message || "Failed to assign technician to job(s)";
+        }
+        if (err instanceof Error) {
+          return err.message;
+        }
+        return "Failed to assign technician to job(s)";
+      };
+      
+      const errorMessage = getErrorMessage(error);
       setAssignmentError(errorMessage);
       
       // Show error toast
@@ -240,6 +283,28 @@ export default function JobsTab({ orderId, branchId, isArchived }: JobsTabProps)
 
   // Check if there are pending or new jobs that can be assigned
   const hasAssignableJobs = jobs.some(job => job.status === 0 || job.status === 1)
+  
+  // Check if all jobs are completed
+  const allJobsCompleted = jobs.length > 0 && jobs.every(job => job.status === 3) // 3 = Completed
+  
+  useEffect(() => {
+    if (allJobsCompleted && onAllJobsCompleted && !hasNotifiedCompletion) {
+      onAllJobsCompleted()
+      setHasNotifiedCompletion(true)
+      
+      // Show completion toast
+      toast({
+        title: "All Jobs Completed!",
+        description: "All jobs have been completed. Payment now available.",
+        duration: 5000,
+      })
+    }
+    
+    // Reset notification flag if jobs are no longer all completed
+    if (!allJobsCompleted && hasNotifiedCompletion) {
+      setHasNotifiedCompletion(false)
+    }
+  }, [allJobsCompleted, onAllJobsCompleted, hasNotifiedCompletion, toast])
 
   if (loading) {
     return (
@@ -267,8 +332,33 @@ export default function JobsTab({ orderId, branchId, isArchived }: JobsTabProps)
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold">Jobs</h2>
+        <div>
+          <h2 className="text-xl font-semibold">Jobs</h2>
+          {!isArchived && (
+            <div className="space-y-1">
+              <p className="text-sm text-gray-500">
+                Jobs can only be edited when they are in Pending or New status
+              </p>
+              {jobs.length > 0 && (
+                <p className="text-sm text-gray-600">
+                  Progress: {jobs.filter(job => job.status === 3).length} of {jobs.length} jobs completed
+                  {allJobsCompleted && <span className="text-green-600 font-medium ml-2">✓ All Complete!</span>}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
         <div className="flex gap-2">
+          {!isArchived && allJobsCompleted && onProcessPayment && (
+            <Button 
+              onClick={onProcessPayment} 
+              className="bg-green-600 hover:bg-green-700 text-white animate-pulse hover:animate-none shadow-lg"
+              size="sm"
+            >
+              <CreditCard className="w-4 h-4 mr-2" />
+              Process Payment
+            </Button>
+          )}
           {!isArchived && hasAssignableJobs && (
             <Button onClick={handleBatchAssignTech} variant="outline" size="sm">
               <Users className="w-4 h-4 mr-2" />
@@ -281,6 +371,16 @@ export default function JobsTab({ orderId, branchId, isArchived }: JobsTabProps)
           </Button>
         </div>
       </div>
+
+      {/* All Jobs Completed Message */}
+      {!isArchived && allJobsCompleted && (
+        <div className="bg-green-50 border border-green-200 rounded-md p-4 flex items-center">
+          <CreditCard className="w-5 h-5 text-green-600 mr-2" />
+          <div>
+            <p className="text-green-700 font-medium">All Jobs Completed!</p>
+          </div>
+        </div>
+      )}
 
       {/* Assignment Error Message */}
       {assignmentError && (
@@ -315,8 +415,8 @@ export default function JobsTab({ orderId, branchId, isArchived }: JobsTabProps)
                     <CardTitle className="text-lg">{job.jobName}</CardTitle>
                   </div>
                   <div className="flex items-center gap-2">
-                    {/* Edit Job Button - Hide for completed jobs or archived ROs */}
-                    {!isArchived && job.status !== 3 && ( // 3 = Completed
+                    {/* Edit Job Button - Only allow editing for Pending (0) or New (1) status */}
+                    {!isArchived && (job.status === 0 || job.status === 1) ? (
                       <Button
                         variant="outline"
                         size="sm"
@@ -326,7 +426,18 @@ export default function JobsTab({ orderId, branchId, isArchived }: JobsTabProps)
                         <Edit className="h-4 w-4" />
                         <span>Edit</span>
                       </Button>
-                    )}
+                    ) : !isArchived && job.status >= 2 ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled
+                        className="flex items-center gap-2 opacity-50 cursor-not-allowed"
+                        title="Cannot edit job - technician has started working"
+                      >
+                        <Edit className="h-4 w-4" />
+                        <span>Edit</span>
+                      </Button>
+                    ) : null}
 
                     {/* Technician Assignment - Only for Pending (0) or New (1) status and not archived */}
                     {!isArchived && (job.status === 0 || job.status === 1) ? (

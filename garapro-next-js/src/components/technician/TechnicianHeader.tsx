@@ -591,7 +591,6 @@
                     )}
                   </div>
 
-
                   {/* Footer */}
                   {notifications.length > 0 && (
                     <div className="p-2 border-t border-gray-100 bg-gray-50 rounded-xl">
@@ -605,8 +604,6 @@
                 </div>
               )}
             </div>
-
-
             <div className="h-8 w-px bg-gray-400/50"></div>
 
 

@@ -60,8 +60,8 @@ export default function PaymentTab({ orderId, repairOrderStatus, paidStatus, isA
   const { isConnected: isPaymentHubConnected } = usePaymentHub({
     repairOrderId: orderId,
     isManager: true,
-    autoConnect: isRepairOrderCompleted, // Only connect if repair order is completed
-    showToasts: false, // We'll handle toasts manually
+    autoConnect: isRepairOrderCompleted, 
+    showToasts: false, 
     onPaymentCreated: (event) => {
       console.log("Payment created for this RO:", event)
       // Reload payment summary when new payment is created
@@ -210,7 +210,7 @@ export default function PaymentTab({ orderId, repairOrderStatus, paidStatus, isA
       setProcessingPayment(true)
       
       const paymentRequest = {
-        method: 0,
+        method: 1,
         description: cashPaymentData.description || `Cash payment for repair order ${orderId}`,
       };
       
@@ -227,15 +227,11 @@ export default function PaymentTab({ orderId, repairOrderStatus, paidStatus, isA
         description: response.message || "Cash payment processed successfully. Repair order status updated.",
       })
 
-      // Reload payment summary to update transaction history
       await loadPaymentSummary()
-
-      // Notify parent component to refresh repair order data
       if (onPaymentSuccess) {
         onPaymentSuccess()
       }
 
-      // Close dialog and reset
       setShowPaymentPreview(false)
       setPaymentPreview(null)
       setCashPaymentData({
@@ -269,7 +265,6 @@ export default function PaymentTab({ orderId, repairOrderStatus, paidStatus, isA
           onPaymentSuccess()
         }
 
-        // Close dialog and reset
         setShowPaymentPreview(false)
         setPaymentPreview(null)
         setCashPaymentData({

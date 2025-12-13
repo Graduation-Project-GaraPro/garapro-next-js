@@ -24,8 +24,9 @@ export interface ServiceItem {
 
 export interface PartItem {
   partId: string;
-  partName: string;
+  name: string;
   price: number;
+  stock: number
 }
 
 export interface PartCategory {
@@ -103,11 +104,28 @@ class QuotationTreeService {
   // Get parts by category ID
   async getPartsByCategory(categoryId: string): Promise<PartItem[]> {
     try {
-      const response = await apiClient.get<PartItem[]>(`${this.baseUrl}/parts/category/${categoryId}`);
+      // Define the API response type that includes stockQuantity
+      interface ApiPartItem {
+        partId: string;
+        name: string;
+        price: number;
+        stockQuantity: number;
+        description?: string;
+        partCategoryId?: string;
+      }
+      
+      const response = await apiClient.get<ApiPartItem[]>(`${this.baseUrl}/parts/category/${categoryId}`);
       if (!response.data) {
         throw new Error('No data received from API');
       }
-      return response.data;
+      
+      // Map API response to PartItem interface
+      return response.data.map(part => ({
+        partId: part.partId,
+        name: part.name,
+        price: part.price,
+        stock: part.stockQuantity // Map stockQuantity to stock
+      }));
     } catch (error) {
       console.error(`Failed to fetch parts for category ${categoryId}:`, error);
       throw error;

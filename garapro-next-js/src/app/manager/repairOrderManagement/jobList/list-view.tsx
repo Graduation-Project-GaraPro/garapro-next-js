@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useRouter } from "next/navigation"
-import { repairOrderService } from "@/services/manager/repair-order-service"
+import { repairOrderService, setBranchIdGetter } from "@/services/manager/repair-order-service"
+import { useManagerSession } from "@/contexts/manager-session-context"
 import type { RepairOrder } from "@/types/manager/repair-order"
 
 export default function ListView() {
@@ -19,6 +20,12 @@ export default function ListView() {
   const [totalPages, setTotalPages] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
   const [loading, setLoading] = useState(true)
+  const { getBranchId } = useManagerSession()
+
+  // Set up branch ID getter
+  useEffect(() => {
+    setBranchIdGetter(getBranchId);
+  }, [getBranchId]);
 
   // Fetch repair orders with pagination
   useEffect(() => {
@@ -182,7 +189,6 @@ export default function ListView() {
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1">
-                    <DollarSign className="w-3 h-3 text-green-600" />
                     <span className="text-sm font-semibold text-green-600">
                       {formatCurrency(ro.cost > 0 ? ro.cost : ro.estimatedAmount)}
                     </span>

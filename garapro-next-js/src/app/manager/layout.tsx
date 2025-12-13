@@ -5,12 +5,14 @@ import { useMemo } from "react";
 import { useRouter, usePathname } from "next/navigation";
 
 import { useAuth } from "@/contexts/auth-context";
+import { ManagerSessionProvider } from "@/contexts/manager-session-context";
 import { AppSidebar } from "@/app/manager/components/layout/app-sidebar";
 import { SiteHeader } from "@/app/manager/components/layout/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { Toaster } from "@/components/ui/toaster";
 import AccessDenied from "@/app/access-denied/page";
 import { authService } from "@/services/authService";
+import { QuotationResponseListener } from "@/components/manager/quotation-response-listener";
 
 export default function ManagerLayout({ children }: { children: ReactNode }) {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -53,19 +55,22 @@ export default function ManagerLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="h-screen flex flex-col">
-      <SidebarProvider className="flex flex-col flex-1 min-h-0">
-        <SiteHeader />
-        <div className="flex flex-1 min-h-0">
-          <AppSidebar />
-          <SidebarInset>
-            <div className="flex-1 min-h-0 overflow-y-auto">
-              {children}
-            </div>
-          </SidebarInset>
-        </div>
-      </SidebarProvider>
-      <Toaster />
-    </div>
+    <ManagerSessionProvider>
+      <div className="h-screen flex flex-col">
+        <SidebarProvider className="flex flex-col flex-1 min-h-0">
+          <SiteHeader />
+          <div className="flex flex-1 min-h-0">
+            <AppSidebar />
+            <SidebarInset>
+              <div className="flex-1 min-h-0 overflow-y-auto">
+                {children}
+              </div>
+            </SidebarInset>
+          </div>
+        </SidebarProvider>
+        <Toaster />
+        {isManager && <QuotationResponseListener />}
+      </div>
+    </ManagerSessionProvider>
   );
 }

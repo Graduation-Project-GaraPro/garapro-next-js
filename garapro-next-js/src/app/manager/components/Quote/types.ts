@@ -18,7 +18,7 @@ export interface CustomItem {
   id: string
   name: string
   price: number
-  // recommended: boolean - Removed recommended property
+  quantity?: number 
 }
 
 export interface Part {

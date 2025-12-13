@@ -206,6 +206,7 @@ export default function QuotePage() {
             isApproved={quotation.status === "Approved"}
             quoteSent={quotation.status === "Sent" || quotation.sentToCustomerAt !== null}
             sentAt={quotation.sentToCustomerAt}
+            status={quotation.status as "Pending" | "Sent" | "Approved" | "Rejected" | "Expired" | "Good"}
           />
         </div>
       </div>

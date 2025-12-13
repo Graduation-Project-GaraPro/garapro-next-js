@@ -15,7 +15,6 @@ import { repairOrderService } from "@/services/manager/repair-order-service"
 import { 
   CreateQuotationDto, 
   QuotationServiceCreateDto, 
-  QuotationServicePartCreateDto 
 } from "@/types/manager/quotation"
 import type { RepairOrder } from "@/types/manager/repair-order"
 import type { PartItem } from "@/services/manager/quotation-tree-service"
@@ -230,7 +229,7 @@ export function CreateQuotationDialogV2({
                                     key={part.partId}
                                     className="text-xs text-gray-600 flex justify-between bg-gray-50 p-2 rounded"
                                   >
-                                    <span>{part.partName}</span>
+                                    <span>{part.name}</span>
                                     <span>{formatVND(part.price)}</span>
                                   </div>
                                 ))}
