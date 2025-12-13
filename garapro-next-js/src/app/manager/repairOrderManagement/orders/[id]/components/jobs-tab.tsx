@@ -176,7 +176,7 @@ export default function JobsTab({ orderId, branchId, isArchived, onAllJobsComple
     }
   }
 
-  const handleTechAssignment = async (technicianId: string, deadline?: string | null) => {
+  const handleTechAssignment = async (technicianId: string) => {
     if (!selectedJobIds.length) return
 
     try {
@@ -186,39 +186,27 @@ export default function JobsTab({ orderId, branchId, isArchived, onAllJobsComple
         // Single job assignment/reassignment
         const jobId = selectedJobIds[0];
         
-        console.log(`Assigning/reassigning job ${jobId} to technician ${technicianId}`, deadline ? `with deadline ${deadline}` : '');
+        console.log(`Assigning/reassigning job ${jobId} to technician ${technicianId}`);
         
-        if (deadline) {
-          await jobService.assignTechnicianWithDeadline(jobId, technicianId, deadline);
-        } else {
-          await jobService.assignTechnician(jobId, technicianId);
-        }
+        await jobService.assignTechnician(jobId, technicianId);
         
         // Show success toast for single assignment
         toast({
           variant: "success",
           title: "Technician Assigned",
-          description: deadline 
-            ? "The technician has been successfully assigned with a deadline."
-            : "The technician has been successfully assigned to the job.",
+          description: "The technician has been successfully assigned to the job.",
         })
       } else {
         // Batch job assignment
-        console.log(`Assigning ${selectedJobIds.length} jobs to technician ${technicianId}`, deadline ? `with deadline ${deadline}` : '');
+        console.log(`Assigning ${selectedJobIds.length} jobs to technician ${technicianId}`);
         
-        if (deadline) {
-          await jobService.assignJobsToTechnicianWithDeadline(technicianId, selectedJobIds, deadline);
-        } else {
-          await jobService.assignJobsToTechnician(technicianId, selectedJobIds);
-        }
+        await jobService.assignJobsToTechnician(technicianId, selectedJobIds);
         
         // Show success toast for batch assignment
         toast({
           variant: "success",
           title: "Technician Assigned",
-          description: deadline
-            ? `Successfully assigned technician to ${selectedJobIds.length} jobs with deadline.`
-            : `Successfully assigned technician to ${selectedJobIds.length} jobs.`,
+          description: `Successfully assigned technician to ${selectedJobIds.length} jobs.`,
         })
       }
 

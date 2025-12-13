@@ -12,8 +12,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { DateTimePicker } from "@/components/ui/date-time-picker"
-import { Search, User, RefreshCw, Calendar } from "lucide-react"
+import { Search, User, RefreshCw } from "lucide-react"
 import { technicianService } from "@/services/manager/technician-service"
 import type { Technician } from "@/types/manager/tech-schedule"
 import { branchService } from "@/services/branch-service"
@@ -21,7 +20,7 @@ import { branchService } from "@/services/branch-service"
 interface TechnicianSelectionDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onAssign: (technicianId: string, deadline?: string | null) => void
+  onAssign: (technicianId: string) => void
   jobIds: string[]
   branchId?: string 
 }
@@ -37,7 +36,6 @@ export function TechnicianSelectionDialog({
   const [filteredTechnicians, setFilteredTechnicians] = useState<Technician[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedTechnician, setSelectedTechnician] = useState<string | null>(null)
-  const [deadline, setDeadline] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [branchName, setBranchName] = useState<string | null>(null)
@@ -57,7 +55,6 @@ export function TechnicianSelectionDialog({
   useEffect(() => {
     if (!open) {
       setSelectedTechnician(null)
-      setDeadline(null)
     }
   }, [open])
 
@@ -112,7 +109,7 @@ export function TechnicianSelectionDialog({
 
   const handleAssign = () => {
     if (selectedTechnician) {
-      onAssign(selectedTechnician, deadline)
+      onAssign(selectedTechnician)
     }
   }
 
@@ -141,20 +138,6 @@ export function TechnicianSelectionDialog({
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
-          </div>
-
-          {/* Deadline Setting */}
-          <div className="space-y-2">
-            <DateTimePicker
-              label="Set Deadline"
-              value={deadline}
-              onChange={setDeadline}
-              placeholder="Set a deadline for the assigned jobs"
-              minDate={new Date()}
-            />
-            <p className="text-xs text-gray-500">
-              Set a deadline for all {jobIds.length} job{jobIds.length !== 1 ? 's' : ''} being assigned
-            </p>
           </div>
           
           {error ? (
