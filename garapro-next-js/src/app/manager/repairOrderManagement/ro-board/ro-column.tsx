@@ -59,7 +59,7 @@ export default function RoColumn({
 }: RoColumnProps) {
 
   return (
-    <div className="flex-1 border-r bg-white h-full min-h-0 flex flex-col">
+    <div className={`flex-1 border-r ${bgColor} h-full min-h-0 flex flex-col`}>
       <div className="p-1 border-b bg-gray-50">
         <div className="flex items-center justify-between">
           <h2 className="font-semibold text-gray-800">{title}</h2>
