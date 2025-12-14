@@ -44,6 +44,7 @@ export const HUB_ENDPOINTS = {
   JOB: "/hubs/job",
   REPAIR: "/hubs/repair",
   PAYMENT: "/hubs/payment",
+  NOTIFICATION: "/notificationHub",
 } as const;
 
 /**

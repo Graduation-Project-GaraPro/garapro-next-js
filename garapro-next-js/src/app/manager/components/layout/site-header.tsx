@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, PanelLeft, User } from "lucide-react";
+import { PanelLeft, User } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { authService } from "@/services/authService";
@@ -18,7 +18,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Badge } from "@/components/ui/badge"
+import { NotificationDropdown } from "@/components/manager/notification-dropdown"
+import { RepairOrderCompletionToast } from "@/components/manager/repair-order-completion-toast"
 // import TechnicianAssignmentNotification from "@/components/manager/technician-assignment-notification"
 
 export function SiteHeader() {
@@ -98,21 +99,9 @@ export function SiteHeader() {
           </Button> */}
 
 
-          {/* General Notifications Button with Badge */}
-          <div className="relative">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-white hover:text-white hover:bg-white/10"
-            >
-              <Bell className="h-4 w-4" />
-            </Button>
-            <Badge
-              variant="destructive"
-              className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs bg-[#ae2621]"
-            >
-              1
-            </Badge>
+          {/* Manager Notifications */}
+          <div className="text-white [&_button]:text-white [&_button:hover]:text-white [&_button:hover]:bg-white/10">
+            <NotificationDropdown branchId={branch?.branchID} useRepairOrderHub={false} />
           </div>
 
           <Separator orientation="vertical" className="h-4 bg-white/30" />
@@ -176,6 +165,9 @@ export function SiteHeader() {
           </DropdownMenu>
         </div>
       </div>
+      
+      {/* Repair Order Completion Toast Handler */}
+      <RepairOrderCompletionToast branchId={branch?.branchID} />
     </header>
   );
 }
