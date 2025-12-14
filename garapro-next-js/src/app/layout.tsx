@@ -1,7 +1,7 @@
 import { OnlineUserProvider } from "@/constants/OnlineUserProvider";
 
 import { Toaster } from "sonner";
-import EmergencyHubProvider from "@/app/providers/EmergencyHubProvider";
+
 import "./globals.css";
 
 import { AuthProvider } from "@/contexts/auth-context";
@@ -22,9 +22,7 @@ export default function RootLayout({
       <body>
         <AuthProvider>
           <PermissionProvider>
-            <OnlineUserProvider>
-              <EmergencyHubProvider>{children}</EmergencyHubProvider>
-            </OnlineUserProvider>
+            <OnlineUserProvider>{children}</OnlineUserProvider>
             <Toaster />
           </PermissionProvider>
         </AuthProvider>
