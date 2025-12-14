@@ -395,7 +395,7 @@ export default function EmergencyList() {
                 <strong>Address:</strong> {detailData.address ?? "—"}
               </p>
               <p>
-                <strong>Status:</strong> {statusLabel(detailData.status).text}
+                <strong>Status:</strong> {detailData.status ?? "—"}
               </p>
 
               <p>

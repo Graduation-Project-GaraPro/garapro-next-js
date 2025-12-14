@@ -6,6 +6,7 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import {
@@ -93,8 +94,134 @@ export default function EmergencyHubProvider({
   const [groups, setGroups] = useState<string[]>([]);
   const router = useRouter();
 
+  // Prevent duplicate initialization
+  const isInitializedRef = useRef(false);
+  const toastIdsRef = useRef<Map<string, string | number>>(new Map());
+
   useEffect(() => {
+    // Prevent duplicate setup in StrictMode
+    if (isInitializedRef.current) return;
+
     let mounted = true;
+    isInitializedRef.current = true;
+
+    // API action handlers
+    const acceptRequest = async (id: string) => {
+      try {
+        const res = await apiClient.post(`/EmergencyRequest/approve/${id}`);
+        if (res?.success) {
+          toast.success("Request accepted");
+          setNotifications((prev) =>
+            prev.map((n) =>
+              n.EmergencyRequestId === id ? { ...n, Status: "Accepted" } : n
+            )
+          );
+        } else {
+          throw new Error(res?.message ?? "Server error");
+        }
+      } catch (err: any) {
+        toast.error(err?.message ?? "Accept failed");
+        throw err;
+      }
+    };
+
+    const cancelRequest = async (id: string) => {
+      try {
+        const res = await apiClient.put(`/EmergencyRequest/reject/${id}`);
+        if (res?.success) {
+          toast.success("Request cancelled");
+          setNotifications((prev) =>
+            prev.map((n) =>
+              n.EmergencyRequestId === id ? { ...n, Status: "Cancelled" } : n
+            )
+          );
+        } else {
+          throw new Error(res?.message ?? "Server error");
+        }
+      } catch (err: any) {
+        toast.error(err?.message ?? "Cancel failed");
+        throw err;
+      }
+    };
+
+    // Event handler for emergency requests
+    const handleEmergencyRequest = (data: EmergencyNotification) => {
+      if (!mounted) return;
+
+      console.log("EVENT EmergencyRequestCreated", data);
+
+      // Check if we already have a toast for this request
+      const existingToastId = toastIdsRef.current.get(data.EmergencyRequestId);
+      if (existingToastId) {
+        console.log("Toast already exists for", data.EmergencyRequestId);
+        return;
+      }
+
+      setNotifications((prev) => {
+        // Prevent duplicate notifications
+        const exists = prev.some(
+          (n) => n.EmergencyRequestId === data.EmergencyRequestId
+        );
+        if (exists) return prev;
+        return [data, ...prev];
+      });
+
+      // Create toast
+      const toastId = toast.custom(
+        (id) => (
+          <RequestToastContent
+            data={data}
+            onAccept={async (reqId) => {
+              try {
+                await acceptRequest(reqId);
+                toast.dismiss(id);
+                toastIdsRef.current.delete(data.EmergencyRequestId);
+              } catch {
+                // Error already handled in acceptRequest
+              }
+            }}
+            onCancel={async (reqId) => {
+              try {
+                await cancelRequest(reqId);
+                toast.dismiss(id);
+                toastIdsRef.current.delete(data.EmergencyRequestId);
+              } catch {
+                // Error already handled in cancelRequest
+              }
+            }}
+            onView={() => {
+              toast.dismiss(id);
+              toastIdsRef.current.delete(data.EmergencyRequestId);
+              router.push(`/manager/emergency`);
+            }}
+          />
+        ),
+        {
+          duration: 20000,
+          onDismiss: () => {
+            toastIdsRef.current.delete(data.EmergencyRequestId);
+          },
+          onAutoClose: () => {
+            toastIdsRef.current.delete(data.EmergencyRequestId);
+          },
+        }
+      );
+
+      // Store toast ID to prevent duplicates
+      toastIdsRef.current.set(data.EmergencyRequestId, toastId);
+    };
+
+    // Update groups handler
+    const updateGroups = async () => {
+      if (!mounted) return;
+      try {
+        const g = await emergencyHubClient.getJoinedGroups();
+        if (!mounted) return;
+        setGroups(g);
+      } catch (err) {
+        console.warn("updateGroups failed", err);
+      }
+    };
 
     async function setup() {
       try {
@@ -133,7 +260,9 @@ export default function EmergencyHubProvider({
             branchObj = await branchService.getCurrentUserBranch(
               tokenUserId ?? ""
             );
-          } catch {}
+          } catch (fallbackErr) {
+            console.warn("Fallback branch fetch failed", fallbackErr);
+          }
         }
 
         const pf: UserProfile = {
@@ -155,106 +284,17 @@ export default function EmergencyHubProvider({
           await emergencyHubClient.start(token);
           if (!mounted) return;
           setConnected(true);
+          console.log("SignalR connected successfully");
         } catch (err) {
           console.error("SignalR start error", err);
           return;
         }
 
-        // Replace the old event handler
+        // Register event handlers
         emergencyHubClient.on(
           "EmergencyRequestCreated",
-          (data: EmergencyNotification) => {
-            console.log("EVENT EmergencyRequestCreated", data);
-            setNotifications((prev) => [data, ...prev]);
-
-            // API actions
-            const acceptRequest = async (id: string) => {
-              try {
-                const res = await apiClient.post(
-                  `/EmergencyRequest/approve/${id}`
-                );
-                if (res?.success) {
-                  toast.success("Request accepted");
-                  setNotifications((prev) =>
-                    prev.map((n) =>
-                      n.EmergencyRequestId === id
-                        ? { ...n, Status: "Accepted" }
-                        : n
-                    )
-                  );
-                } else {
-                  throw new Error(res?.message ?? "Server error");
-                }
-              } catch (err: any) {
-                toast.error(err?.message ?? "Accept failed");
-                throw err;
-              }
-            };
-
-            const cancelRequest = async (id: string) => {
-              try {
-                const res = await apiClient.put(
-                  `/EmergencyRequest/reject/${id}`
-                );
-                if (res?.success) {
-                  toast.success("Request cancelled");
-                  setNotifications((prev) =>
-                    prev.map((n) =>
-                      n.EmergencyRequestId === id
-                        ? { ...n, Status: "Cancelled" }
-                        : n
-                    )
-                  );
-                } else {
-                  throw new Error(res?.message ?? "Server error");
-                }
-              } catch (err: any) {
-                toast.error(err?.message ?? "Cancel failed");
-                throw err;
-              }
-            };
-
-            // Toast render
-            const id = toast.custom(
-              () => (
-                <RequestToastContent
-                  data={data}
-                  toastId={""}
-                  onAccept={async (id) => {
-                    try {
-                      await acceptRequest(id);
-                      toast.dismiss(toastIdRef.current);
-                    } catch {}
-                  }}
-                  onCancel={async (id) => {
-                    try {
-                      await cancelRequest(id);
-                      toast.dismiss(toastIdRef.current);
-                    } catch {}
-                  }}
-                  onView={() => {
-                    toast.dismiss(toastIdRef.current);
-                    router.push(`/manager/emergency`);
-                  }}
-                />
-              ),
-              { duration: 20000 }
-            );
-
-            const toastIdRef = { current: id } as {
-              current: string | undefined;
-            };
-          }
+          handleEmergencyRequest
         );
-
-        const updateGroups = async () => {
-          try {
-            const g = await emergencyHubClient.getJoinedGroups();
-            if (!mounted) return;
-            setGroups(g);
-          } catch {}
-        };
-
         emergencyHubClient.on("JoinedBranchGroup", updateGroups);
         emergencyHubClient.on("LeftBranchGroup", updateGroups);
         emergencyHubClient.on("JoinedCustomerGroup", updateGroups);
@@ -268,7 +308,9 @@ export default function EmergencyHubProvider({
             try {
               const b = await branchService.getCurrentUserBranch(tokenUserId);
               branchId = b?.branchId ?? null;
-            } catch {}
+            } catch (err) {
+              console.warn("Could not fetch branch for manager", err);
+            }
           }
           if (branchId) {
             try {
@@ -279,7 +321,7 @@ export default function EmergencyHubProvider({
               console.error("joinBranchGroup failed", err);
             }
           } else {
-            console.warn("Manager but no branchId");
+            console.warn("Manager role detected but no branchId available");
           }
         }
 
@@ -291,10 +333,29 @@ export default function EmergencyHubProvider({
 
     setup();
 
+    // Cleanup function
     return () => {
       mounted = false;
+
+      console.log("Cleaning up EmergencyHubProvider");
+
+      // Remove all event handlers
+      emergencyHubClient.off("EmergencyRequestCreated", handleEmergencyRequest);
+      emergencyHubClient.off("JoinedBranchGroup", updateGroups);
+      emergencyHubClient.off("LeftBranchGroup", updateGroups);
+      emergencyHubClient.off("JoinedCustomerGroup", updateGroups);
+      emergencyHubClient.off("LeftCustomerGroup", updateGroups);
+
+      // Dismiss all active toasts
+      toastIdsRef.current.forEach((toastId) => {
+        toast.dismiss(toastId);
+      });
+      toastIdsRef.current.clear();
+
+      // Optional: Stop SignalR connection if needed
+      // emergencyHubClient.stop();
     };
-  }, []);
+  }, []); // Empty dependency array - only run once
 
   const value = useMemo(
     () => ({ connected, profile, notifications, groups }),

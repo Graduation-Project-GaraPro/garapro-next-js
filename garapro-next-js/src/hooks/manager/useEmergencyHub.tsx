@@ -95,13 +95,13 @@ export function useEmergencyHub() {
         // optional: browser notification
         if (typeof window !== "undefined" && "Notification" in window) {
           if (Notification.permission === "granted") {
-            new Notification(payload.Message ?? "Yêu cầu cứu hộ mới", {
+            new Notification(payload.Message ?? "new emergency", {
               body: payload.Address ?? "",
             });
           } else if (Notification.permission !== "denied") {
             Notification.requestPermission().then((perm) => {
               if (perm === "granted")
-                new Notification(payload.Message ?? "Yêu cầu cứu hộ mới");
+                new Notification(payload.Message ?? "new emergency");
             });
           }
         }
