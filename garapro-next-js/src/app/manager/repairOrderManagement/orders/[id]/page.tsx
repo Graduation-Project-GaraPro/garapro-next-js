@@ -91,13 +91,12 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
   }
 
   const handleProcessPayment = () => {
-    // Switch to payment tab
-    setActiveTab("payment")
+    // Reload the RO page and navigate to payment tab
+    const currentPath = `/manager/repairOrderManagement/orders/${orderId}`
     
-    // Also update URL to reflect the tab change
-    const currentUrl = new URL(window.location.href)
-    currentUrl.searchParams.set("tab", "payment")
-    window.history.pushState({}, "", currentUrl.toString())
+    // Use router.push with refresh to reload the page and switch to payment tab
+    router.push(`${currentPath}?tab=payment`)
+    router.refresh()
   }
 
   // Apply tab from query when available
