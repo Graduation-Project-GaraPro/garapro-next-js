@@ -5,10 +5,17 @@ import type { ApiResponse } from '@/types/manager/api';
 export interface ManagerNotification {
   notificationID: string;
   content: string;
-  type: "Message" | "Alert" | "Info" | "Warning";
+  type: "Message" | "Alert" | "Info" | "Warning" | "REPAIR_ORDER_COMPLETED";
   timeSent: string;
   status: "Read" | "Unread";
   target: string;
+  // Additional fields for repair order completion notifications
+  repairOrderId?: string;
+  customerName?: string;
+  vehicleInfo?: string;
+  isAutoCompleted?: boolean;
+  completionType?: string;
+  title?: string;
 }
 
 export interface UnreadCountResponse {

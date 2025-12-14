@@ -196,7 +196,7 @@ export default function PaymentTab({ orderId, repairOrderStatus, paidStatus, isA
       console.log("✅ Payment summary loaded:", {
         repairOrderId: orderId,
         paidStatus: enrichedData.paidStatus,
-        paymentHistory: enrichedData.paymentHistory.length,
+        paymentHistory: enrichedData.paymentHistory?.length || 0,
         amountToPay: enrichedData.amountToPay
       })
       
@@ -541,7 +541,7 @@ export default function PaymentTab({ orderId, repairOrderStatus, paidStatus, isA
             </div>
           </CardHeader>
           <CardContent>
-            {paymentSummary && paymentSummary.paymentHistory.length > 0 ? (
+            {paymentSummary && paymentSummary.paymentHistory && paymentSummary.paymentHistory.length > 0 ? (
               <div className="space-y-4">
                 <div className="overflow-x-auto">
                   <table className="w-full">
@@ -555,7 +555,7 @@ export default function PaymentTab({ orderId, repairOrderStatus, paidStatus, isA
                       </tr>
                     </thead>
                     <tbody>
-                      {paymentSummary.paymentHistory.map((payment) => {
+                      {paymentSummary.paymentHistory?.map((payment) => {
                         const methodName = getPaymentMethodName(payment.method);
                         const statusName = getPaymentStatusName(payment.status);
                         const statusColor = getPaymentStatusColor(payment.status);
@@ -566,8 +566,8 @@ export default function PaymentTab({ orderId, repairOrderStatus, paidStatus, isA
                             <td className="py-3 text-sm font-medium">{formatVND(payment.amount)}</td>
                             <td className="py-3 text-sm">
                               <span className="inline-flex items-center gap-1">
-                                {methodName === 'Cash' && '💵'}
-                                {methodName === 'PayOs' && '📱'}
+                                {methodName === 'Cash'}
+                                {methodName === 'PayOs'}
                                 {methodName}
                               </span>
                             </td>
@@ -874,7 +874,7 @@ export default function PaymentTab({ orderId, repairOrderStatus, paidStatus, isA
                   <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                     <h4 className="font-medium text-gray-900 mb-3">Services</h4>
                     <div className="space-y-2">
-                      {paymentPreview.services.map((service, index) => (
+                      {paymentPreview.services?.map((service, index) => (
                         <div key={`${service.serviceId}-${index}`} className="flex justify-between text-sm">
                           <div className="flex-1">
                             <p className="font-medium">{service.serviceName}</p>
@@ -892,7 +892,7 @@ export default function PaymentTab({ orderId, repairOrderStatus, paidStatus, isA
                   <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
                     <h4 className="font-medium text-gray-900 mb-3">Parts</h4>
                     <div className="space-y-2">
-                      {paymentPreview.parts.map((part) => (
+                      {paymentPreview.parts?.map((part) => (
                         <div key={part.partId} className="flex justify-between text-sm">
                           <div className="flex-1">
                             <p className="font-medium">{part.partName}</p>

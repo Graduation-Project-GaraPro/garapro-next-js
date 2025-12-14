@@ -2,7 +2,7 @@
 "use client";
 
 import React from 'react';
-import { Bell, Check, CheckCheck, Trash2, ExternalLink } from 'lucide-react';
+import { Bell, Check, CheckCheck, Trash2, ExternalLink, CheckCircle2, AlertTriangle, Info, MessageSquare, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useManagerNotifications } from '@/hooks/use-manager-notifications';
 import {
@@ -35,13 +35,22 @@ export function NotificationDropdown({ branchId, useRepairOrderHub = true }: Not
     deleteNotification
   } = useManagerNotifications({ branchId, useRepairOrderHub });
 
-  const handleNotificationClick = async (notificationId: string, target?: string) => {
+  const handleNotificationClick = async (notificationId: string, target?: string, notification?: any) => {
     // Mark as read when clicked
     await markAsRead(notificationId);
     
     // Navigate to target if provided
     if (target && target !== '#') {
-      router.push(target);
+      // Fix repair order URLs
+      if (target.includes('/manager/repair-orders/')) {
+        const repairOrderId = target.split('/manager/repair-orders/')[1];
+        router.push(`/manager/repairOrderManagement/orders/${repairOrderId}`);
+      } else {
+        router.push(target);
+      }
+    } else if (notification?.type === 'REPAIR_ORDER_COMPLETED' && notification?.repairOrderId) {
+      // Fallback for repair order completion notifications
+      router.push(`/manager/repairOrderManagement/orders/${notification.repairOrderId}`);
     }
   };
 
@@ -62,19 +71,23 @@ export function NotificationDropdown({ branchId, useRepairOrderHub = true }: Not
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
+      case 'REPAIR_ORDER_COMPLETED':
+        return <CheckCircle2 className="h-4 w-4 text-green-600" />;
       case 'Alert':
-        return 'ERR';
+        return <AlertTriangle className="h-4 w-4 text-red-600" />;
       case 'Warning':
-        return '!!!';
+        return <AlertTriangle className="h-4 w-4 text-yellow-600" />;
       case 'Info':
-        return 'ℹ️';
+        return <Info className="h-4 w-4 text-blue-600" />;
       default:
-        return '💬';
+        return <MessageSquare className="h-4 w-4 text-gray-600" />;
     }
   };
 
   const getNotificationColor = (type: string) => {
     switch (type) {
+      case 'REPAIR_ORDER_COMPLETED':
+        return 'text-green-600';
       case 'Alert':
         return 'text-red-600';
       case 'Warning':
@@ -84,6 +97,13 @@ export function NotificationDropdown({ branchId, useRepairOrderHub = true }: Not
       default:
         return 'text-gray-600';
     }
+  };
+
+  const getNotificationTitle = (notification: any) => {
+    if (notification.type === 'REPAIR_ORDER_COMPLETED') {
+      return notification.title || 'Repair Order Completed';
+    }
+    return notification.type;
   };
 
   return (
@@ -143,17 +163,17 @@ export function NotificationDropdown({ branchId, useRepairOrderHub = true }: Not
                 className={`p-3 cursor-pointer ${
                   notification.status === 'Unread' ? 'bg-blue-50 border-l-2 border-l-blue-500' : ''
                 }`}
-                onClick={() => handleNotificationClick(notification.notificationID, notification.target)}
+                onClick={() => handleNotificationClick(notification.notificationID, notification.target, notification)}
               >
                 <div className="flex items-start gap-3 w-full">
-                  <div className="flex-shrink-0 text-lg">
+                  <div className="flex-shrink-0 mt-1">
                     {getNotificationIcon(notification.type)}
                   </div>
                   
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
                       <p className={`text-sm font-medium ${getNotificationColor(notification.type)}`}>
-                        {notification.type}
+                        {getNotificationTitle(notification)}
                       </p>
                       <div className="flex items-center gap-1">
                         {notification.status === 'Unread' && (

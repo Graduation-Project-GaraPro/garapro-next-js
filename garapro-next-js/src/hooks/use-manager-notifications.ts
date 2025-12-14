@@ -146,17 +146,13 @@ export function useManagerNotifications(options?: UseManagerNotificationsOptions
         }
 
         if (connected) {
-          // Join managers group
-          await hubService.joinManagersGroup();
-          
-          // Join branch group if branchId is provided
-          if (branchId) {
-            await hubService.joinBranchGroup(branchId);
-          }
-
-          // Set up event listeners
+          // Set up event listeners first
           hubService.addNotificationReceivedListener(handleNotificationReceived);
           hubService.addNotificationUpdatedListener(handleNotificationUpdated);
+
+          // Note: Your backend automatically adds managers to User_{managerId} groups
+          // No manual group joining needed - just connect and listen
+          console.log("✅ Connected to NotificationHub - backend will automatically add to User_{managerId} group");
         }
 
         // Load initial notifications
@@ -183,11 +179,7 @@ export function useManagerNotifications(options?: UseManagerNotificationsOptions
       hubService.removeNotificationReceivedListener(handleNotificationReceived);
       hubService.removeNotificationUpdatedListener(handleNotificationUpdated);
       
-      // Leave groups
-      if (branchId) {
-        hubService.leaveBranchGroup(branchId);
-      }
-      hubService.leaveManagersGroup();
+      // Note: No need to leave groups - backend manages User_{managerId} groups automatically
     };
   }, [branchId, useRepairOrderHub, handleNotificationReceived, handleNotificationUpdated, refreshNotifications]);
 

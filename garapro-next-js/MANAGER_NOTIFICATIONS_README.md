@@ -230,3 +230,67 @@ You can test the notification system by:
 4. **Integration Testing**: Check the notification dropdown in the header
 
 The system is ready to use and will automatically connect to your backend notification system when managers access the application. By default, it uses the RepairOrderHub approach which has been confirmed to have the required `JoinManagersGroup` method.
+
+## Integration with Your Backend
+
+### Repair Order Completion Notifications
+
+Your backend implementation sends repair order completion notifications via SignalR. The frontend is now configured to handle these notifications.
+
+#### Backend Event Format
+```csharp
+// Your backend sends this event format:
+await Clients.Group($"Branch_{branchId}").SendAsync("ReceiveNotification", new {
+    Type = "REPAIR_ORDER_COMPLETED",
+    Title = "Repair Order Completed",
+    Content = "Repair order automatically completed: John Doe's Toyota Camry (ABC123) is ready for payment",
+    RepairOrderId = repairOrderId,
+    CustomerName = customerName,
+    VehicleInfo = vehicleInfo,
+    IsAutoCompleted = isAutoCompleted,
+    CompletionType = completionType,
+    Target = $"/manager/repair-orders/{repairOrderId}"
+});
+```
+
+#### Frontend Integration
+The frontend now handles these notifications with:
+
+1. **Special UI Treatment**: Repair order completion notifications show with green checkmark icon
+2. **Toast Notifications**: Automatic toast popups for completion notifications
+3. **Navigation**: Click notifications to go to the repair order details
+4. **Real-time Updates**: Immediate notification when repair orders are completed
+
+### Components Added for Your Backend
+
+1. **RepairOrderCompletionToast**: Shows toast notifications for completed repair orders
+2. **Enhanced NotificationDropdown**: Handles REPAIR_ORDER_COMPLETED type with special styling
+3. **Dual Hub Support**: Can use either NotificationHub or RepairOrderHub
+
+### Testing Your Integration
+
+Visit `/manager/test-notifications` to test the notification system:
+
+1. **SignalR Connection**: Test connection to your NotificationHub or RepairOrderHub
+2. **API Endpoints**: Test the notification API endpoints
+3. **Real Notifications**: Trigger repair order completion from your backend to see live notifications
+
+### Configuration
+
+The notification system is configured to use RepairOrderHub by default (since that's where your backend sends notifications). You can change this in the site header:
+
+```typescript
+// In site-header.tsx
+<NotificationDropdown branchId={branch?.branchID} useRepairOrderHub={true} />
+<RepairOrderCompletionToast branchId={branch?.branchID} />
+```
+
+### No Backend Changes Needed
+
+Your backend implementation is already compatible! The frontend automatically:
+- Connects to the correct SignalR hub
+- Handles the `ReceiveNotification` event format you're using
+- Converts your notification format to the frontend format
+- Shows appropriate UI for repair order completion notifications
+
+The system is ready to receive your repair order completion notifications immediately.
