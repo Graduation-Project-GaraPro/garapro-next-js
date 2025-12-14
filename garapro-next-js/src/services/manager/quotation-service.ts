@@ -199,6 +199,34 @@ class QuotationService {
       throw error;
     }
   }
+
+  // Check if repair order can be completed (all quotations are "Good" and RO is "In Progress")
+  async canCompleteRepairOrder(repairOrderId: string): Promise<{ canComplete: boolean; repairOrderId: string }> {
+    try {
+      const response = await apiClient.get<{ canComplete: boolean; repairOrderId: string }>(`/quotations/can-complete-repair-order/${repairOrderId}`);
+      if (!response.data) {
+        throw new Error('No response data received');
+      }
+      return response.data;
+    } catch (error) {
+      console.error(`Failed to check if repair order ${repairOrderId} can be completed:`, error);
+      throw error;
+    }
+  }
+
+  // Complete repair order (change status to completed)
+  async completeRepairOrder(repairOrderId: string): Promise<{ message: string; repairOrderId: string }> {
+    try {
+      const response = await apiClient.post<{ message: string; repairOrderId: string }>(`/quotations/complete-repair-order/${repairOrderId}`);
+      if (!response.data) {
+        throw new Error('No response data received');
+      }
+      return response.data;
+    } catch (error) {
+      console.error(`Failed to complete repair order ${repairOrderId}:`, error);
+      throw error;
+    }
+  }
 }
 
 export const quotationService = new QuotationService();

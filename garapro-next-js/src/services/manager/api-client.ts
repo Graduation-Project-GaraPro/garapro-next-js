@@ -53,11 +53,9 @@ class ApiClient {
     options: RequestInit = {}, 
     attempt: number = 1
   ): Promise<ApiResponse<T>> {
-    // Ensure endpoint starts with "/"
     const normalizedEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
     const url = `${this.baseUrl}${normalizedEndpoint}`;
 
-    // Apply request interceptors
     let config: RequestInit = {
       headers: {
         ...this.defaultHeaders,
@@ -107,14 +105,12 @@ class ApiClient {
         };
       }
       
-      // Wrap response to match expected format for other endpoints
       return {
         data: data as T,
         status: processedResponse.status,
         success: true
       };
     } catch (error) {
-      // Retry logic for network errors or 5xx responses
       if (attempt < this.retryAttempts && this.shouldRetry(error)) {
         await this.delay(this.retryDelay * attempt);
         return this.request<T>(endpoint, options, attempt + 1);
@@ -129,7 +125,7 @@ class ApiClient {
     if (error instanceof Error && error.name === 'TypeError' && error.message.includes('fetch')) {
       return true;
     }
-    // Check if error has status property and is a 5xx error
+
     if (error && typeof error === 'object' && 'status' in error && 
         typeof error.status === 'number' && error.status >= 500 && error.status < 600) {
       return true;
@@ -151,27 +147,23 @@ class ApiClient {
       const clonedResponse = response.clone();
       const contentType = response.headers.get('content-type');
       
-      // Try to parse as JSON first
       if (contentType && contentType.includes('application/json')) {
         try {
           const errorData = await response.json();
           
-          // Handle different error response formats
           const message = errorData.message || 
                          errorData.error || 
                          errorData.title ||
                          errorData.Message ||
                          'An error occurred';
           
-          // Store the full response data in details for later access
           return {
             message,
             status: response.status,
             code: errorData.code || errorData.type,
-            details: errorData // Store full response data
+            details: errorData 
           };
         } catch (jsonError) {
-          // If JSON parsing fails, try to read as text
           const text = await clonedResponse.text();
           return {
             message: text || `HTTP ${response.status}: ${response.statusText}`,
@@ -179,7 +171,6 @@ class ApiClient {
           };
         }
       } else {
-        // Not JSON, try to read as text
         const text = await response.text();
         return {
           message: text || `HTTP ${response.status}: ${response.statusText}`,
