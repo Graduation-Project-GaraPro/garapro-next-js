@@ -153,20 +153,13 @@ export function usePaymentHub(options: UsePaymentHubOptions = {}) {
             await paymentHubService.joinManagersGroup();
           }
           
-          // Join repair order payment group if repairOrderId provided
+          // Join repair order group if repairOrderId provided
           if (repairOrderId) {
             await paymentHubService.joinRepairOrderPaymentGroup(repairOrderId);
           }
 
-          // Join customer payment group if userId provided
-          if (userId) {
-            await paymentHubService.joinCustomerPaymentGroup(userId);
-          }
-
-          // Join branch payment group if branchId provided
-          if (branchId) {
-            await paymentHubService.joinBranchPaymentGroup(branchId);
-          }
+          // Note: Customer and branch payment groups are handled by managers group
+          // No additional group joining needed for userId or branchId
         }
       } catch (error) {
         console.error("Failed to initialize payment hub:", error);
@@ -221,17 +214,12 @@ export function usePaymentHub(options: UsePaymentHubOptions = {}) {
       if (repairOrderId) {
         paymentHubService.leaveRepairOrderPaymentGroup(repairOrderId);
       }
-      if (userId) {
-        paymentHubService.leaveCustomerPaymentGroup(userId);
-      }
-      if (branchId) {
-        paymentHubService.leaveBranchPaymentGroup(branchId);
-      }
       if (isManager) {
         paymentHubService.leaveManagersGroup();
       }
+      // Note: Customer and branch groups are no-ops, no cleanup needed
     };
-  }, [repairOrderId, userId, branchId, isManager]);
+  }, [repairOrderId, isManager]);
 
   return {
     isConnected,
@@ -240,9 +228,5 @@ export function usePaymentHub(options: UsePaymentHubOptions = {}) {
     leaveManagersGroup: paymentHubService.leaveManagersGroup.bind(paymentHubService),
     joinRepairOrderPaymentGroup: paymentHubService.joinRepairOrderPaymentGroup.bind(paymentHubService),
     leaveRepairOrderPaymentGroup: paymentHubService.leaveRepairOrderPaymentGroup.bind(paymentHubService),
-    joinCustomerPaymentGroup: paymentHubService.joinCustomerPaymentGroup.bind(paymentHubService),
-    leaveCustomerPaymentGroup: paymentHubService.leaveCustomerPaymentGroup.bind(paymentHubService),
-    joinBranchPaymentGroup: paymentHubService.joinBranchPaymentGroup.bind(paymentHubService),
-    leaveBranchPaymentGroup: paymentHubService.leaveBranchPaymentGroup.bind(paymentHubService),
   };
 }

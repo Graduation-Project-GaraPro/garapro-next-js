@@ -193,14 +193,14 @@ class PaymentHubService {
     }
   }
 
-  // Join specific repair order payment group
+  // Join specific repair order group (using the correct method name)
   public async joinRepairOrderPaymentGroup(repairOrderId: string): Promise<void> {
     if (this.connection && this.connection.state === "Connected") {
       try {
-        await this.connection.invoke("JoinRepairOrderPaymentGroup", repairOrderId);
-        console.log(`✅ Joined payment group: Payment_${repairOrderId}`);
+        await this.connection.invoke("JoinRepairOrderGroup", repairOrderId);
+        console.log(`✅ Joined repair order group: RepairOrder_${repairOrderId}`);
       } catch (err) {
-        console.error("❌ Error joining repair order payment group:", err);
+        console.error("❌ Error joining repair order group:", err);
       }
     }
   }
@@ -208,58 +208,33 @@ class PaymentHubService {
   public async leaveRepairOrderPaymentGroup(repairOrderId: string): Promise<void> {
     if (this.connection && this.connection.state === "Connected") {
       try {
-        await this.connection.invoke("LeaveRepairOrderPaymentGroup", repairOrderId);
-        console.log(`Left payment group: Payment_${repairOrderId}`);
+        await this.connection.invoke("LeaveRepairOrderGroup", repairOrderId);
+        console.log(`Left repair order group: RepairOrder_${repairOrderId}`);
       } catch (err) {
-        console.error("Error leaving repair order payment group:", err);
+        console.error("Error leaving repair order group:", err);
       }
     }
   }
 
-  // Join customer payment group (for customer-specific updates)
+  // Note: Customer and branch payment groups are not implemented on RepairOrderHub
+  // Payment events are sent to managers group and repair order groups only
+  
   public async joinCustomerPaymentGroup(userId: string): Promise<void> {
-    if (this.connection && this.connection.state === "Connected") {
-      try {
-        await this.connection.invoke("JoinCustomerPaymentGroup", userId);
-        console.log(`✅ Joined customer payment group: CustomerPayment_${userId}`);
-      } catch (err) {
-        console.error("❌ Error joining customer payment group:", err);
-      }
-    }
+    console.log(`ℹ️ Customer payment groups not implemented on RepairOrderHub. Using managers group instead.`);
+    // No-op - payment events are sent to managers group
   }
 
   public async leaveCustomerPaymentGroup(userId: string): Promise<void> {
-    if (this.connection && this.connection.state === "Connected") {
-      try {
-        await this.connection.invoke("LeaveCustomerPaymentGroup", userId);
-        console.log(`Left customer payment group: CustomerPayment_${userId}`);
-      } catch (err) {
-        console.error("Error leaving customer payment group:", err);
-      }
-    }
+    // No-op - payment events are sent to managers group
   }
 
-  // Join branch-specific payment group (for branch managers)
   public async joinBranchPaymentGroup(branchId: string): Promise<void> {
-    if (this.connection && this.connection.state === "Connected") {
-      try {
-        await this.connection.invoke("JoinBranchPaymentGroup", branchId);
-        console.log(`✅ Joined branch payment group: BranchPayment_${branchId}`);
-      } catch (err) {
-        console.error("❌ Error joining branch payment group:", err);
-      }
-    }
+    console.log(`ℹ️ Branch payment groups not implemented on RepairOrderHub. Using managers group instead.`);
+    // No-op - payment events are sent to managers group
   }
 
   public async leaveBranchPaymentGroup(branchId: string): Promise<void> {
-    if (this.connection && this.connection.state === "Connected") {
-      try {
-        await this.connection.invoke("LeaveBranchPaymentGroup", branchId);
-        console.log(`Left branch payment group: BranchPayment_${branchId}`);
-      } catch (err) {
-        console.error("Error leaving branch payment group:", err);
-      }
-    }
+    // No-op - payment events are sent to managers group
   }
 
   // Event listeners for PaymentReceived

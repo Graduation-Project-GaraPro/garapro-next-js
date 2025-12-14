@@ -18,14 +18,14 @@ export function QuotationResponseListener() {
     // Show notification based on response
     if (event.status === "Approved") {
       toast({
-        title: "Quotation Approved! 🎉",
-        description: `${event.customerName} approved quotation #${event.quotationId.substring(0, 8)}. You can now convert it to jobs.`,
+        title: "Quotation Approved!",
+        description: `${event.customerName} approved quotation. You can now convert it to jobs.`,
         duration: 8000,
       })
     } else if (event.status === "Rejected") {
       toast({
         title: "Quotation Rejected",
-        description: `${event.customerName} rejected quotation #${event.quotationId.substring(0, 8)}. ${event.customerNote || ""}`,
+        description: `${event.customerName} rejected quotation. ${event.customerNote || ""}`,
         variant: "destructive",
         duration: 8000,
       })
