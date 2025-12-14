@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, PanelLeft, User } from "lucide-react";
+import { PanelLeft, User } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { authService } from "@/services/authService";
@@ -18,7 +18,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Badge } from "@/components/ui/badge"
 import { NotificationDropdown } from "@/components/manager/notification-dropdown"
 // import TechnicianAssignmentNotification from "@/components/manager/technician-assignment-notification"
 
