@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import type { ReactNode } from "react";
@@ -13,6 +14,7 @@ import { Toaster } from "@/components/ui/toaster";
 import AccessDenied from "@/app/access-denied/page";
 import { authService } from "@/services/authService";
 import { QuotationResponseListener } from "@/components/manager/quotation-response-listener";
+import EmergencyHubProvider from "../providers/EmergencyHubProvider";
 
 export default function ManagerLayout({ children }: { children: ReactNode }) {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -21,7 +23,6 @@ export default function ManagerLayout({ children }: { children: ReactNode }) {
 
   const isManagerRoute = pathname.startsWith("/manager");
 
-  
   const roles = useMemo(() => {
     const ctx = (user as any)?.roles ?? [];
     const store = authService.getCurrentUserRoles();
@@ -31,7 +32,6 @@ export default function ManagerLayout({ children }: { children: ReactNode }) {
   const isManager = roles.includes("Manager");
   console.log("roles:", roles, "isManager:", isManager);
 
-  
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -43,13 +43,11 @@ export default function ManagerLayout({ children }: { children: ReactNode }) {
     );
   }
 
-  
   if (!isAuthenticated) {
     router.replace("/login");
     return null;
   }
 
-  
   if (isManagerRoute && !isManager) {
     return <AccessDenied />;
   }
@@ -62,9 +60,9 @@ export default function ManagerLayout({ children }: { children: ReactNode }) {
           <div className="flex flex-1 min-h-0">
             <AppSidebar />
             <SidebarInset>
-              <div className="flex-1 min-h-0 overflow-y-auto">
-                {children}
-              </div>
+              <EmergencyHubProvider>
+                <div className="flex-1 min-h-0 overflow-y-auto">{children}</div>
+              </EmergencyHubProvider>
             </SidebarInset>
           </div>
         </SidebarProvider>
