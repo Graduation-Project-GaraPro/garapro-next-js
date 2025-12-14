@@ -23,10 +23,7 @@ export const paymentService = {
     return response.data;
   },
 
-  /**
-   * Create manual payment for a completed repair order
-   * For cash payments, manager does not choose method - it's automatically set to Cash
-   */
+// mannual payment
   async createPayment(
     repairOrderId: string,
     request: CreatePaymentRequest

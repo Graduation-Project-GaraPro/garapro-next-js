@@ -62,30 +62,84 @@ export default function PaymentTab({ orderId, repairOrderStatus, paidStatus, isA
     isManager: true,
     autoConnect: isRepairOrderCompleted, 
     showToasts: false, 
+    // New event handlers for mobile payments
+    onPaymentReceived: (event) => {
+      console.log("💰 Payment received for this RO:", event)
+      if (event.repairOrderId === orderId) {
+        // Reload payment summary when cash payment is received
+        loadPaymentSummary(false)
+        if (onPaymentSuccess) {
+          onPaymentSuccess()
+        }
+        toast({
+          title: "Payment Received",
+          description: `Cash payment of ${event.amount.toLocaleString()} VND received`,
+        })
+      }
+    },
+    onPaymentConfirmed: (event) => {
+      console.log("✅ PayOS payment confirmed for this RO:", event)
+      if (event.repairOrderId === orderId) {
+        // Reload payment summary when PayOS payment is confirmed
+        loadPaymentSummary(false)
+        if (onPaymentSuccess) {
+          onPaymentSuccess()
+        }
+        toast({
+          title: "Payment Confirmed",
+          description: `PayOS payment of ${event.amount.toLocaleString()} VND confirmed`,
+        })
+      }
+    },
+    onRepairOrderPaid: (event) => {
+      console.log("🎉 Repair order fully paid:", event)
+      if (event.repairOrderId === orderId) {
+        // Reload payment summary when repair order is fully paid
+        loadPaymentSummary(false)
+        if (onPaymentSuccess) {
+          onPaymentSuccess()
+        }
+        toast({
+          title: "Payment Completed!",
+          description: `Repair Order is now fully paid.`,
+        })
+      }
+    },
+    // Legacy event handlers for backward compatibility
     onPaymentCreated: (event) => {
-      console.log("Payment created for this RO:", event)
-      // Reload payment summary when new payment is created
-      loadPaymentSummary()
-      if (onPaymentSuccess) {
-        onPaymentSuccess()
+      console.log("Payment created for this RO (legacy):", event)
+      if (event.repairOrderId === orderId) {
+        // Reload payment summary when new payment is created
+        loadPaymentSummary(false)
+        if (onPaymentSuccess) {
+          onPaymentSuccess()
+        }
       }
     },
     onPaymentStatusUpdated: (event) => {
-      console.log("Payment status updated:", event)
-      // Reload payment summary when payment status changes
-      loadPaymentSummary()
+      console.log("Payment status updated (legacy):", event)
+      if (event.repairOrderId === orderId) {
+        // Reload payment summary when payment status changes
+        loadPaymentSummary(false)
+      }
     },
     onPaymentCompleted: (event) => {
-      console.log("Payment completed for this RO:", event)
-      // Update payment summary with the completed data
-      setPaymentSummary(event.paymentSummary)
-      if (onPaymentSuccess) {
-        onPaymentSuccess()
+      console.log("Payment completed for this RO (legacy):", event)
+      if (event.repairOrderId === orderId) {
+        // Update payment summary with the completed data
+        if (event.paymentSummary) {
+          setPaymentSummary(event.paymentSummary)
+        } else {
+          loadPaymentSummary(false)
+        }
+        if (onPaymentSuccess) {
+          onPaymentSuccess()
+        }
+        toast({
+          title: "Payment Completed!",
+          description: `Repair Order is now fully paid.`,
+        })
       }
-      toast({
-        title: "Payment Completed!",
-        description: `Repair Order is now fully paid.`,
-      })
     }
   })
 
@@ -96,9 +150,39 @@ export default function PaymentTab({ orderId, repairOrderStatus, paidStatus, isA
     }
   }, [orderId, isRepairOrderCompleted])
 
-  const loadPaymentSummary = async () => {
+  // Debug SignalR connection status
+  useEffect(() => {
+    console.log("🔌 Payment Hub Connection Status:", {
+      isConnected: isPaymentHubConnected,
+      repairOrderId: orderId,
+      isRepairOrderCompleted,
+      autoConnect: isRepairOrderCompleted
+    })
+  }, [isPaymentHubConnected, orderId, isRepairOrderCompleted])
+
+  // Fallback polling mechanism when SignalR is not connected
+  useEffect(() => {
+    if (!isPaymentHubConnected && isRepairOrderCompleted) {
+      console.log("⚠️ SignalR not connected, setting up fallback polling")
+      const pollInterval = setInterval(() => {
+        console.log("🔄 Polling payment status (SignalR fallback)")
+        loadPaymentSummary(false)
+      }, 10000) // Poll every 10 seconds
+
+      return () => {
+        console.log("🛑 Clearing payment polling interval")
+        clearInterval(pollInterval)
+      }
+    }
+  }, [isPaymentHubConnected, isRepairOrderCompleted, orderId])
+
+  const loadPaymentSummary = async (showLoadingIndicator = true) => {
     try {
-      setLoading(true)
+      if (showLoadingIndicator) {
+        setLoading(true)
+      }
+      
+      console.log("🔄 Loading payment summary for RO:", orderId)
       const data = await paymentService.getPaymentSummary(orderId)
       
       // Add computed fields for backward compatibility
@@ -109,16 +193,25 @@ export default function PaymentTab({ orderId, repairOrderStatus, paidStatus, isA
         paymentStatus: data.paidStatus === 1 ? 'Paid' : 'Unpaid'
       }
       
+      console.log("✅ Payment summary loaded:", {
+        repairOrderId: orderId,
+        paidStatus: enrichedData.paidStatus,
+        paymentHistory: enrichedData.paymentHistory.length,
+        amountToPay: enrichedData.amountToPay
+      })
+      
       setPaymentSummary(enrichedData)
     } catch (error: any) {
-      console.error("Failed to load payment summary:", error)
+      console.error("❌ Failed to load payment summary:", error)
       toast({
         title: "Error",
-        description: error.response?.data?.message || "Failed to load payment summary",
+        description: error.response?.data?.message || error.message || "Failed to load payment summary",
         variant: "destructive",
       })
     } finally {
-      setLoading(false)
+      if (showLoadingIndicator) {
+        setLoading(false)
+      }
     }
   }
 
@@ -427,7 +520,25 @@ export default function PaymentTab({ orderId, repairOrderStatus, paidStatus, isA
         {/* Payment History */}
         <Card>
           <CardHeader>
-            <CardTitle>Payment History</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle>Payment History</CardTitle>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => loadPaymentSummary(true)}
+                disabled={loading}
+                className="flex items-center gap-2"
+              >
+                {loading ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#154c79]"></div>
+                ) : (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                )}
+                Refresh
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             {paymentSummary && paymentSummary.paymentHistory.length > 0 ? (
@@ -486,7 +597,9 @@ export default function PaymentTab({ orderId, repairOrderStatus, paidStatus, isA
       <div className="w-96">
         <Card className="h-fit">
           <CardHeader>
-            <CardTitle>Payment Summary</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle>Payment Summary</CardTitle>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             {paymentSummary ? (
