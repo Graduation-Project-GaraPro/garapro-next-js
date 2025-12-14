@@ -19,6 +19,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { NotificationDropdown } from "@/components/manager/notification-dropdown"
+import { RepairOrderCompletionToast } from "@/components/manager/repair-order-completion-toast"
 // import TechnicianAssignmentNotification from "@/components/manager/technician-assignment-notification"
 
 export function SiteHeader() {
@@ -100,7 +101,7 @@ export function SiteHeader() {
 
           {/* Manager Notifications */}
           <div className="text-white [&_button]:text-white [&_button:hover]:text-white [&_button:hover]:bg-white/10">
-            <NotificationDropdown branchId={branch?.branchId} />
+            <NotificationDropdown branchId={branch?.branchID} useRepairOrderHub={false} />
           </div>
 
           <Separator orientation="vertical" className="h-4 bg-white/30" />
@@ -164,6 +165,9 @@ export function SiteHeader() {
           </DropdownMenu>
         </div>
       </div>
+      
+      {/* Repair Order Completion Toast Handler */}
+      <RepairOrderCompletionToast branchId={branch?.branchID} />
     </header>
   );
 }

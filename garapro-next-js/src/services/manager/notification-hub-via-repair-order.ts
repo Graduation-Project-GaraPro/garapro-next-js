@@ -60,6 +60,15 @@ class ManagerNotificationHubViaRepairOrderService {
     }
   }
 
+  private fixTargetUrl(target: string): string {
+    // Fix repair order URLs from backend format to frontend format
+    if (target && target.includes('/manager/repair-orders/')) {
+      const repairOrderId = target.split('/manager/repair-orders/')[1];
+      return `/manager/repairOrderManagement/orders/${repairOrderId}`;
+    }
+    return target;
+  }
+
   private setupEventHandlers(): void {
     if (!this.connection) return;
 
@@ -67,6 +76,31 @@ class ManagerNotificationHubViaRepairOrderService {
     this.connection.on("NotificationReceived", (notification: ManagerNotification) => {
       console.log("🔔 New notification received via RepairOrderHub:", notification);
       const event: NotificationReceivedEvent = { notification };
+      this.notifyNotificationReceivedListeners(event);
+    });
+
+    // Listen for the specific backend event format (your implementation)
+    this.connection.on("ReceiveNotification", (notification: any) => {
+      console.log("🔔 Backend notification received via RepairOrderHub:", notification);
+      
+      // Convert backend format to our format
+      const managerNotification: ManagerNotification = {
+        notificationID: notification.NotificationId || notification.notificationId || Date.now().toString(),
+        content: notification.Content || notification.content || "",
+        type: notification.Type || notification.type || "Message",
+        timeSent: notification.TimeSent || notification.timeSent || new Date().toISOString(),
+        status: "Unread",
+        target: this.fixTargetUrl(notification.Target || notification.target || "#"),
+        // Additional fields for repair order completion
+        repairOrderId: notification.RepairOrderId || notification.repairOrderId,
+        customerName: notification.CustomerName || notification.customerName,
+        vehicleInfo: notification.VehicleInfo || notification.vehicleInfo,
+        isAutoCompleted: notification.IsAutoCompleted || notification.isAutoCompleted,
+        completionType: notification.CompletionType || notification.completionType,
+        title: notification.Title || notification.title
+      };
+
+      const event: NotificationReceivedEvent = { notification: managerNotification };
       this.notifyNotificationReceivedListeners(event);
     });
 

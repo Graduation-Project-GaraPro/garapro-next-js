@@ -59,13 +59,47 @@ class ManagerNotificationHubService {
     }
   }
 
+  private fixTargetUrl(target: string): string {
+    // Fix repair order URLs from backend format to frontend format
+    if (target && target.includes('/manager/repair-orders/')) {
+      const repairOrderId = target.split('/manager/repair-orders/')[1];
+      return `/manager/repairOrderManagement/orders/${repairOrderId}`;
+    }
+    return target;
+  }
+
   private setupEventHandlers(): void {
     if (!this.connection) return;
 
-    // Listen for new notifications
+    // Listen for new notifications (generic)
     this.connection.on("NotificationReceived", (notification: ManagerNotification) => {
       console.log("🔔 New notification received:", notification);
       const event: NotificationReceivedEvent = { notification };
+      this.notifyNotificationReceivedListeners(event);
+    });
+
+    // Listen for the specific backend event format
+    this.connection.on("ReceiveNotification", (notification: any) => {
+      console.log("🔔 Backend notification received:", notification);
+      
+      // Convert backend format to our format
+      const managerNotification: ManagerNotification = {
+        notificationID: notification.NotificationId || notification.notificationId || Date.now().toString(),
+        content: notification.Content || notification.content || "",
+        type: notification.Type || notification.type || "Message",
+        timeSent: notification.TimeSent || notification.timeSent || new Date().toISOString(),
+        status: "Unread",
+        target: this.fixTargetUrl(notification.Target || notification.target || "#"),
+        // Additional fields for repair order completion
+        repairOrderId: notification.RepairOrderId || notification.repairOrderId,
+        customerName: notification.CustomerName || notification.customerName,
+        vehicleInfo: notification.VehicleInfo || notification.vehicleInfo,
+        isAutoCompleted: notification.IsAutoCompleted || notification.isAutoCompleted,
+        completionType: notification.CompletionType || notification.completionType,
+        title: notification.Title || notification.title
+      };
+
+      const event: NotificationReceivedEvent = { notification: managerNotification };
       this.notifyNotificationReceivedListeners(event);
     });
 
@@ -109,59 +143,36 @@ class ManagerNotificationHubService {
   }
 
   /**
-   * Join managers group to receive all manager notifications
+   * Note: Your backend automatically adds managers to User_{managerId} groups
+   * No manual group joining is needed - just connect and listen for notifications
    */
   public async joinManagersGroup(): Promise<void> {
-    if (this.connection && this.connection.state === "Connected") {
-      try {
-        await this.connection.invoke("JoinManagersGroup");
-        console.log("✅ Joined Managers group for notifications");
-      } catch (err) {
-        console.error("❌ Error joining Managers group:", err);
-      }
-    }
+    // No-op: Backend automatically adds managers to User_{managerId} groups
+    console.log("ℹ️ Backend automatically handles group membership for User_{managerId}");
   }
 
   /**
-   * Leave managers group
+   * Leave managers group - No-op since backend manages groups automatically
    */
   public async leaveManagersGroup(): Promise<void> {
-    if (this.connection && this.connection.state === "Connected") {
-      try {
-        await this.connection.invoke("LeaveManagersGroup");
-        console.log("✅ Left Managers group");
-      } catch (err) {
-        console.error("❌ Error leaving Managers group:", err);
-      }
-    }
+    // No-op: Backend automatically manages group membership
+    console.log("ℹ️ Backend automatically manages group membership");
   }
 
   /**
-   * Join specific branch group for branch-specific notifications
+   * Join specific branch group - No-op since backend uses User_{managerId} groups
    */
   public async joinBranchGroup(branchId: string): Promise<void> {
-    if (this.connection && this.connection.state === "Connected") {
-      try {
-        await this.connection.invoke("JoinBranchGroup", branchId);
-        console.log(`✅ Joined branch group: Branch_${branchId}`);
-      } catch (err) {
-        console.error("❌ Error joining branch group:", err);
-      }
-    }
+    // No-op: Backend uses User_{managerId} groups, not branch groups
+    console.log(`ℹ️ Backend uses User_{{managerId}} groups, not branch groups. Branch: ${branchId}`);
   }
 
   /**
-   * Leave specific branch group
+   * Leave specific branch group - No-op since backend uses User_{managerId} groups
    */
   public async leaveBranchGroup(branchId: string): Promise<void> {
-    if (this.connection && this.connection.state === "Connected") {
-      try {
-        await this.connection.invoke("LeaveBranchGroup", branchId);
-        console.log(`Left branch group: Branch_${branchId}`);
-      } catch (err) {
-        console.error("Error leaving branch group:", err);
-      }
-    }
+    // No-op: Backend uses User_{managerId} groups, not branch groups
+    console.log(`ℹ️ Backend uses User_{{managerId}} groups, not branch groups. Branch: ${branchId}`);
   }
 
   // Event listeners for NotificationReceived
