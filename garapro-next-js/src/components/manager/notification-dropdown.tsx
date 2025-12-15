@@ -2,7 +2,7 @@
 "use client";
 
 import React from 'react';
-import { Bell, Check, CheckCheck, Trash2, ExternalLink, CheckCircle2, AlertTriangle, Info, MessageSquare, Sparkles } from 'lucide-react';
+import { Bell, Check, CheckCheck, Trash2, ExternalLink, CheckCircle2, AlertTriangle, Info, MessageSquare} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useManagerNotifications } from '@/hooks/use-manager-notifications';
 import {
