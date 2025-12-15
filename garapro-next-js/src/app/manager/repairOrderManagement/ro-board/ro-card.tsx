@@ -261,10 +261,21 @@ export default function RepairOrderCard({
           <div className="flex-1 bg-gray-200 rounded-full h-0.5">
             <div
               className="bg-blue-500 h-0.5 rounded-full transition-all duration-300"
-              style={{ width: `${repairOrder.progressPercentage || 0}%` }}
+              style={{ 
+                width: `${
+                  repairOrder.totalJobs > 0 
+                    ? Math.round((repairOrder.completedJobs / repairOrder.totalJobs) * 100)
+                    : 0
+                }%` 
+              }}
             />
           </div>
-          <span className="text-xs font-medium text-gray-900">{Math.round(repairOrder.progressPercentage || 0)}%</span>
+          <span className="text-xs font-medium text-gray-900">
+            {repairOrder.totalJobs > 0 
+              ? `${repairOrder.completedJobs}/${repairOrder.totalJobs} (${Math.round((repairOrder.completedJobs / repairOrder.totalJobs) * 100)}%)`
+              : "0/0 (0%)"
+            }
+          </span>
         </div>
 
         <div className="flex items-center justify-between text-xs text-gray-500 pt-0.5">
