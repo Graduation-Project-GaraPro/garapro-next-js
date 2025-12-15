@@ -14,7 +14,6 @@ import { Toaster } from "@/components/ui/toaster";
 import AccessDenied from "@/app/access-denied/page";
 import { authService } from "@/services/authService";
 import { QuotationResponseListener } from "@/components/manager/quotation-response-listener";
-import EmergencyHubProvider from "../providers/EmergencyHubProvider";
 
 export default function ManagerLayout({ children }: { children: ReactNode }) {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -60,9 +59,7 @@ export default function ManagerLayout({ children }: { children: ReactNode }) {
           <div className="flex flex-1 min-h-0">
             <AppSidebar />
             <SidebarInset>
-              <EmergencyHubProvider>
-                <div className="flex-1 min-h-0 overflow-y-auto">{children}</div>
-              </EmergencyHubProvider>
+              <div className="flex-1 min-h-0 overflow-y-auto">{children}</div>
             </SidebarInset>
           </div>
         </SidebarProvider>

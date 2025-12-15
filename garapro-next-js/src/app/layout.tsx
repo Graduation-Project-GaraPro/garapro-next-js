@@ -6,6 +6,7 @@ import "./globals.css";
 
 import { AuthProvider } from "@/contexts/auth-context";
 import { PermissionProvider } from "@/contexts/permission-context";
+import EmergencyHubProvider from "./providers/EmergencyHubProvider";
 
 export const metadata = {
   title: "Garage Pro",
@@ -22,7 +23,9 @@ export default function RootLayout({
       <body>
         <AuthProvider>
           <PermissionProvider>
-            <OnlineUserProvider>{children}</OnlineUserProvider>
+            <EmergencyHubProvider>
+              <OnlineUserProvider>{children}</OnlineUserProvider>
+            </EmergencyHubProvider>
             <Toaster />
           </PermissionProvider>
         </AuthProvider>

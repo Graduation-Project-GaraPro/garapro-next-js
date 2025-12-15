@@ -18,6 +18,7 @@ import { apiClient } from "@/services/manager/api-client";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import RequestToastContent from "@/components/RequestToastContent";
+import { el } from "date-fns/locale";
 
 type UserProfile = {
   id: string;
@@ -278,13 +279,23 @@ export default function EmergencyHubProvider({
 
         if (!mounted) return;
         setProfile(pf);
-
+        const isManager = pf.roles?.some((r) => r.toLowerCase() === "manager");
+        console.log(
+          "==========================================EmergencyHubProvider setup, isManager:",
+          isManager
+        );
         // Start SignalR
+        if (!isManager) {
+          console.log("User is NOT manager → skip SignalR connection");
+          return;
+        }
+
+        // Start SignalR (manager only)
         try {
           await emergencyHubClient.start(token);
           if (!mounted) return;
           setConnected(true);
-          console.log("SignalR connected successfully");
+          console.log("SignalR connected (manager)");
         } catch (err) {
           console.error("SignalR start error", err);
           return;
@@ -301,7 +312,7 @@ export default function EmergencyHubProvider({
         emergencyHubClient.on("LeftCustomerGroup", updateGroups);
 
         // Auto join branch group if manager
-        const isManager = pf.roles?.some((r) => r.toLowerCase() === "manager");
+
         if (isManager) {
           let branchId = pf.branchId ?? null;
           if (!branchId && tokenUserId) {
@@ -323,6 +334,8 @@ export default function EmergencyHubProvider({
           } else {
             console.warn("Manager role detected but no branchId available");
           }
+        } else {
+          console.log("Not a manager, skipping branch group join");
         }
 
         await updateGroups();
