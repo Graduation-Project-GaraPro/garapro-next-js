@@ -17,9 +17,9 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { NotificationDropdown } from "@/components/manager/notification-dropdown"
-import { RepairOrderCompletionToast } from "@/components/manager/repair-order-completion-toast"
+} from "@/components/ui/dropdown-menu";
+import { NotificationDropdown } from "@/components/manager/notification-dropdown";
+import { RepairOrderCompletionToast } from "@/components/manager/repair-order-completion-toast";
 // import TechnicianAssignmentNotification from "@/components/manager/technician-assignment-notification"
 
 export function SiteHeader() {
@@ -28,18 +28,15 @@ export function SiteHeader() {
   const { branch, loading: branchLoading } = useCurrentBranch();
 
   const handleLogout = async () => {
-      try {
-        
-        await authService.logout();
-        
-        
-        window.location.href = "/login";
-        
-      } catch (error) {
-        console.error("Logout error:", error);
-        window.location.href = "/login";
-      }
-    };
+    try {
+      await authService.logout();
+
+      window.location.href = "/login";
+    } catch (error) {
+      console.error("Logout error:", error);
+      window.location.href = "/login";
+    }
+  };
   return (
     <header
       className="flex sticky top-0 z-50 w-full items-center border-b"
@@ -80,7 +77,7 @@ export function SiteHeader() {
         {/* Branch Name next to logo */}
         <div className="ml-4 flex items-center">
           <span className="text-white/80 text-sm font-medium">
-            {branchLoading ? "Loading..." : (branch?.branchName || "No Branch")}
+            {branchLoading ? "Loading..." : branch?.branchName || "No Branch"}
           </span>
         </div>
 
@@ -98,10 +95,12 @@ export function SiteHeader() {
             <Settings className="h-4 w-4" />
           </Button> */}
 
-
           {/* Manager Notifications */}
           <div className="text-white [&_button]:text-white [&_button:hover]:text-white [&_button:hover]:bg-white/10">
-            <NotificationDropdown branchId={branch?.branchID} useRepairOrderHub={false} />
+            <NotificationDropdown
+              branchId={branch?.branchId}
+              useRepairOrderHub={false}
+            />
           </div>
 
           <Separator orientation="vertical" className="h-4 bg-white/30" />
@@ -116,21 +115,24 @@ export function SiteHeader() {
               >
                 <Avatar className="h-6 w-6">
                   <AvatarFallback className="text-xs font-medium bg-primary text-primary-foreground">
-                    {loading ? "..." : (user?.initials || "U")}
+                    {loading ? "..." : user?.initials || "U"}
                   </AvatarFallback>
                 </Avatar>
                 <span className="text-sm font-medium">
-                  {loading ? "Loading..." : (user?.fullName || "User")}
+                  {loading ? "Loading..." : user?.fullName || "User"}
                 </span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-64">
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              
+
               {user && (
                 <DropdownMenuItem asChild>
-                  <Link href="/manager/profile" className="flex items-center gap-3 py-2 cursor-pointer">
+                  <Link
+                    href="/manager/profile"
+                    className="flex items-center gap-3 py-2 cursor-pointer"
+                  >
                     <Avatar className="h-8 w-8">
                       <AvatarFallback className="text-sm font-medium">
                         {user.initials}
@@ -138,7 +140,9 @@ export function SiteHeader() {
                     </Avatar>
                     <div className="flex flex-col leading-tight">
                       <span className="font-medium">{user.fullName}</span>
-                      <span className="text-sm text-muted-foreground">{user.email}</span>
+                      <span className="text-sm text-muted-foreground">
+                        {user.email}
+                      </span>
                     </div>
                   </Link>
                 </DropdownMenuItem>
@@ -149,7 +153,9 @@ export function SiteHeader() {
                   <User className="h-5 w-5 text-muted-foreground" />
                   <div className="flex flex-col leading-tight">
                     <span className="font-medium">Profile unavailable</span>
-                    <span className="text-sm text-muted-foreground">Please try again</span>
+                    <span className="text-sm text-muted-foreground">
+                      Please try again
+                    </span>
                   </div>
                 </DropdownMenuItem>
               )}
@@ -165,9 +171,9 @@ export function SiteHeader() {
           </DropdownMenu>
         </div>
       </div>
-      
+
       {/* Repair Order Completion Toast Handler */}
-      <RepairOrderCompletionToast branchId={branch?.branchID} />
+      <RepairOrderCompletionToast branchId={branch?.branchId} />
     </header>
   );
 }
