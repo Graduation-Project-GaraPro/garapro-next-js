@@ -18,7 +18,6 @@ import { apiClient } from "@/services/manager/api-client";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import RequestToastContent from "@/components/RequestToastContent";
-import { el } from "date-fns/locale";
 
 type UserProfile = {
   id: string;
