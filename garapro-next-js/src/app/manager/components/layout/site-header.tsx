@@ -101,7 +101,7 @@ export function SiteHeader() {
 
           {/* Manager Notifications */}
           <div className="text-white [&_button]:text-white [&_button:hover]:text-white [&_button:hover]:bg-white/10">
-            <NotificationDropdown branchId={branch?.branchID} useRepairOrderHub={false} />
+            <NotificationDropdown branchId={branch?.branchId} useRepairOrderHub={false} />
           </div>
 
           <Separator orientation="vertical" className="h-4 bg-white/30" />
@@ -167,7 +167,7 @@ export function SiteHeader() {
       </div>
       
       {/* Repair Order Completion Toast Handler */}
-      <RepairOrderCompletionToast branchId={branch?.branchID} />
+      <RepairOrderCompletionToast branchId={branch?.branchId} />
     </header>
   );
 }
