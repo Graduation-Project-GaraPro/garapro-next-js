@@ -44,8 +44,11 @@ export interface JobHistoryDto {
   totalAmount: number;
   deadline: string | null;
   level: number;
+  startTime?: string; 
+  endTime?: string;
   jobParts: JobPartDto[];
   services: ServiceDto[];
+
 }
 
 export interface JobPartDto {

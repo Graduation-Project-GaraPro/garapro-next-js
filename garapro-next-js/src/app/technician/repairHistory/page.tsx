@@ -51,15 +51,15 @@ interface RepairEntry {
   repairDescription: string;
   totalAmount: number;
   level: number;
-  jobParts: JobPartDto[];
   startTime?: string;  
   endTime?: string;
+  jobParts: JobPartDto[];
 }
 
 interface JobPartDto {
   partName: string;
   quantity: number;
-  //unitPrice: number;
+  unitPrice: number;
   warrantyMonths?: number;  
   warrantyStartAt?: string; 
   warrantyEndAt?: string;
