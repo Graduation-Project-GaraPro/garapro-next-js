@@ -173,14 +173,18 @@ class ServiceCatalogService {
   // New method to get parts by service ID
   async getPartsByServiceId(serviceId: string): Promise<Part[]> {
     try {
-      // Define the API response type that includes stockQuantity
+      // Define the API response type with enhanced fields
       interface ApiPartItem {
         partId: string;
         name: string;
+        description?: string;
         price: number;
         stockQuantity: number;
-        description?: string;
+        warrantyMonths?: number;
         partCategoryId?: string;
+        modelId?: string;
+        modelName?: string;
+        brandName?: string;
       }
       
       const response = await apiClient.get<ApiPartItem[]>(`/Parts/service/${serviceId}`);
@@ -190,8 +194,14 @@ class ServiceCatalogService {
       return apiParts.map(part => ({
         partId: part.partId,
         name: part.name,
+        description: part.description || '',
         price: part.price,
-        stock: part.stockQuantity // Map stockQuantity to stock
+        stock: part.stockQuantity,
+        warrantyMonths: part.warrantyMonths,
+        partCategoryId: part.partCategoryId,
+        modelId: part.modelId,
+        modelName: part.modelName,
+        brandName: part.brandName
       }));
     } catch (error) {
       console.error(`Failed to fetch parts for service ${serviceId}:`, error);

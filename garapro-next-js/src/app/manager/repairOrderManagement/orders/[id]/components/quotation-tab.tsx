@@ -28,7 +28,11 @@ import { toast } from "sonner"
 import { CreateQuotationDialog } from "@/app/manager/components/Quote"
 import QuotePreviewDialog from "@/app/manager/components/Quote/QuotePreviewDialog"
 import { quotationService } from "@/services/manager/quotation-service"
+import { repairOrderService } from "@/services/manager/repair-order-service"
+import { vehicleService } from "@/services/manager/vehicle-service"
 import { QuotationDto } from "@/types/manager/quotation"
+import type { RepairOrder } from "@/types/manager/repair-order"
+import type { VehicleWithCustomerDto } from "@/types/manager/vehicle"
 import { useEffect } from "react"
 import { formatVND } from "@/lib/currency"
 import { useQuotationHub } from "@/hooks/use-quotation-hub"
@@ -43,6 +47,8 @@ interface QuotationTabProps {
 
 export default function QuotationTab({ orderId, repairOrderStatus, isArchived, onRepairOrderCompleted }: QuotationTabProps) {
   const [quotations, setQuotations] = useState<QuotationDto[]>([])
+  const [repairOrder, setRepairOrder] = useState<RepairOrder | null>(null)
+  const [vehicleData, setVehicleData] = useState<VehicleWithCustomerDto | null>(null)
   const [isCreateFormOpen, setIsCreateFormOpen] = useState(false)
   const [isPreviewOpen, setIsPreviewOpen] = useState(false)
   const [selectedQuotationId, setSelectedQuotationId] = useState<string | null>(null)
@@ -80,7 +86,8 @@ export default function QuotationTab({ orderId, repairOrderStatus, isArchived, o
   useEffect(() => {
     let pollingInterval: NodeJS.Timeout | null = null;
     
-    // Load initial quotations
+    // Load initial data
+    loadRepairOrder();
     loadQuotations();
     
     const pollingFrequency = isConnected ? 60000 : 30000; // 60s if connected, 30s if not
@@ -118,6 +125,25 @@ export default function QuotationTab({ orderId, repairOrderStatus, isArchived, o
 
     checkCanComplete();
   }, [orderId, repairOrderStatus, isArchived, quotations]);
+
+  const loadRepairOrder = async () => {
+    try {
+      const data = await repairOrderService.getRepairOrderById(orderId);
+      setRepairOrder(data);
+      
+      // If repair order has vehicle ID, fetch vehicle details for model ID
+      if (data?.vehicleId) {
+        try {
+          const vehicleDetails = await vehicleService.getVehicleById(data.vehicleId);
+          setVehicleData(vehicleDetails);
+        } catch (vehicleErr) {
+          console.error("Failed to load vehicle details:", vehicleErr);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to load repair order:", err);
+    }
+  };
 
   const loadQuotations = async () => {
     try {
@@ -464,8 +490,8 @@ export default function QuotationTab({ orderId, repairOrderStatus, isArchived, o
                               )}
                             </span>
                           )}
-                          
-                          {/* Copy to Jobs button - only for Approved quotations that haven't been converted yet */}
+
+                          {/* Copy to Jobs button */}
                           {q.status.toLowerCase() === "approved" && !q.jobsCreated && (
                             <Button 
                               variant="default"
@@ -524,9 +550,10 @@ export default function QuotationTab({ orderId, repairOrderStatus, isArchived, o
         }}
         roData={{
           roNumber: orderId,
-          customerName: "John Doe", // This would come from the RO data
-          customerPhone: "+1234567890", // This would come from the RO data
-          vehicleInfo: "2023 Toyota Camry", // This would come from the RO data
+          customerName: repairOrder?.customerName || "Unknown Customer",
+          customerPhone: repairOrder?.customerPhone || "",
+          vehicleInfo: vehicleData ? `${vehicleData.vehicle.year} ${vehicleData.vehicle.brandName} ${vehicleData.vehicle.modelName}` : (repairOrder?.vehicleName || "Unknown Vehicle"),
+          vehicleModelId: vehicleData?.vehicle.modelID, // Pass the vehicle model ID for model-specific parts
           dateCreated: new Date().toISOString().split('T')[0]
         }}
       />
