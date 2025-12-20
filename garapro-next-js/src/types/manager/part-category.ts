@@ -16,6 +16,10 @@ export interface Part {
   price: number
   stock: number
   description?: string
+  warrantyMonths?: number
+  modelId?: string
+  modelName?: string
+  brandName?: string
   createdAt?: string
   updatedAt?: string
 }

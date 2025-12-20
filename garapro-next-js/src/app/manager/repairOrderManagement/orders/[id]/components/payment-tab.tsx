@@ -67,8 +67,11 @@ export default function PaymentTab({ orderId, repairOrderStatus, paidStatus, isA
       console.log("💰 Payment received for this RO:", event)
       if (event.repairOrderId === orderId) {
         // Reload payment summary when cash payment is received
+        console.log("🔄 Auto-reloading payment tab due to PaymentReceived event")
         loadPaymentSummary(false)
+        // Also reload entire repair order to update all tabs
         if (onPaymentSuccess) {
+          console.log("🔄 Triggering full repair order reload for all tabs")
           onPaymentSuccess()
         }
         toast({
@@ -81,8 +84,11 @@ export default function PaymentTab({ orderId, repairOrderStatus, paidStatus, isA
       console.log("✅ PayOS payment confirmed for this RO:", event)
       if (event.repairOrderId === orderId) {
         // Reload payment summary when PayOS payment is confirmed
+        console.log("🔄 Auto-reloading payment tab due to PaymentConfirmed event")
         loadPaymentSummary(false)
+        // Also reload entire repair order to update all tabs
         if (onPaymentSuccess) {
+          console.log("🔄 Triggering full repair order reload for all tabs")
           onPaymentSuccess()
         }
         toast({
@@ -95,8 +101,11 @@ export default function PaymentTab({ orderId, repairOrderStatus, paidStatus, isA
       console.log("🎉 Repair order fully paid:", event)
       if (event.repairOrderId === orderId) {
         // Reload payment summary when repair order is fully paid
+        console.log("🔄 Auto-reloading payment tab due to RepairOrderPaid event")
         loadPaymentSummary(false)
+        // Also reload entire repair order to update all tabs
         if (onPaymentSuccess) {
+          console.log("🔄 Triggering full repair order reload for all tabs")
           onPaymentSuccess()
         }
         toast({
@@ -110,8 +119,11 @@ export default function PaymentTab({ orderId, repairOrderStatus, paidStatus, isA
       console.log("Payment created for this RO (legacy):", event)
       if (event.repairOrderId === orderId) {
         // Reload payment summary when new payment is created
+        console.log("🔄 Auto-reloading payment tab due to PaymentCreated event (legacy)")
         loadPaymentSummary(false)
+        // Also reload entire repair order to update all tabs
         if (onPaymentSuccess) {
+          console.log("🔄 Triggering full repair order reload for all tabs (legacy)")
           onPaymentSuccess()
         }
       }
@@ -120,19 +132,28 @@ export default function PaymentTab({ orderId, repairOrderStatus, paidStatus, isA
       console.log("Payment status updated (legacy):", event)
       if (event.repairOrderId === orderId) {
         // Reload payment summary when payment status changes
+        console.log("🔄 Auto-reloading payment tab due to PaymentStatusUpdated event (legacy)")
         loadPaymentSummary(false)
+        // Also reload entire repair order to update all tabs
+        if (onPaymentSuccess) {
+          console.log("🔄 Triggering full repair order reload for all tabs (legacy)")
+          onPaymentSuccess()
+        }
       }
     },
     onPaymentCompleted: (event) => {
       console.log("Payment completed for this RO (legacy):", event)
       if (event.repairOrderId === orderId) {
         // Update payment summary with the completed data
+        console.log("🔄 Auto-reloading payment tab due to PaymentCompleted event (legacy)")
         if (event.paymentSummary) {
           setPaymentSummary(event.paymentSummary)
         } else {
           loadPaymentSummary(false)
         }
+        // Also reload entire repair order to update all tabs
         if (onPaymentSuccess) {
+          console.log("🔄 Triggering full repair order reload for all tabs (legacy)")
           onPaymentSuccess()
         }
         toast({
@@ -521,7 +542,15 @@ export default function PaymentTab({ orderId, repairOrderStatus, paidStatus, isA
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle>Payment History</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                Payment History
+                {isPaymentHubConnected && (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
+                    <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                    Live Updates
+                  </span>
+                )}
+              </CardTitle>
               <Button
                 variant="outline"
                 size="sm"
