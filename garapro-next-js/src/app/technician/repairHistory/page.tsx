@@ -51,6 +51,18 @@ interface RepairEntry {
   repairDescription: string;
   totalAmount: number;
   level: number;
+  jobParts: JobPartDto[];
+  startTime?: string;  
+  endTime?: string;
+}
+
+interface JobPartDto {
+  partName: string;
+  quantity: number;
+  //unitPrice: number;
+  warrantyMonths?: number;  
+  warrantyStartAt?: string; 
+  warrantyEndAt?: string;
 }
 
 export default function RepairHistory() {
@@ -72,6 +84,19 @@ export default function RepairHistory() {
   const [totalPages, setTotalPages] = useState(0);
   const [hasPreviousPage, setHasPreviousPage] = useState(false);
   const [hasNextPage, setHasNextPage] = useState(false);
+  
+  // Dropdown state - sử dụng unique key để tránh duplicate
+  const [expandedPartKey, setExpandedPartKey] = useState<string | null>(null);
+
+  // Tạo unique key cho mỗi part
+  const togglePartDetails = (vehicleId: string, jobIndex: number, partIndex: number) => {
+    const key = `${vehicleId}_${jobIndex}_${partIndex}`;
+    if (expandedPartKey === key) {
+      setExpandedPartKey(null);
+    } else {
+      setExpandedPartKey(key);
+    }
+  };
 
   // Debounce search term
   useEffect(() => {
@@ -98,7 +123,6 @@ export default function RepairHistory() {
       const endIndex = startIndex + pageSize;
       const paginatedData = data.slice(startIndex, endIndex);
 
-
       const transformedData: VehicleHistory[] = paginatedData.map((item) => ({
         id: item.vehicle.vehicleId,
         vehicle: `${item.vehicle.brand?.brandName || 'Unknown'} ${item.vehicle.model?.modelName || ''}`.trim(),
@@ -117,7 +141,17 @@ export default function RepairHistory() {
           replacedParts: job.jobParts.map(p => `${p.partName} (x${p.quantity})`).join(", ") || "None",
           repairDescription: job.repairDescription || "No repair description",
           totalAmount: job.totalAmount,
-          level: job.level
+          level: job.level,
+          startTime: job.startTime,  
+          endTime: job.endTime, 
+          jobParts: job.jobParts.map(p => ({
+            partName: p.partName,
+            quantity: p.quantity,
+            unitPrice: p.unitPrice,
+            warrantyMonths: p.warrantyMonths,
+            warrantyStartAt: p.warrantyStartAt,
+            warrantyEndAt: p.warrantyEndAt
+          }))
         }))
       }));
 
@@ -213,12 +247,14 @@ export default function RepairHistory() {
   const openModal = (vehicle: VehicleHistory) => {
     setSelectedVehicle(vehicle);
     setIsModalOpen(true);
+    setExpandedPartKey(null); // Reset dropdown khi mở modal mới
     document.body.style.overflow = "hidden";
   };
 
   const closeModal = () => {
     setIsModalOpen(false);
     setSelectedVehicle(null);
+    setExpandedPartKey(null); // Reset dropdown khi đóng modal
     document.body.style.overflow = "unset";
   };
 
@@ -496,6 +532,12 @@ export default function RepairHistory() {
         <div
         className="fixed inset-0 flex items-start md:items-center justify-center p-2 md:p-4 bg-black/40 bg-opacity-50 backdrop-blur-sm"
         style={{ zIndex: 9999 }}
+        onClick={(e) => {
+          // Close modal when clicking on backdrop
+          if (e.target === e.currentTarget) {
+            closeModal();
+          }
+        }}
       >
         <div className="bg-white rounded-xl md:rounded-3xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden my-4 md:my-0">
             <div className="bg-[url('/images/image20.jpg')] bg-cover bg-no-repeat p-4 md:p-6 text-white">
@@ -557,9 +599,9 @@ export default function RepairHistory() {
                     Completed Jobs
                   </h3>
                   <div className="space-y-6">
-                    {sortHistoryByDate(selectedVehicle.history).map((entry, index) => (
+                    {sortHistoryByDate(selectedVehicle.history).map((entry, jobIndex) => (
                       <div
-                        key={index}
+                        key={jobIndex}
                         className="bg-gray-50 rounded-xl p-4 md:p-6 border border-gray-200 hover:shadow-md transition-shadow"
                       >
                         {/* Header with Date */}
@@ -592,12 +634,73 @@ export default function RepairHistory() {
                               <FaTools className="mr-2 text-orange-500 mt-1 flex-shrink-0" />
                               <div className="flex-1">
                                 <strong className="text-gray-700">Spare parts:</strong>
-                                <p className="text-gray-600">{entry.replacedParts}</p>
+                                <div className="flex flex-wrap gap-2 mt-1">
+                                  {entry.jobParts?.map((part, partIndex) => {
+                                    const partKey = `${selectedVehicle.id}_${jobIndex}_${partIndex}`;
+                                    return (
+                                      <div key={partIndex} className="relative">
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            togglePartDetails(selectedVehicle.id, jobIndex, partIndex);
+                                          }}
+                                          className="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors border border-blue-200 text-sm font-medium flex items-center"
+                                        >
+                                          <span>{part.partName}</span>
+                                          <span className="ml-1 text-xs bg-blue-200 px-1.5 py-0.5 rounded">
+                                            x{part.quantity}
+                                          </span>
+                                        </button>
+                                        
+                                        {/* Dropdown phần tử */}
+                                        {expandedPartKey === partKey && (
+                                          <div 
+                                            className="absolute z-50 mt-2 bg-white rounded-lg shadow-lg border border-gray-200 p-3 min-w-[200px]"
+                                            onClick={(e) => e.stopPropagation()}
+                                          >
+                                            <div className="space-y-2">
+                                              <div className="flex justify-between">
+                                                <span className="text-gray-600 text-sm">Quantity:</span>
+                                                <span className="font-medium">{part.quantity}</span>
+                                              </div>
+                                              {/* <div className="flex justify-between">
+                                                <span className="text-gray-600 text-sm">Unit Price:</span>
+                                                <span className="font-medium">{part.unitPrice.toLocaleString()} VND</span>
+                                              </div> */}
+                                              {part.warrantyMonths && (
+                                                <div className="flex justify-between">
+                                                  <span className="text-gray-600 text-sm">Warranty:</span>
+                                                  <span className="font-medium text-green-600">{part.warrantyMonths} months</span>
+                                                </div>
+                                              )}
+                                              {part.warrantyStartAt && (
+                                                <div className="flex justify-between">
+                                                  <span className="text-gray-600 text-sm">Start:</span>
+                                                  <span className="font-medium">
+                                                    {new Date(part.warrantyStartAt).toLocaleDateString()}
+                                                  </span>
+                                                </div>
+                                              )}
+                                              {part.warrantyEndAt && (
+                                                <div className="flex justify-between">
+                                                  <span className="text-gray-600 text-sm">End:</span>
+                                                  <span className="font-medium">
+                                                    {new Date(part.warrantyEndAt).toLocaleDateString()}
+                                                  </span>
+                                                </div>
+                                              )}
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
                               </div>
                             </div>
                           </div>
 
-                          {/* Column 2: Total Amount, Priority, Job Notes */}
+                          {/* Column 2: Total Amount, Job Notes */}
                           <div className="space-y-3">
                             <div className="flex items-start">
                               <FaMoneyBill className="mr-2 text-green-600 mt-1 flex-shrink-0" />
@@ -613,6 +716,29 @@ export default function RepairHistory() {
                                 <p className="text-gray-600">{entry.note}</p>
                               </div>
                             </div>
+                              {(entry.startTime || entry.endTime) && (
+    <div className="flex items-start">
+      <FaTools className="mr-2 text-orange-500 mt-1 flex-shrink-0" />
+      <div className="flex-1">
+        <strong className="text-gray-700">Repair Timeline:</strong>
+        <div className="text-gray-600 text-sm space-y-1">
+          {entry.startTime && (
+            <div>
+              <span className="font-medium">Start: </span>
+              {new Date(entry.startTime).toLocaleString()}
+            </div>
+          )}
+          {entry.endTime && (
+            <div>
+              <span className="font-medium">End: </span>
+              {new Date(entry.endTime).toLocaleString()}
+            </div>
+          )}
+          
+        </div>
+      </div>
+    </div>
+  )}
                           </div>
                         </div>
 
