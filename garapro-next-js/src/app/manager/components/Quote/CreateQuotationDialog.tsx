@@ -31,6 +31,7 @@ interface CreateQuotationDialogProps {
     customerPhone?: string
     vehicleInfo?: string
     dateCreated?: string
+    vehicleModelId?: string // Add vehicle model ID for model-specific parts
   }
   onSubmit: (data: QuotationData) => void
 }
@@ -86,7 +87,11 @@ export function CreateQuotationDialog({ open, onOpenChange, roData, onSubmit }: 
     
     // Try to fetch parts for this service using the tree API first
     try {
-      const serviceDetails = await quotationTreeService.getServiceDetails(serviceId)
+      // Use model-specific API if vehicle model ID is available
+      const serviceDetails = await quotationTreeService.getServiceDetails(
+        serviceId, 
+        roData?.vehicleModelId
+      )
       console.log("servicePart", serviceDetails.partCategories)
       // Check if part categories have parts included
       const hasPartsInCategories = serviceDetails.partCategories.some(
@@ -123,7 +128,10 @@ export function CreateQuotationDialog({ open, onOpenChange, roData, onSubmit }: 
         
         for (const category of serviceDetails.partCategories) {
           try {
-            const categoryParts = await quotationTreeService.getPartsByCategory(category.partCategoryId)
+            const categoryParts = await quotationTreeService.getPartsByCategory(
+              category.partCategoryId,
+              roData?.vehicleModelId
+            )
 
          console.log("categoryParts", categoryParts )
             
@@ -251,7 +259,10 @@ export function CreateQuotationDialog({ open, onOpenChange, roData, onSubmit }: 
             // Fetch parts for each category
             for (const category of serviceDetails.partCategories) {
               try {
-                const categoryParts = await quotationTreeService.getPartsByCategory(category.partCategoryId)
+                const categoryParts = await quotationTreeService.getPartsByCategory(
+                  category.partCategoryId,
+                  roData?.vehicleModelId
+                )
                 categoryParts.forEach((part) => {
                   allParts.push({
                     partId: part.partId,

@@ -23,7 +23,9 @@ import {
   EditRepairOrderDialog
 } from "./components"
 import { repairOrderService, setBranchIdGetter } from "@/services/manager/repair-order-service"
+import { vehicleService } from "@/services/manager/vehicle-service"
 import type { RepairOrder } from "@/types/manager/repair-order"
+import type { VehicleWithCustomerDto } from "@/types/manager/vehicle"
 import { useManagerSession } from "@/contexts/manager-session-context"
 
 interface OrderDetailsProps {
@@ -36,6 +38,7 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
   const [activeTab, setActiveTab] = useState("vehicle-info")
   const [orderId, setOrderId] = useState<string>("")
   const [repairOrder, setRepairOrder] = useState<RepairOrder | null>(null)
+  const [vehicleData, setVehicleData] = useState<VehicleWithCustomerDto | null>(null)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isLoadingOrder, setIsLoadingOrder] = useState(true)
   const [allJobsCompleted, setAllJobsCompleted] = useState(false)
@@ -61,6 +64,16 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
         if (orderId) {
           const orderData = await repairOrderService.getRepairOrderById(orderId)
           setRepairOrder(orderData)
+          
+          // If repair order has vehicle ID, fetch vehicle details for proper name display
+          if (orderData?.vehicleId) {
+            try {
+              const vehicleDetails = await vehicleService.getVehicleById(orderData.vehicleId)
+              setVehicleData(vehicleDetails)
+            } catch (vehicleErr) {
+              console.error("Failed to load vehicle details:", vehicleErr)
+            }
+          }
         }
       } catch (error) {
         console.error("Failed to fetch data:", error)
@@ -79,6 +92,16 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
     if (orderId) {
       const orderData = await repairOrderService.getRepairOrderById(orderId)
       setRepairOrder(orderData)
+      
+      // Also refresh vehicle data if vehicle ID changed
+      if (orderData?.vehicleId) {
+        try {
+          const vehicleDetails = await vehicleService.getVehicleById(orderData.vehicleId)
+          setVehicleData(vehicleDetails)
+        } catch (vehicleErr) {
+          console.error("Failed to load vehicle details:", vehicleErr)
+        }
+      }
     }
   }
 
@@ -143,10 +166,15 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
       }
     }
     
+    // Create vehicle display name with year, brand, and model
+    const vehicleDisplayName = vehicleData 
+      ? `${vehicleData.vehicle.year} ${vehicleData.vehicle.brandName} ${vehicleData.vehicle.modelName}`
+      : repairOrder.vehicleName || "Unknown Vehicle"
+    
     return {
       shortId: repairOrder.repairOrderId.substring(0, 4),
       customer: repairOrder.customerName || "Unknown Customer",
-      vehicle: repairOrder.vehicleName || `Vehicle #${repairOrder.vehicleId.substring(0, 4)}`,
+      vehicle: vehicleDisplayName,
       status: repairOrder.statusId || "Unknown",
       labels: repairOrder.assignedLabels || []
     }

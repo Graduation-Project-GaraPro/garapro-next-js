@@ -25,13 +25,22 @@ export interface ServiceItem {
 export interface PartItem {
   partId: string;
   name: string;
+  description: string;
   price: number;
-  stock: number
+  stock: number;
+  warrantyMonths?: number;
+  partCategoryId: string;
+  modelId?: string;
+  modelName?: string;
+  brandName?: string;
 }
 
 export interface PartCategory {
   partCategoryId: string;
   categoryName: string;
+  modelId?: string;
+  modelName?: string;
+  brandName?: string;
   parts: PartItem[];
 }
 
@@ -87,34 +96,46 @@ class QuotationTreeService {
     }
   }
 
-  // Get service details with part categories
-  async getServiceDetails(serviceId: string): Promise<ServiceDetailsResponse> {
+  // Get service details with part categories (with optional model filtering)
+  async getServiceDetails(serviceId: string, modelId?: string): Promise<ServiceDetailsResponse> {
     try {
-      const response = await apiClient.get<ServiceDetailsResponse>(`${this.baseUrl}/service/${serviceId}`);
+      const url = modelId 
+        ? `${this.baseUrl}/service/${serviceId}?modelId=${modelId}`
+        : `${this.baseUrl}/service/${serviceId}`;
+      
+      const response = await apiClient.get<ServiceDetailsResponse>(url);
       if (!response.data) {
         throw new Error('No data received from API');
       }
       return response.data;
     } catch (error) {
-      console.error(`Failed to fetch service details ${serviceId}:`, error);
+      console.error(`Failed to fetch service details ${serviceId}${modelId ? ` for model ${modelId}` : ''}:`, error);
       throw error;
     }
   }
 
-  // Get parts by category ID
-  async getPartsByCategory(categoryId: string): Promise<PartItem[]> {
+  // Get parts by category ID (with optional model filtering)
+  async getPartsByCategory(categoryId: string, modelId?: string): Promise<PartItem[]> {
     try {
-      // Define the API response type that includes stockQuantity
+      // Define the API response type with enhanced fields
       interface ApiPartItem {
         partId: string;
         name: string;
+        description: string;
         price: number;
         stockQuantity: number;
-        description?: string;
-        partCategoryId?: string;
+        warrantyMonths?: number;
+        partCategoryId: string;
+        modelId?: string;
+        modelName?: string;
+        brandName?: string;
       }
       
-      const response = await apiClient.get<ApiPartItem[]>(`${this.baseUrl}/parts/category/${categoryId}`);
+      const url = modelId 
+        ? `${this.baseUrl}/parts/category/${categoryId}?modelId=${modelId}`
+        : `${this.baseUrl}/parts/category/${categoryId}`;
+      
+      const response = await apiClient.get<ApiPartItem[]>(url);
       if (!response.data) {
         throw new Error('No data received from API');
       }
@@ -123,11 +144,58 @@ class QuotationTreeService {
       return response.data.map(part => ({
         partId: part.partId,
         name: part.name,
+        description: part.description,
         price: part.price,
-        stock: part.stockQuantity // Map stockQuantity to stock
+        stock: part.stockQuantity,
+        warrantyMonths: part.warrantyMonths,
+        partCategoryId: part.partCategoryId,
+        modelId: part.modelId,
+        modelName: part.modelName,
+        brandName: part.brandName
       }));
     } catch (error) {
-      console.error(`Failed to fetch parts for category ${categoryId}:`, error);
+      console.error(`Failed to fetch parts for category ${categoryId}${modelId ? ` for model ${modelId}` : ''}:`, error);
+      throw error;
+    }
+  }
+
+  // NEW: Get parts by model ID and category name
+  async getPartsByModelAndCategory(modelId: string, categoryName: string): Promise<PartItem[]> {
+    try {
+      // Define the API response type with enhanced fields
+      interface ApiPartItem {
+        partId: string;
+        name: string;
+        description: string;
+        price: number;
+        stockQuantity: number;
+        warrantyMonths?: number;
+        partCategoryId: string;
+        modelId: string;
+        modelName: string;
+        brandName: string;
+      }
+      
+      const response = await apiClient.get<ApiPartItem[]>(`${this.baseUrl}/parts/model/${modelId}/category/${encodeURIComponent(categoryName)}`);
+      if (!response.data) {
+        throw new Error('No data received from API');
+      }
+      
+      // Map API response to PartItem interface
+      return response.data.map(part => ({
+        partId: part.partId,
+        name: part.name,
+        description: part.description,
+        price: part.price,
+        stock: part.stockQuantity,
+        warrantyMonths: part.warrantyMonths,
+        partCategoryId: part.partCategoryId,
+        modelId: part.modelId,
+        modelName: part.modelName,
+        brandName: part.brandName
+      }));
+    } catch (error) {
+      console.error(`Failed to fetch parts for model ${modelId} and category ${categoryName}:`, error);
       throw error;
     }
   }

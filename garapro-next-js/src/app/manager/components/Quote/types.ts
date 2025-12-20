@@ -24,8 +24,14 @@ export interface CustomItem {
 export interface Part {
   partId: string
   name: string
+  description?: string
   price: number
   stock: number
+  warrantyMonths?: number
+  partCategoryId?: string
+  modelId?: string
+  modelName?: string
+  brandName?: string
 }
 
 // Use type alias instead of empty interface

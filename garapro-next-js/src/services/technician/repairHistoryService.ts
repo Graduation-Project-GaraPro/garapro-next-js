@@ -52,6 +52,9 @@ export interface JobPartDto {
   partName: string;
   quantity: number;
   unitPrice: number;
+  warrantyMonths?: number;  
+  warrantyStartAt?: string; 
+  warrantyEndAt?: string;
 }
 
 export interface ServiceDto {
