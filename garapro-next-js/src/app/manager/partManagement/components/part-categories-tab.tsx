@@ -278,7 +278,7 @@ export default function PartCategoriesTab() {
               <Card key={category.id} className="flex flex-col gap-4 border border-border p-4">
                 <div className="flex-1">
                   <h3 className="font-semibold text-foreground text-lg mb-2">
-                    {category.description || category.name || 'No description available'}
+                    {category.name || 'No category name available'}
                   </h3>
                   {(category.modelName || category.brandName) && (
                     <div className="flex items-center gap-2 mb-2">

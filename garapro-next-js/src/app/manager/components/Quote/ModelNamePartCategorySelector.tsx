@@ -209,7 +209,7 @@ export function ModelNamePartCategorySelector({
                           htmlFor={category.id}
                           className="font-medium cursor-pointer block mb-2"
                         >
-                          {category.description || category.name || 'No description available'}
+                          {category.name || 'No category name available'}
                         </label>
                         
                         <div className="flex items-center gap-2 flex-wrap">

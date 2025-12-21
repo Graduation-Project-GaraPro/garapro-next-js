@@ -55,7 +55,6 @@ export function VehiclePartCategorySelector({
   // Filter categories by search term
   const filteredCategories = categories.filter(category =>
     category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    category.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     category.modelName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     category.brandName?.toLowerCase().includes(searchTerm.toLowerCase())
   )
@@ -206,7 +205,7 @@ export function VehiclePartCategorySelector({
                           htmlFor={category.id}
                           className="font-medium cursor-pointer block mb-2"
                         >
-                          {category.description || category.name || 'No description available'}
+                          {category.name || 'No category name available'}
                         </label>
                         
                         <div className="flex items-center gap-2 flex-wrap">
