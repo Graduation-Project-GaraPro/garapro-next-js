@@ -13,10 +13,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Trash2, Edit2, Plus, Search } from "lucide-react"
+import { Trash2, Edit2, Plus, Search, Filter, ChevronDown } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { PartCategoryService } from "@/services/manager/part-category-service"
 import { Pagination } from "@/components/ui/pagination"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import PartCategoryForm from "./part-category-form"
 import type { PartCategory, PaginatedResponse } from "@/types/manager/part-category"
 
@@ -26,6 +32,8 @@ export default function PartCategoriesTab() {
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingCategory, setEditingCategory] = useState<PartCategory | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
+  const [filterType, setFilterType] = useState<'all' | 'model' | 'brand' | 'vehicle'>('all')
+  const [filterValue, setFilterValue] = useState("")
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
@@ -37,14 +45,27 @@ export default function PartCategoriesTab() {
       setLoading(true)
       let data: PaginatedResponse<PartCategory>
       
+      const searchParams: any = {
+        page: currentPage,
+        pageSize: pageSize,
+        sortBy: 'categoryName',
+        sortOrder: 'asc'
+      }
+
+      // Add search term if provided
       if (searchTerm.trim()) {
-        data = await PartCategoryService.searchCategories({
-          page: currentPage,
-          pageSize: pageSize,
-          searchTerm: searchTerm.trim(),
-          sortBy: 'categoryName',
-          sortOrder: 'asc'
-        })
+        searchParams.searchTerm = searchTerm.trim()
+      }
+
+      // Add filter based on type
+      if (filterType === 'model' && filterValue.trim()) {
+        searchParams.modelName = filterValue.trim()
+      } else if (filterType === 'brand' && filterValue.trim()) {
+        searchParams.brandName = filterValue.trim()
+      }
+
+      if (searchTerm.trim() || (filterType !== 'all' && filterValue.trim())) {
+        data = await PartCategoryService.searchCategories(searchParams)
       } else {
         data = await PartCategoryService.getCategoriesPaged({
           page: currentPage,
@@ -53,8 +74,19 @@ export default function PartCategoriesTab() {
       }
       
       console.log('Categories data from API:', data) // Debug log
-      setCategories(data.items)
-      setPaginationData(data)
+      
+      // Filter to show only categories with vehicle info if filter is enabled
+      let filteredItems = data.items
+      if (filterType === 'vehicle') {
+        filteredItems = data.items.filter(cat => cat.modelName || cat.brandName)
+      }
+      
+      setCategories(filteredItems)
+      setPaginationData({
+        ...data,
+        items: filteredItems,
+        totalCount: filteredItems.length
+      })
     } catch (error: unknown) {
       console.error("Failed to load categories:", error)
       toast({
@@ -69,7 +101,7 @@ export default function PartCategoriesTab() {
 
   useEffect(() => {
     loadCategories()
-  }, [currentPage, pageSize])
+  }, [currentPage, pageSize, filterType])
 
   // Debounced search effect
   useEffect(() => {
@@ -82,7 +114,29 @@ export default function PartCategoriesTab() {
     }, 500)
 
     return () => clearTimeout(timeoutId)
-  }, [searchTerm])
+  }, [searchTerm, filterValue])
+
+  const handleFilterChange = (type: 'all' | 'model' | 'brand' | 'vehicle') => {
+    setFilterType(type)
+    setFilterValue("")
+    setCurrentPage(1)
+  }
+
+  const getFilterLabel = () => {
+    switch (filterType) {
+      case 'model': return 'Filter by Model'
+      case 'brand': return 'Filter by Brand'
+      case 'vehicle': return 'Vehicle Only'
+      default: return 'All Categories'
+    }
+  }
+
+  const clearFilters = () => {
+    setFilterType('all')
+    setFilterValue("")
+    setSearchTerm("")
+    setCurrentPage(1)
+  }
 
   const handleAdd = () => {
     setEditingCategory(null)
@@ -155,8 +209,8 @@ export default function PartCategoriesTab() {
     <div className="space-y-6">
       {/* Header with Search and Add Button */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex-1">
-          <div className="relative">
+        <div className="flex gap-4 flex-1">
+          <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Search categories..."
@@ -165,7 +219,51 @@ export default function PartCategoriesTab() {
               className="pl-10"
             />
           </div>
+          
+          {/* Filter Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant={filterType !== 'all' ? "default" : "outline"}
+                className="gap-2 min-w-[140px]"
+              >
+                <Filter className="h-4 w-4" />
+                {getFilterLabel()}
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem onClick={() => handleFilterChange('all')}>
+                All Categories
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleFilterChange('model')}>
+                Filter by Model Name
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleFilterChange('brand')}>
+                Filter by Brand Name
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Clear Filters Button */}
+          {(filterType !== 'all' || searchTerm || filterValue) && (
+            <Button variant="ghost" size="sm" onClick={clearFilters}>
+              Clear
+            </Button>
+          )}
         </div>
+
+        {/* Filter Input for Model/Brand */}
+        {(filterType === 'model' || filterType === 'brand') && (
+          <div className="flex-1 max-w-xs">
+            <Input
+              placeholder={`Enter ${filterType} name...`}
+              value={filterValue}
+              onChange={(e) => setFilterValue(e.target.value)}
+            />
+          </div>
+        )}
+
         <Button onClick={handleAdd} className="gap-2">
           <Plus className="h-4 w-4" />
           Add Category
@@ -180,11 +278,15 @@ export default function PartCategoriesTab() {
               <Card key={category.id} className="flex flex-col gap-4 border border-border p-4">
                 <div className="flex-1">
                   <h3 className="font-semibold text-foreground text-lg mb-2">
-                    {category.name || 'Unnamed Category'}
+                    {category.description || category.name || 'No description available'}
                   </h3>
-                  <p className="text-sm text-muted-foreground mb-2">
-                    {category.description || 'No description provided'}
-                  </p>
+                  {(category.modelName || category.brandName) && (
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                        {category.brandName} {category.modelName}
+                      </span>
+                    </div>
+                  )}
                   <p className="text-xs text-muted-foreground">
                     Created: {new Date(category.createdAt).toLocaleDateString()}
                   </p>

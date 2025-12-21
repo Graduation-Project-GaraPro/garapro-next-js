@@ -2,6 +2,10 @@ export interface PartCategory {
   id: string
   name: string
   description?: string
+  modelId?: string
+  modelName?: string
+  brandId?: string
+  brandName?: string
   createdAt: string
   updatedAt?: string
 }
@@ -70,6 +74,10 @@ export interface PartCategoryApiResponse {
   laborCategoryId: string
   categoryName: string
   description?: string
+  modelId?: string
+  modelName?: string
+  brandId?: string
+  brandName?: string
   createdAt: string
   updatedAt?: string
 }
@@ -88,6 +96,13 @@ export interface PaginationParams {
 
 export interface SearchParams extends PaginationParams {
   searchTerm?: string
+  modelId?: string
+  brandId?: string
+  modelName?: string      // ✅ Filter by model name (partial)
+  brandName?: string      // ✅ Filter by brand name (partial)
+  categoryName?: string   // ✅ NEW: Filter by category name (partial)
+  minPrice?: number       // ✅ NEW: Filter by minimum price
+  maxPrice?: number       // ✅ NEW: Filter by maximum price
   sortBy?: string
   sortOrder?: 'asc' | 'desc'
 }
