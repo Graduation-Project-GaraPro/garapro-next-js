@@ -35,6 +35,10 @@ export interface RepairOrder {
   assignedLabels?: AssignedLabel[] // Labels assigned to this repair order
   inOdometer?: number | null // Odometer reading when vehicle arrived
   outOdometer?: number | null // Odometer reading when vehicle left
+  // Warranty information (for archived repair orders)
+  warrantyMonths?: number | null
+  warrantyStartAt?: string | null
+  warrantyEndAt?: string | null
 }
 
 // Add the PaidStatus enum
@@ -73,6 +77,10 @@ export interface RepairOrderApiResponse {
   archivedBy: string | null
   statusId: number
   statusName: string
+  // Warranty information (for archived repair orders)
+  warrantyMonths?: number | null
+  warrantyStartAt?: string | null
+  warrantyEndAt?: string | null
   vehicle?: {
     vehicleId: string
     licensePlate: string
@@ -158,7 +166,11 @@ export function mapApiToRepairOrder(apiResponse: RepairOrderApiResponse): Repair
     cancelledAt: apiResponse.cancelledAt,
     assignedLabels: apiResponse.assignedLabels || [],
     inOdometer: apiResponse.inOdometer,
-    outOdometer: apiResponse.outOdometer
+    outOdometer: apiResponse.outOdometer,
+    // Map warranty information (for archived repair orders)
+    warrantyMonths: apiResponse.warrantyMonths || null,
+    warrantyStartAt: apiResponse.warrantyStartAt || null,
+    warrantyEndAt: apiResponse.warrantyEndAt || null
   };
   
   console.log("Mapped repair order:", mappedOrder);

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { X, Calendar, User, Car, DollarSign, Package, Wrench, FileText, Archive } from "lucide-react"
+import { X, Calendar, User, Car, DollarSign, Package, Wrench, FileText, Archive, Shield } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -47,6 +47,10 @@ interface ArchivedRODetail {
   customerName: string
   customerEmail: string
   customerPhone: string
+  // New warranty fields
+  warrantyMonths: number | null
+  warrantyStartAt: string | null
+  warrantyEndAt: string | null
   vehicle: {
     licensePlate: string
     vin: string
@@ -79,6 +83,17 @@ interface ArchivedRODetail {
     endTime: string | null
     status: string
     notes: string
+    // Add warranty information for each job
+    parts: Array<{
+      partName: string
+      partCode: string
+      partPrice: number
+      quantity: number
+      totalPrice: number
+      warrantyMonths: number | null
+      warrantyStartAt: string | null
+      warrantyEndAt: string | null
+    }>
   }>
   totalJobs: number
   completedJobs: number
@@ -257,6 +272,39 @@ export default function ArchivedRODetailDialog({
               </div>
             </div>
 
+            {/* Warranty Information */}
+            {(data.warrantyMonths || data.warrantyStartAt || data.warrantyEndAt) && (
+              <div className="border rounded-lg p-4 bg-blue-50 border-blue-200">
+                <div className="flex items-center gap-2 mb-3">
+                  <Shield className="h-4 w-4 text-blue-600" />
+                  <h4 className="font-semibold text-blue-900">Warranty Information</h4>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                  {data.warrantyMonths && (
+                    <div>
+                      <div className="text-blue-700 font-medium">Coverage Period</div>
+                      <div className="font-semibold text-blue-900">{data.warrantyMonths} months</div>
+                    </div>
+                  )}
+                  {data.warrantyStartAt && (
+                    <div>
+                      <div className="text-blue-700 font-medium">Warranty Start</div>
+                      <div className="font-semibold text-blue-900">{formatDate(data.warrantyStartAt)}</div>
+                    </div>
+                  )}
+                  {data.warrantyEndAt && (
+                    <div>
+                      <div className="text-blue-700 font-medium">Warranty End</div>
+                      <div className="font-semibold text-blue-900">{formatDate(data.warrantyEndAt)}</div>
+                    </div>
+                  )}
+                </div>
+                <div className="mt-2 text-xs text-blue-700">
+                  * Warranty information is based on parts used in this repair order
+                </div>
+              </div>
+            )}
+
             {/* Services
             {data.services && data.services.length > 0 && (
               <div className="border rounded-lg p-4">
@@ -311,10 +359,10 @@ export default function ArchivedRODetailDialog({
                     Jobs ({data.completedJobs}/{data.totalJobs})
                   </h4>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {data.jobs.map((job) => (
                     <div key={job.jobId} className="bg-gray-50 p-3 rounded">
-                      <div className="flex justify-between items-start">
+                      <div className="flex justify-between items-start mb-2">
                         <div>
                           <div className="font-medium">{job.jobName}</div>
                           <div className="text-sm text-gray-600">Technician: {job.technicianName}</div>
@@ -324,6 +372,65 @@ export default function ArchivedRODetailDialog({
                           {job.status}
                         </Badge>
                       </div>
+                      
+                      {/* Job Parts with Warranty */}
+                      {job.parts && job.parts.length > 0 && (
+                        <div className="mt-3 pl-4 border-l-2 border-blue-300">
+                          <div className="text-xs font-medium text-gray-700 mb-2">Parts Used:</div>
+                          <div className="space-y-2">
+                            {job.parts.map((part, idx) => (
+                              <div key={idx} className="bg-white p-2 rounded border">
+                                <div className="flex justify-between items-start mb-1">
+                                  <div className="flex-1">
+                                    <div className="text-sm font-medium">{part.partName}</div>
+                                    <div className="text-xs text-gray-600">Code: {part.partCode}</div>
+                                  </div>
+                                  <div className="text-right text-sm">
+                                    <div className="font-medium">{formatVND(part.totalPrice)}</div>
+                                    <div className="text-xs text-gray-600">
+                                      {formatVND(part.partPrice)} × {part.quantity}
+                                    </div>
+                                  </div>
+                                </div>
+                                
+                                {/* Warranty Information for this part */}
+                                {(part.warrantyMonths || part.warrantyStartAt || part.warrantyEndAt) && (
+                                  <div className="mt-2 p-2 bg-blue-50 rounded border border-blue-200">
+                                    <div className="text-xs font-medium text-blue-800 mb-1">Warranty:</div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 text-xs">
+                                      {part.warrantyMonths && (
+                                        <div>
+                                          <span className="text-blue-700">Period:</span>{" "}
+                                          <span className="font-medium">{part.warrantyMonths} months</span>
+                                        </div>
+                                      )}
+                                      {part.warrantyStartAt && (
+                                        <div>
+                                          <span className="text-blue-700">Start:</span>{" "}
+                                          <span className="font-medium">{formatDate(part.warrantyStartAt)}</span>
+                                        </div>
+                                      )}
+                                      {part.warrantyEndAt && (
+                                        <div>
+                                          <span className="text-blue-700">End:</span>{" "}
+                                          <span className="font-medium">{formatDate(part.warrantyEndAt)}</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                {/* No warranty indicator */}
+                                {!part.warrantyMonths && !part.warrantyStartAt && !part.warrantyEndAt && (
+                                  <div className="mt-2 text-xs text-gray-500 italic">
+                                    No warranty information available
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
