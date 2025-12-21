@@ -163,7 +163,11 @@ export default function QuotationDetailsView({
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <p className="text-sm text-gray-500">Created Date</p>
-                  <p className="font-medium">{new Date(quotation.createdAt).toLocaleDateString()}</p>
+                  <p className="font-medium">
+                    {quotation.createdAt 
+                      ? new Date(quotation.createdAt).toLocaleDateString() 
+                      : "N/A"}
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Expires At</p>
@@ -298,16 +302,16 @@ export default function QuotationDetailsView({
                 <div className="space-y-2 max-w-xs ml-auto">
                   <div className="flex justify-between">
                     <span>Subtotal:</span>
-                    <span>${quotation.totalAmount.toFixed(2)}</span>
+                    <span>${(quotation.totalAmount ?? 0).toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Discount:</span>
-                    <span>${quotation.discountAmount.toFixed(2)}</span>
+                    <span>${(quotation.discountAmount ?? 0).toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between font-semibold text-lg border-t pt-2">
                     <span>Total:</span>
                     <span>
-                      ${(quotation.totalAmount - quotation.discountAmount).toFixed(2)}
+                      ${((quotation.totalAmount ?? 0) - (quotation.discountAmount ?? 0)).toFixed(2)}
                     </span>
                   </div>
                 </div>

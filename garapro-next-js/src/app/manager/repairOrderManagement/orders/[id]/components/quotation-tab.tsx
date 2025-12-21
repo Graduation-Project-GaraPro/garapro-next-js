@@ -186,7 +186,7 @@ export default function QuotationTab({ orderId, repairOrderStatus, isArchived, o
     const quotation = quotations.find(q => q.quotationId === quotationId);
     if (quotation?.jobsCreated) {
       toast.error("Jobs Already Created", {
-        description: `Jobs were already created from this quotation on ${new Date(quotation.jobsCreatedAt || '').toLocaleDateString()}`
+        description: `Jobs were already created from this quotation${quotation.jobsCreatedAt ? ` on ${new Date(quotation.jobsCreatedAt).toLocaleDateString()}` : ''}`
       });
       return;
     }
@@ -447,7 +447,7 @@ export default function QuotationTab({ orderId, repairOrderStatus, isArchived, o
                         {getStatusBadge(q.status)}
                       </td>
                       <td className="py-3 px-4 text-right">{formatVND(q.totalAmount)}</td>
-                      <td className="py-3 px-4">{new Date(q.createdAt).toLocaleDateString()}</td>
+                      <td className="py-3 px-4">{q.createdAt ? new Date(q.createdAt).toLocaleDateString() : 'N/A'}</td>
                       <td className="py-3 px-4">
                         <div className="flex justify-end gap-2">
                           <Button 

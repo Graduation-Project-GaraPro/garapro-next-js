@@ -30,13 +30,13 @@ export interface QuotationDto {
   repairOrderId: string;
   userId: string;
   vehicleId: string;
-  createdAt: string; 
+  createdAt: string | null; 
   sentToCustomerAt: string | null;
   customerResponseAt: string | null;
   status: "Pending" | "Sent" | "Approved" | "Rejected" | "Expired" | "Good";
-  totalAmount: number; // decimal
-  discountAmount: number; // decimal
-  inspectionFee: number; 
+  totalAmount: number | null; // decimal - can be null from server
+  discountAmount: number | null; // decimal - can be null from server
+  inspectionFee: number | null; 
   note?: string;
   customerNote?: string | null;
   expiresAt: string | null;

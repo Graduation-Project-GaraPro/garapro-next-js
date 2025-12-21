@@ -475,13 +475,13 @@ export default function JobsTab({ orderId, branchId, isArchived, onAllJobsComple
                   <div className="flex items-center text-sm">
                     <Calendar className="w-4 h-4 text-gray-500 mr-2" />
                     <span>
-                      Created: {new Date(job.createdAt).toLocaleDateString()}
+                      Created: {job.createdAt ? new Date(job.createdAt).toLocaleDateString() : 'N/A'}
                     </span>
                   </div>
                   <div className="flex items-center text-sm">
                     <Clock className="w-4 h-4 text-gray-500 mr-2" />
                     <span>
-                      Updated: {new Date(job.updatedAt).toLocaleDateString()}
+                      Updated: {job.updatedAt ? new Date(job.updatedAt).toLocaleDateString() : 'N/A'}
                     </span>
                   </div>
                 </div>
@@ -505,17 +505,17 @@ export default function JobsTab({ orderId, branchId, isArchived, onAllJobsComple
                           </div>
                           <div className="text-right">
                             <p className="text-sm">
-                              {part.unitPrice.toLocaleString("vi-VN", {
+                              {part.unitPrice ? part.unitPrice.toLocaleString("vi-VN", {
                                 style: "currency",
                                 currency: "VND",
-                              })}{" "}
-                              × {part.quantity}
+                              }) : 'N/A'}{" "}
+                              × {part.quantity || 0}
                             </p>
                             <p className="text-sm font-medium">
-                              {part.totalPrice.toLocaleString("vi-VN", {
+                              {part.totalPrice ? part.totalPrice.toLocaleString("vi-VN", {
                                 style: "currency",
                                 currency: "VND",
-                              })}
+                              }) : 'N/A'}
                             </p>
                           </div>
                         </div>

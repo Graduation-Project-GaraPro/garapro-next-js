@@ -219,13 +219,13 @@ export interface CustomerVehicleInfo {
   licensePlate: string;
   vin: string;
   year: number;
-  odometer: number;
+  odometer: number | null; // Can be null from server
   brandName: string;
   modelName: string;
   colorName: string;
   
   // Repair Order Info
   repairOrderId: string;
-  receiveDate: string;
+  receiveDate: string | null; // Can be null from server
   statusName: string;
 }

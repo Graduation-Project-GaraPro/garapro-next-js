@@ -76,7 +76,7 @@ export default function PaymentTab({ orderId, repairOrderStatus, paidStatus, isA
         }
         toast({
           title: "Payment Received",
-          description: `Cash payment of ${event.amount.toLocaleString()} VND received`,
+          description: `Cash payment of ${event.amount ? event.amount.toLocaleString() : 'N/A'} VND received`,
         })
       }
     },
@@ -93,7 +93,7 @@ export default function PaymentTab({ orderId, repairOrderStatus, paidStatus, isA
         }
         toast({
           title: "Payment Confirmed",
-          description: `PayOS payment of ${event.amount.toLocaleString()} VND confirmed`,
+          description: `PayOS payment of ${event.amount ? event.amount.toLocaleString() : 'N/A'} VND confirmed`,
         })
       }
     },
@@ -591,7 +591,7 @@ export default function PaymentTab({ orderId, repairOrderStatus, paidStatus, isA
                         
                         return (
                           <tr key={payment.paymentId} className="border-b">
-                            <td className="py-3 text-sm">{new Date(payment.createdAt).toLocaleDateString()}</td>
+                            <td className="py-3 text-sm">{payment.createdAt ? new Date(payment.createdAt).toLocaleDateString() : 'N/A'}</td>
                             <td className="py-3 text-sm font-medium">{formatVND(payment.amount)}</td>
                             <td className="py-3 text-sm">
                               <span className="inline-flex items-center gap-1">

@@ -603,7 +603,7 @@ export default function InspectionsTab({ orderId, highlightInspectionId }: Inspe
                   </div>
                   
                   <div className="mt-3 text-sm text-gray-600">
-                    Created: {new Date(task.createdAt).toLocaleDateString()}
+                    Created: {task.createdAt ? new Date(task.createdAt).toLocaleDateString() : 'N/A'}
                     {task.updatedAt && ` • Updated: ${new Date(task.updatedAt).toLocaleDateString()}`}
                   </div>
                   

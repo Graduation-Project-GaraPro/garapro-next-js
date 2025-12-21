@@ -322,7 +322,7 @@ export function InspectionDetailDialog({
                   <p className="text-sm text-gray-500">Created At</p>
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-gray-500" />
-                    <span>{new Date(inspection.createdAt).toLocaleDateString()}</span>
+                    <span>{inspection.createdAt ? new Date(inspection.createdAt).toLocaleDateString() : 'N/A'}</span>
                   </div>
                 </div>
                 <div>

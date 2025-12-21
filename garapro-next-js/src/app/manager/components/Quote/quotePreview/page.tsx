@@ -64,7 +64,7 @@ export default function QuotePage() {
     
     return {
       id: quotation.quotationId,
-      date: quotation.createdAt,
+      date: quotation.createdAt || new Date().toISOString(),
       status: quotation.status,
     }
   }
