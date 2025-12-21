@@ -16,7 +16,8 @@ import {
   Users,
   AlertCircle,
   Edit,
-  CreditCard
+  CreditCard,
+  Shield
 } from "lucide-react"
 import { jobService } from "@/services/manager/job-service"
 import { TechnicianSelectionDialog } from "@/components/manager/technician-selection-dialog"
@@ -52,6 +53,20 @@ export default function JobsTab({ orderId, branchId, isArchived, onAllJobsComple
     const names = name.split(" ")
     if (names.length === 1) return names[0].substring(0, 2).toUpperCase()
     return (names[0][0] + names[names.length - 1][0]).toUpperCase()
+  }
+
+  // Format date for warranty display
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return "N/A"
+    try {
+      return new Date(dateString).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      })
+    } catch {
+      return "N/A"
+    }
   }
 
   useEffect(() => {
@@ -486,43 +501,89 @@ export default function JobsTab({ orderId, branchId, isArchived, onAllJobsComple
                   </div>
                 </div>
 
-                {job.parts.length > 0 && (
-                  <div className="mt-4">
-                    <h4 className="text-sm font-medium mb-2 flex items-center">
-                      <Package className="w-4 h-4 mr-2" />
-                      Parts ({job.parts.length})
-                    </h4>
-                    <div className="border rounded-md divide-y">
-                      {job.parts.map((part, index) => (
-                        <div
-                          key={part.jobPartId || `${job.jobId}-part-${index}`}
-                          className="p-3 flex justify-between items-center"
-                        >
-                          <div>
-                            <p className="text-sm font-medium">
-                              {part.partName}
-                            </p>
+                {/* Get parts from either jobParts or parts field */}
+                {(() => {
+                  const jobParts = job.jobParts || job.parts || []
+                  return jobParts.length > 0 && (
+                    <div className="mt-4">
+                      <h4 className="text-sm font-medium mb-2 flex items-center">
+                        <Package className="w-4 h-4 mr-2" />
+                        Parts ({jobParts.length})
+                      </h4>
+                      <div className="border rounded-md divide-y">
+                        {jobParts.map((part, index) => (
+                          <div
+                            key={part.jobPartId || `${job.jobId}-part-${index}`}
+                            className="p-3"
+                          >
+                            <div className="flex justify-between items-start mb-2">
+                              <div className="flex-1">
+                                <p className="text-sm font-medium">
+                                  {part.partName}
+                                </p>
+                                {part.partCode && (
+                                  <p className="text-xs text-gray-600">Code: {part.partCode}</p>
+                                )}
+                              </div>
+                              <div className="text-right">
+                                <p className="text-sm">
+                                  {part.unitPrice ? part.unitPrice.toLocaleString("vi-VN", {
+                                    style: "currency",
+                                    currency: "VND",
+                                  }) : 'N/A'}{" "}
+                                  × {part.quantity || 0}
+                                </p>
+                                <p className="text-sm font-medium">
+                                  {part.totalPrice ? part.totalPrice.toLocaleString("vi-VN", {
+                                    style: "currency",
+                                    currency: "VND",
+                                  }) : 'N/A'}
+                                </p>
+                              </div>
+                            </div>
+                            
+                            {/* Warranty Information */}
+                            {(part.warrantyMonths || part.warrantyStartAt || part.warrantyEndAt) && (
+                              <div className="mt-2 p-2 bg-blue-50 rounded border border-blue-200">
+                                <div className="flex items-center gap-1 mb-1">
+                                  <Shield className="w-3 h-3 text-blue-600" />
+                                  <span className="text-xs font-medium text-blue-800">Warranty:</span>
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 text-xs">
+                                  {part.warrantyMonths && (
+                                    <div>
+                                      <span className="text-blue-700">Period:</span>{" "}
+                                      <span className="font-medium">{part.warrantyMonths} months</span>
+                                    </div>
+                                  )}
+                                  {part.warrantyStartAt && (
+                                    <div>
+                                      <span className="text-blue-700">Start:</span>{" "}
+                                      <span className="font-medium">{formatDate(part.warrantyStartAt)}</span>
+                                    </div>
+                                  )}
+                                  {part.warrantyEndAt && (
+                                    <div>
+                                      <span className="text-blue-700">End:</span>{" "}
+                                      <span className="font-medium">{formatDate(part.warrantyEndAt)}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                            
+                            {/* No warranty indicator */}
+                            {!part.warrantyMonths && !part.warrantyStartAt && !part.warrantyEndAt && (
+                              <div className="mt-2 text-xs text-gray-500 italic">
+                                No warranty information available
+                              </div>
+                            )}
                           </div>
-                          <div className="text-right">
-                            <p className="text-sm">
-                              {part.unitPrice ? part.unitPrice.toLocaleString("vi-VN", {
-                                style: "currency",
-                                currency: "VND",
-                              }) : 'N/A'}{" "}
-                              × {part.quantity || 0}
-                            </p>
-                            <p className="text-sm font-medium">
-                              {part.totalPrice ? part.totalPrice.toLocaleString("vi-VN", {
-                                style: "currency",
-                                currency: "VND",
-                              }) : 'N/A'}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )
+                })()}
 
                 {job.note && (
                   <div className="mt-4">

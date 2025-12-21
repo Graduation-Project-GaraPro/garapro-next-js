@@ -84,10 +84,11 @@ interface ArchivedRODetail {
     status: string
     notes: string
     // Add warranty information for each job
-    parts: Array<{
+    jobParts: Array<{
+      jobPartId: string
       partName: string
       partCode: string
-      partPrice: number
+      unitPrice: number
       quantity: number
       totalPrice: number
       warrantyMonths: number | null
@@ -159,7 +160,7 @@ export default function ArchivedRODetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-8xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="!max-w-[66.67vw] !w-[66.67vw] max-h-[90vh] overflow-y-auto" style={{ width: '66.67vw', maxWidth: '66.67vw' }}>
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle className="flex items-center gap-2">
@@ -374,11 +375,11 @@ export default function ArchivedRODetailDialog({
                       </div>
                       
                       {/* Job Parts with Warranty */}
-                      {job.parts && job.parts.length > 0 && (
+                      {job.jobParts && job.jobParts.length > 0 && (
                         <div className="mt-3 pl-4 border-l-2 border-blue-300">
                           <div className="text-xs font-medium text-gray-700 mb-2">Parts Used:</div>
                           <div className="space-y-2">
-                            {job.parts.map((part, idx) => (
+                            {job.jobParts.map((part, idx) => (
                               <div key={idx} className="bg-white p-2 rounded border">
                                 <div className="flex justify-between items-start mb-1">
                                   <div className="flex-1">
@@ -388,7 +389,7 @@ export default function ArchivedRODetailDialog({
                                   <div className="text-right text-sm">
                                     <div className="font-medium">{formatVND(part.totalPrice)}</div>
                                     <div className="text-xs text-gray-600">
-                                      {formatVND(part.partPrice)} × {part.quantity}
+                                      {formatVND(part.unitPrice)} × {part.quantity}
                                     </div>
                                   </div>
                                 </div>
