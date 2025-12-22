@@ -200,7 +200,7 @@ class QuotationService {
     }
   }
 
-  // Check if repair order can be completed (all quotations are "Good" and RO is "In Progress")
+  // Check if repair order can be completed (all quotations are "Good" OR all quotations are "Rejected" and RO is "In Progress")
   async canCompleteRepairOrder(repairOrderId: string): Promise<{ canComplete: boolean; repairOrderId: string }> {
     try {
       const response = await apiClient.get<{ canComplete: boolean; repairOrderId: string }>(`/quotations/can-complete-repair-order/${repairOrderId}`);
@@ -214,7 +214,7 @@ class QuotationService {
     }
   }
 
-  // Complete repair order (change status to completed)
+  // Complete repair order (change status to completed when all quotations are "Good" OR all are "Rejected")
   async completeRepairOrder(repairOrderId: string): Promise<{ message: string; repairOrderId: string }> {
     try {
       const response = await apiClient.post<{ message: string; repairOrderId: string }>(`/quotations/complete-repair-order/${repairOrderId}`);

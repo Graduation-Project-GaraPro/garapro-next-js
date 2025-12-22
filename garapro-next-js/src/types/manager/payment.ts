@@ -100,6 +100,7 @@ export function getPaymentStatusColor(status: string | number): {
 export interface CreatePaymentRequest {
   method: number;
   description: string;
+  recordDate?: string; // Optional record date, defaults to current time if not provided
 }
 
 export interface CreatePaymentResponse {
@@ -115,6 +116,7 @@ export interface CreatePaymentResponse {
 export interface GenerateQRCodeRequest {
   method: 'PayOs';
   description: string;
+  recordDate?: string; // Optional record date, defaults to current time if not provided
 }
 
 export interface GenerateQRCodeResponse {

@@ -40,6 +40,24 @@ export function hasGoodQuotation(quotations: QuotationDto[]): boolean {
 }
 
 /**
+ * Check if all quotations are rejected
+ */
+export function areAllQuotationsRejected(quotations: QuotationDto[]): boolean {
+  if (quotations.length === 0) {
+    return false
+  }
+  
+  return quotations.every(quotation => quotation.status === "Rejected")
+}
+
+/**
+ * Check if all quotations are in a final state (either all good or all rejected)
+ */
+export function areAllQuotationsFinalized(quotations: QuotationDto[]): boolean {
+  return hasGoodQuotation(quotations) || areAllQuotationsRejected(quotations)
+}
+
+/**
  * Check if all jobs are completed
  */
 export function areAllJobsCompleted(jobs: Job[]): boolean {
@@ -93,10 +111,11 @@ export function validateStatusTransition(
     }
   }
 
-  // In Progress → Completed: ✅ MUST have quotation AND (good quotation OR all jobs done)
+  // In Progress → Completed: ✅ MUST have quotation AND (good quotation OR all quotations rejected OR all jobs done)
   if (fromStatusId === STATUS.IN_PROGRESS && toStatusId === STATUS.COMPLETED) {
     const hasQuotation = quotations.length > 0
     const hasGoodQuote = hasGoodQuotation(quotations)
+    const allQuotationsRejected = areAllQuotationsRejected(quotations)
     const allJobsDone = areAllJobsCompleted(jobs)
     const incompleteJobs = getIncompleteJobs(jobs)
     const incompleteCount = incompleteJobs.length
@@ -116,16 +135,16 @@ export function validateStatusTransition(
       }
     }
     
-    // STEP 2: Check if has good quotation OR all jobs completed
-    if (!hasGoodQuote && !allJobsDone) {
+    // STEP 2: Check if has good quotation OR all quotations rejected OR all jobs completed
+    if (!hasGoodQuote && !allQuotationsRejected && !allJobsDone) {
       const jobList = incompleteJobs.slice(0, 3).map(job => 
         job.jobName || `Job ${job.jobId.slice(0, 8)}`
       ).join(", ")
       
       const moreJobs = incompleteCount > 3 ? ` and ${incompleteCount - 3} more` : ""
       
-      let message = `Cannot complete: No good quotation and ${incompleteCount} job(s) incomplete. `
-      message += `To complete, either: (1) Get a good quotation (approve quotation where ALL services are marked as Good), or (2) Complete all jobs. `
+      let message = `Cannot complete: No good quotation, not all quotations rejected, and ${incompleteCount} job(s) incomplete. `
+      message += `To complete, either: (1) Get a good quotation (approve quotation where ALL services are marked as Good), (2) Reject all quotations, or (3) Complete all jobs. `
       message += `Incomplete jobs: ${jobList}${moreJobs}.`
       
       return {

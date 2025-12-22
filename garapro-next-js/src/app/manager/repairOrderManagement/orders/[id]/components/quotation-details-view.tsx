@@ -220,10 +220,10 @@ export default function QuotationDetailsView({
                             {service.serviceName}
                           </h3>
                           {service.isGood && (
-                            <Badge className="bg-green-600">✓ Good Condition</Badge>
+                            <Badge className="bg-green-600">Good Condition</Badge>
                           )}
                           {!service.isGood && service.isRequired && (
-                            <Badge variant="destructive">⚠️ Required</Badge>
+                            <Badge variant="destructive">Required</Badge>
                           )}
                           {!service.isGood && !service.isRequired && (
                             <Badge variant="secondary">Optional</Badge>

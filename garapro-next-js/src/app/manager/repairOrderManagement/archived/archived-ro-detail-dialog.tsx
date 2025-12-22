@@ -449,10 +449,6 @@ export default function ArchivedRODetailDialog({
                   <div className="text-gray-600">Received</div>
                   <div className="font-medium">{formatDate(data.receiveDate)}</div>
                 </div>
-                <div>
-                  <div className="text-gray-600">Completed</div>
-                  <div className="font-medium">{formatDate(data.completionDate)}</div>
-                </div>
               </div>
               {data.note && (
                 <div className="bg-gray-50 p-3 rounded">

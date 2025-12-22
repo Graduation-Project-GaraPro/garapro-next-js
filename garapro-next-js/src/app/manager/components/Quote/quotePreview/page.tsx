@@ -70,12 +70,12 @@ export default function QuotePage() {
   }
 
   const getQuoteInfoData = () => {
-    if (!quotation) return { customerName: "", customerEmail: "", customerPhone: "" }
+    if (!quotation) return { customerName: "" }
     
     return {
       customerName: quotation.customerName,
-      customerEmail: "", // Not available in current quotation data
-      customerPhone: "", // Not available in current quotation data
+      // Only include customerPhone if it's available and not empty
+      // Currently not available in QuotationDto
     }
   }
 
@@ -119,7 +119,6 @@ export default function QuotePage() {
     if (!quotation) return
     
     if (confirm("Are you sure you want to delete this quote?")) {
-      // In a real implementation, you would call an API to delete the quote
       alert("Quote deleted")
       router.back()
     }
@@ -128,7 +127,6 @@ export default function QuotePage() {
   const handleDownloadPDF = () => {
     if (!quotation) return
     
-    // In a real implementation, you would generate and download a PDF
     alert(`Downloading quote ${quotation.quotationId} as PDF`)
   }
 
