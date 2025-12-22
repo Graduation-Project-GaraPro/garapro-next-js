@@ -37,6 +37,7 @@ import { useEffect } from "react"
 import { formatVND } from "@/lib/currency"
 import { useQuotationHub } from "@/hooks/use-quotation-hub"
 import { authService } from "@/services/authService"
+import { areAllQuotationsRejected, hasGoodQuotation } from "@/utils/repair-order-status-validation"
 
 interface QuotationTabProps {
   orderId: string
@@ -110,11 +111,26 @@ export default function QuotationTab({ orderId, repairOrderStatus, isArchived, o
       if (isRepairOrderInProgress && !isArchived && quotations.length > 0) {
         try {
           setCheckingCompletion(true);
-          const result = await quotationService.canCompleteRepairOrder(orderId);
-          setCanCompleteRepairOrder(result.canComplete);
+          
+          // First check client-side validation for rejected quotations
+          const allQuotationsRejected = areAllQuotationsRejected(quotations);
+          const hasGoodQuote = hasGoodQuotation(quotations);
+          
+          if (allQuotationsRejected || hasGoodQuote) {
+            // If all quotations are rejected or we have good quotations, allow completion
+            setCanCompleteRepairOrder(true);
+          } else {
+            // Otherwise, check with backend API (for job completion scenarios)
+            const result = await quotationService.canCompleteRepairOrder(orderId);
+            setCanCompleteRepairOrder(result.canComplete);
+          }
         } catch (error) {
           console.error("Failed to check completion eligibility:", error);
-          setCanCompleteRepairOrder(false);
+          
+          // Fallback to client-side validation if API fails
+          const allQuotationsRejected = areAllQuotationsRejected(quotations);
+          const hasGoodQuote = hasGoodQuotation(quotations);
+          setCanCompleteRepairOrder(allQuotationsRejected || hasGoodQuote);
         } finally {
           setCheckingCompletion(false);
         }
@@ -186,7 +202,7 @@ export default function QuotationTab({ orderId, repairOrderStatus, isArchived, o
     const quotation = quotations.find(q => q.quotationId === quotationId);
     if (quotation?.jobsCreated) {
       toast.error("Jobs Already Created", {
-        description: `Jobs were already created from this quotation on ${new Date(quotation.jobsCreatedAt || '').toLocaleDateString()}`
+        description: `Jobs were already created from this quotation${quotation.jobsCreatedAt ? ` on ${new Date(quotation.jobsCreatedAt).toLocaleDateString()}` : ''}`
       });
       return;
     }
@@ -370,7 +386,7 @@ export default function QuotationTab({ orderId, repairOrderStatus, isArchived, o
         </div>
       </div>
 
-      {/* Complete Repair Order Button (only show if RO is in progress and all quotations are Good) */}
+      {/* Complete Repair Order Button (only show if RO is in progress and quotations are finalized) */}
       {canCompleteRepairOrder && repairOrderStatus === 2 && !isArchived && (
         <Card className="border-green-200 bg-green-50">
           <CardHeader>
@@ -384,7 +400,12 @@ export default function QuotationTab({ orderId, repairOrderStatus, isArchived, o
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-1">Ready to Complete</h3>
                 <p className="text-gray-600">
-                  All quotations have been approved with "Good" status. You can now complete this repair order to enable payment processing.
+                  {areAllQuotationsRejected(quotations) 
+                    ? "All quotations have been rejected by the customer. You can complete this repair order for administrative closure."
+                    : hasGoodQuotation(quotations)
+                    ? "All quotations have been approved with 'Good' status. You can now complete this repair order to enable payment processing."
+                    : "All quotations have been finalized. You can now complete this repair order."
+                  }
                 </p>
               </div>
               <Button
@@ -447,7 +468,7 @@ export default function QuotationTab({ orderId, repairOrderStatus, isArchived, o
                         {getStatusBadge(q.status)}
                       </td>
                       <td className="py-3 px-4 text-right">{formatVND(q.totalAmount)}</td>
-                      <td className="py-3 px-4">{new Date(q.createdAt).toLocaleDateString()}</td>
+                      <td className="py-3 px-4">{q.createdAt ? new Date(q.createdAt).toLocaleDateString() : 'N/A'}</td>
                       <td className="py-3 px-4">
                         <div className="flex justify-end gap-2">
                           <Button 

@@ -23,10 +23,10 @@ class RepairOrderService {
       // Get branch ID from auth context (no API call needed!)
       const branchId = getBranchIdFromContext?.() || null;
       
-      if (!branchId) {
-        console.error("No branch ID available in auth context");
-        return [];
-      }
+      // if (!branchId) {
+      //   console.error("No branch ID available in auth context");
+      //   return [];
+      // }
       
       // Call the branch-specific endpoint with the cached branch ID
       const response = await apiClient.get<RepairOrderApiResponse[]>(`${this.baseUrl}/branch/${branchId}`)
@@ -40,7 +40,7 @@ class RepairOrderService {
       
       return [];
     } catch (error) {
-      console.error("Failed to fetch repair orders:", error)
+      // console.error("Failed to fetch repair orders:", error)
       return []
     }
   }
@@ -379,10 +379,10 @@ class RepairOrderService {
       // Get branch ID from auth context or use provided one
       let targetBranchId = branchId || getBranchIdFromContext?.();
 
-      if (!targetBranchId) {
-        console.error("Unable to determine branch ID for archived repair orders");
-        return [];
-      }
+      // if (!targetBranchId) {
+      //   console.error("Unable to determine branch ID for archived repair orders");
+      //   return [];
+      // }
 
       // Build query parameters
       const params = {

@@ -114,7 +114,7 @@ export default function VehicleInformation({ orderId }: VehicleInformationProps)
               <Label>Odometer</Label>
               <div className="p-2 border rounded-md bg-gray-50 flex items-center">
                 <Gauge className="w-4 h-4 mr-2 text-gray-500" />
-                <span className="font-medium">{data.odometer.toLocaleString()} km</span>
+                <span className="font-medium">{data.odometer ? data.odometer.toLocaleString() : 'N/A'} km</span>
               </div>
             </div>
           </div>
@@ -171,12 +171,12 @@ export default function VehicleInformation({ orderId }: VehicleInformationProps)
           <div>
             <Label>Receive Date</Label>
             <div className="p-2 border rounded-md bg-gray-50">
-              {new Date(data.receiveDate).toLocaleDateString('en-US', {
+              {data.receiveDate ? new Date(data.receiveDate).toLocaleDateString('en-US', {
                 weekday: 'long',
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric'
-              })}
+              }) : 'N/A'}
             </div>
           </div>
           <div>

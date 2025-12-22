@@ -105,3 +105,51 @@ export function useServiceParts(serviceId: string | null) {
     refetch: serviceId ? () => loadServiceData(serviceId) : () => {}
   }
 }
+
+export function useVehiclePartCategories(modelId?: string, brandId?: string, modelName?: string, brandName?: string) {
+  const [categories, setCategories] = useState<PartCategory[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const loadCategories = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      
+      let data
+      if (modelId) {
+        const response = await PartCategoryService.getCategoriesByModel(modelId)
+        data = response.items
+      } else if (brandId) {
+        const response = await PartCategoryService.getCategoriesByBrand(brandId)
+        data = response.items
+      } else if (modelName) {
+        const response = await PartCategoryService.getCategoriesByModelName(modelName)
+        data = response.items
+      } else if (brandName) {
+        const response = await PartCategoryService.getCategoriesByBrandName(brandName)
+        data = response.items
+      } else {
+        data = await PartCategoryService.getAllCategories()
+      }
+      
+      setCategories(data)
+    } catch (err) {
+      setError('Failed to load categories')
+      console.error('Error loading categories:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadCategories()
+  }, [modelId, brandId, modelName, brandName])
+
+  return {
+    categories,
+    loading,
+    error,
+    refetch: loadCategories
+  }
+}

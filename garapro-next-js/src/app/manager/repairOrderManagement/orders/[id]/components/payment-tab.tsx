@@ -35,7 +35,7 @@ const paymentMethods: PaymentMethod[] = [
   },
   {
     id: "payos",
-    name: "PayOs (QR Code)",
+    name: "QR Code (PayOs)",
     icon: <QrCode className="w-8 h-8" />
   }
 ]
@@ -76,7 +76,7 @@ export default function PaymentTab({ orderId, repairOrderStatus, paidStatus, isA
         }
         toast({
           title: "Payment Received",
-          description: `Cash payment of ${event.amount.toLocaleString()} VND received`,
+          description: `Cash payment of ${event.amount ? event.amount.toLocaleString() : 'N/A'} VND received`,
         })
       }
     },
@@ -93,7 +93,7 @@ export default function PaymentTab({ orderId, repairOrderStatus, paidStatus, isA
         }
         toast({
           title: "Payment Confirmed",
-          description: `PayOS payment of ${event.amount.toLocaleString()} VND confirmed`,
+          description: `PayOS payment of ${event.amount ? event.amount.toLocaleString() : 'N/A'} VND confirmed`,
         })
       }
     },
@@ -326,6 +326,7 @@ export default function PaymentTab({ orderId, repairOrderStatus, paidStatus, isA
       const paymentRequest = {
         method: 1,
         description: cashPaymentData.description || `Cash payment for repair order ${orderId}`,
+        recordDate: new Date().toISOString(), // Add current date as record date
       };
       
       console.log("=== PAYMENT REQUEST ===");
@@ -411,6 +412,7 @@ export default function PaymentTab({ orderId, repairOrderStatus, paidStatus, isA
       const response = await paymentService.generateQRCode(orderId, {
         method: "PayOs",
         description: `PayOs payment for repair order ${orderId}`,
+        recordDate: new Date().toISOString(), // Add current date as record date
       })
 
       console.log("PayOS Payment Response:", {
@@ -544,12 +546,6 @@ export default function PaymentTab({ orderId, repairOrderStatus, paidStatus, isA
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 Payment History
-                {isPaymentHubConnected && (
-                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
-                    <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                    Live Updates
-                  </span>
-                )}
               </CardTitle>
               <Button
                 variant="outline"
@@ -570,7 +566,10 @@ export default function PaymentTab({ orderId, repairOrderStatus, paidStatus, isA
             </div>
           </CardHeader>
           <CardContent>
-            {paymentSummary && paymentSummary.paymentHistory && paymentSummary.paymentHistory.length > 0 ? (
+            {paymentSummary && paymentSummary.paymentHistory && paymentSummary.paymentHistory.filter((payment) => {
+              const statusName = getPaymentStatusName(payment.status);
+              return statusName === 'Paid';
+            }).length > 0 ? (
               <div className="space-y-4">
                 <div className="overflow-x-auto">
                   <table className="w-full">
@@ -584,14 +583,30 @@ export default function PaymentTab({ orderId, repairOrderStatus, paidStatus, isA
                       </tr>
                     </thead>
                     <tbody>
-                      {paymentSummary.paymentHistory?.map((payment) => {
+                      {paymentSummary.paymentHistory?.filter((payment) => {
+                        const statusName = getPaymentStatusName(payment.status);
+                        return statusName === 'Paid';
+                      }).map((payment) => {
                         const methodName = getPaymentMethodName(payment.method);
                         const statusName = getPaymentStatusName(payment.status);
                         const statusColor = getPaymentStatusColor(payment.status);
                         
                         return (
                           <tr key={payment.paymentId} className="border-b">
-                            <td className="py-3 text-sm">{new Date(payment.createdAt).toLocaleDateString()}</td>
+                            <td className="py-3 text-sm">
+                              {payment.createdAt 
+                                ? new Date(payment.createdAt).toLocaleDateString('en-US', {
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: 'numeric'
+                                  })
+                                : new Date().toLocaleDateString('en-US', {
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: 'numeric'
+                                  })
+                              }
+                            </td>
                             <td className="py-3 text-sm font-medium">{formatVND(payment.amount)}</td>
                             <td className="py-3 text-sm">
                               <span className="inline-flex items-center gap-1">

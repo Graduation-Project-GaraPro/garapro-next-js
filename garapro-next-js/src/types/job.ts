@@ -2,14 +2,19 @@ export type JobStatus = "requires-auth" | "in-progress" | "ready-to-start"
 
 export interface JobPart {
   jobPartId: string
-  jobId: string
-  partId: string
+  jobId?: string
+  partId?: string
+  partCode?: string
+  partName: string
   quantity: number
   unitPrice: number
   totalPrice: number
-  createdAt: string
-  updatedAt: string | null
-  partName: string
+  createdAt?: string
+  updatedAt?: string | null
+  // Warranty information
+  warrantyMonths?: number | null
+  warrantyStartAt?: string | null
+  warrantyEndAt?: string | null
 }
 
 export interface Job {
@@ -29,7 +34,8 @@ export interface Job {
   assignedTechnicianName?: string | null
   assignedTechnicianMonogram?: string | null
   technicianName?: string | null // API returns this field name
-  parts: JobPart[]
+  parts: JobPart[] // Legacy field name
+  jobParts?: JobPart[] // New field name from API
 }
 
 export interface CreateJobRequest {

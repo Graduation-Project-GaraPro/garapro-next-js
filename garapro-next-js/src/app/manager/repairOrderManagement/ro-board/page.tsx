@@ -27,6 +27,8 @@ type ViewMode = "board" | "list"
 
 export default function BoardPage() {
   const [repairOrders, setRepairOrders] = useState<RepairOrder[]>([])
+  const [filteredRepairOrders, setFilteredRepairOrders] = useState<RepairOrder[]>([])
+  const [searchTerm, setSearchTerm] = useState("")
   const [statuses, setStatuses] = useState<OrderStatus[]>([])
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [editingRepairOrder, setEditingRepairOrder] = useState<RepairOrder | null>(null)
@@ -122,10 +124,54 @@ export default function BoardPage() {
     try {
       const data = await repairOrderService.getAllRepairOrders()
       setRepairOrders(data)
+      setFilteredRepairOrders(data) // Initialize filtered list
     } catch (error) {
       console.error("Failed to load repair orders:", error)
     }
   }
+
+  // Search functionality
+  const handleSearch = (searchTerm: string) => {
+    setSearchTerm(searchTerm)
+    
+    if (!searchTerm.trim()) {
+      setFilteredRepairOrders(repairOrders)
+      return
+    }
+    
+    const filtered = repairOrders.filter((ro) => {
+      const searchLower = searchTerm.toLowerCase()
+      
+      // Search by repair order ID
+      if (ro.repairOrderId.toLowerCase().includes(searchLower)) {
+        return true
+      }
+      
+      // Search by customer name
+      if (ro.customerName?.toLowerCase().includes(searchLower)) {
+        return true
+      }
+      
+      // Search by customer phone
+      if (ro.customerPhone?.toLowerCase().includes(searchLower)) {
+        return true
+      }
+      
+      // Search by vehicle name (brand and model)
+      if (ro.vehicleName?.toLowerCase().includes(searchLower)) {
+        return true
+      }
+      
+      return false
+    })
+    
+    setFilteredRepairOrders(filtered)
+  }
+
+  // Update filtered list when repair orders change
+  useEffect(() => {
+    handleSearch(searchTerm)
+  }, [repairOrders, searchTerm])
 
   // Step 1 implementation: Fetch the list of statuses
   const loadStatuses = async () => {
@@ -364,7 +410,7 @@ export default function BoardPage() {
       <div className="bg-white border-b px-6 py-[9.5px] flex items-center justify-between shrink-0">
         <h1 className="text-lg font-semibold text-gray-900">Repair Order Board</h1>
         <div className="text-sm text-gray-500">
-          Loaded: {repairOrders.length} Repair orders
+          Loaded: {filteredRepairOrders.length} of {repairOrders.length} Repair orders
           {signalRReconnecting ? (
             <span className="ml-2 text-yellow-600 animate-pulse" title="Reconnecting...">●</span>
           ) : signalRConnected ? (
@@ -385,7 +431,11 @@ export default function BoardPage() {
           <div className="bg-white border-b px-6 py-1.5 flex flex-col gap-2 shrink-0">
             <div className="flex items-center gap-2 w-full">
               <div className="flex items-center gap-2 flex-1">
-                <SearchForm className="w-72" />
+                <SearchForm 
+                  className="w-72" 
+                  onSearch={handleSearch}
+                  placeholder="Search by name, phone, or RO ID..."
+                />
                 <Button 
                   variant="outline" 
                   size="sm" 
@@ -441,7 +491,7 @@ export default function BoardPage() {
           <div className="flex-1 h-0 min-h-0 overflow-hidden">
             {viewMode === "board" ? (
               <RepairOrderBoard
-                repairOrders={repairOrders}
+                repairOrders={filteredRepairOrders}
                 loading={loading}
                 onEditRepairOrder={setEditingRepairOrder}
                 onDeleteRepairOrder={handleDeleteRepairOrder}
@@ -453,7 +503,7 @@ export default function BoardPage() {
               />
             ) : (
               <ListView
-                repairOrders={repairOrders}
+                repairOrders={filteredRepairOrders}
                 loading={loading}
                 onEditRepairOrder={setEditingRepairOrder}
                 onDeleteRepairOrder={handleDeleteRepairOrder}

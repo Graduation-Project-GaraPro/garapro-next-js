@@ -3,7 +3,12 @@
 /**
  * Format VND
  */
-export function formatVND(amount: number, showSymbol: boolean = true): string {
+export function formatVND(amount: number | null | undefined, showSymbol: boolean = true): string {
+  // Handle null, undefined, or invalid numbers
+  if (amount == null || isNaN(amount)) {
+    return showSymbol ? '0₫' : '0';
+  }
+
   const formatted = new Intl.NumberFormat('vi-VN', {
     style: 'decimal',
     minimumFractionDigits: 0,
@@ -14,7 +19,7 @@ export function formatVND(amount: number, showSymbol: boolean = true): string {
 }
 
 
-export function formatVNDWithCode(amount: number): string {
+export function formatVNDWithCode(amount: number | null | undefined): string {
   return `${formatVND(amount, false)} VND`;
 }
 

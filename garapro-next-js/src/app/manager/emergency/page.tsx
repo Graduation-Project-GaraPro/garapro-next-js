@@ -108,11 +108,9 @@ export default function EmergencyList() {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await fetch(`${apiBase}/EmergencyRequest/getAll`, {
-          cache: "no-store",
-        });
+        const res = await apiClient.get<any>(`/EmergencyRequest/getAll`);
 
-        const json = (await res.json()) as EmergencyRequest[];
+        const json = res.data as EmergencyRequest[];
         setData(json);
       } catch (err) {
         console.error(err);

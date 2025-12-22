@@ -77,7 +77,7 @@ export default function QuotePreviewDialog({ open, onOpenChange, quotationId }: 
     
     return {
       id: quotation.quotationId,
-      date: quotation.createdAt,
+      date: quotation.createdAt || new Date().toISOString(),
       status: quotation.status,
     }
   }
@@ -97,15 +97,15 @@ export default function QuotePreviewDialog({ open, onOpenChange, quotationId }: 
     
     // Calculate inspection fee per good service
     const goodServicesCount = quotation.quotationServices.filter(s => s.isGood).length
-    const inspectionFeePerService = goodServicesCount > 0 ? quotation.inspectionFee / goodServicesCount : 0
+    const inspectionFeePerService = goodServicesCount > 0 ? (quotation.inspectionFee || 0) / goodServicesCount : 0
     
     return quotation.quotationServices.map((service) => ({
       id: stringIdToNumber(service.quotationServiceId),
       name: service.serviceName,
       price: service.totalPrice,
-      isRequired: service.isRequired, // Add isRequired property
-      isGood: service.isGood, // ✅ NEW - Add isGood property
-      inspectionFee: service.isGood ? inspectionFeePerService : 0, // ✅ NEW - Split inspection fee among good services
+      isRequired: service.isRequired, 
+      isGood: service.isGood, 
+      inspectionFee: service.isGood ? inspectionFeePerService : 0,
       parts: service.parts ? service.parts.map((part) => ({
         id: stringIdToNumber(part.quotationServicePartId),
         name: part.partName,
@@ -342,10 +342,10 @@ export default function QuotePreviewDialog({ open, onOpenChange, quotationId }: 
                     {quotation.quotationServices.reduce((sum, service) => sum + (service.parts ? service.parts.length : 0), 0)}
                   </span>
                 </div>
-                {quotation.inspectionFee > 0 && (
+                {(quotation.inspectionFee ?? 0) > 0 && (
                   <div className="flex justify-between border-t border-border pt-3">
                     <span className="text-muted-foreground">Inspection Fee:</span>
-                    <span className="font-medium text-green-600">{formatVND(quotation.inspectionFee)}</span>
+                    <span className="font-medium text-green-600">{formatVND(quotation.inspectionFee ?? 0)}</span>
                   </div>
                 )}
                 <div className="border-t border-border pt-3">

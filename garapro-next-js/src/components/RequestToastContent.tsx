@@ -21,8 +21,14 @@ export default function RequestToastContent({
 
   const shortDate = (iso?: string | Date | null) => {
     if (!iso) return "";
-    const d = new Date(iso);
-    return d.toLocaleString();
+    try {
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return "";
+      return d.toLocaleString();
+    } catch (error) {
+      console.warn('Date formatting error:', error);
+      return "";
+    }
   };
 
   const id = data.emergencyRequestId;
