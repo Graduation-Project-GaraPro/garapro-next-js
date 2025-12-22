@@ -65,12 +65,12 @@ interface VehicleInfo {
   result: string;
 }
 
-interface JobResponseDto {
-  jobId: string;
-  repairOrderId: string;
-  jobName: string;
-  status: string;
-}
+// interface JobResponseDto {
+//   jobId: string;
+//   repairOrderId: string;
+//   jobName: string;
+//   status: string;
+// }
 
 interface SuccessModalProps {
   isOpen: boolean;
@@ -199,37 +199,28 @@ export default function RepairProgressPage() {
           throw new Error("Repair order ID not found in job details");
         }
 
+        const data: RepairDetailDto = await getRepairOrderDetails(repairOrderId);
+
         try {
-          const myJobsResponse = await fetch(
-            API_URL + `/odata/JobTechnician/my-jobs`,
-            {
-              headers: {
-                Authorization: `Bearer ${authToken}`,
-              },
-            }
-          );
-          if (myJobsResponse.ok) {
-            const myJobsData: JobResponseDto[] = await myJobsResponse.json();
-            const jobsInSameOrder = myJobsData.filter(
-              (job: JobResponseDto) => job.repairOrderId === repairOrderId
-            );
-            const jobIdsArray = jobsInSameOrder.map(
-              (job: JobResponseDto) => job.jobId
-            );
-            console.log("My job IDs in this repair order:", jobIdsArray);
-            setMyJobIds(jobIdsArray);
-          }
+          // Get current technician ID from auth token or user profile
+          const currentTechnicianId = getCurrentTechnicianId(); 
+          const jobIdsFromDetail = data.jobs
+            .filter((job: JobDetailDto) => {
+              // Check if this job is assigned to current technician
+              return job.technicians.some(tech => tech.technicianId === currentTechnicianId);
+            })
+            .map((job: JobDetailDto) => job.jobId);
+          
+          console.log("My job IDs in this repair order (including completed+overdue):", jobIdsFromDetail);
+          setMyJobIds(jobIdsFromDetail);
         } catch (err) {
           console.warn(
-            "Could not fetch all jobs, using current job only:",
+            "Could not determine my jobs, using current job only:",
             err
           );
           setMyJobIds([jobId]);
         }
 
-        const data: RepairDetailDto = await getRepairOrderDetails(
-          repairOrderId
-        );
         const vehicleName =
           data.vehicle?.brand?.brandName && data.vehicle?.model?.modelName
             ? `${data.vehicle.brand.brandName} ${
@@ -281,7 +272,6 @@ export default function RepairProgressPage() {
       } catch (err: unknown) {
         console.error("Error fetching repair details:", err);
 
-        // Check if it's a network error and should retry
         const errorMessage = err instanceof Error ? err.message : String(err);
         const isNetworkError =
           errorMessage.includes("Failed to fetch") ||
@@ -313,6 +303,23 @@ export default function RepairProgressPage() {
     };
     fetchRepairDetails();
   }, [jobId]);
+
+  function getCurrentTechnicianId(): string {
+    const techId = localStorage.getItem("technicianId");
+    if (techId) return techId;
+    
+    const token = localStorage.getItem("authToken");
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        return payload.technicianId || payload.sub; 
+      } catch (e) {
+        console.error("Error decoding token:", e);
+      }
+    }
+    
+    return "";
+  }
 
   useEffect(() => {
     if (!vehicleInfo?.repairOrderId) return;
