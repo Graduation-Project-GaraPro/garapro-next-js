@@ -1,8 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { X, Calendar, User, Car, DollarSign, Package, Wrench, FileText, Archive } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { Calendar, User, Car, DollarSign, Wrench, Archive } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import {
   Dialog,
@@ -10,7 +9,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { repairOrderService } from "@/services/manager/repair-order-service"
 import { formatVND } from "@/lib/currency"
 
 interface ArchivedRODetailDialogProps {
@@ -47,6 +45,9 @@ interface ArchivedRODetail {
   customerName: string
   customerEmail: string
   customerPhone: string
+  warrantyMonths?: number | null
+  warrantyStartAt?: string | null
+  warrantyEndAt?: string | null
   vehicle: {
     licensePlate: string
     vin: string
@@ -86,6 +87,9 @@ interface ArchivedRODetail {
       unitPrice: number
       quantity: number
       totalPrice: number
+      warrantyMonths?: number | null
+      warrantyStartAt?: string | null
+      warrantyEndAt?: string | null
     }>
   }>
   totalJobs: number
@@ -265,6 +269,36 @@ export default function ArchivedRODetailDialog({
               </div>
             </div>
 
+            {/* Warranty Information */}
+            {(data.warrantyMonths && data.warrantyMonths > 0) && (
+              <div className="border rounded-lg p-4 bg-blue-50">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
+                    <div className="w-2 h-2 bg-white rounded-full"></div>
+                  </div>
+                  <h4 className="font-semibold text-blue-900">Repair Order Warranty</h4>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                  <div>
+                    <div className="text-blue-700">Duration</div>
+                    <div className="font-semibold text-blue-900">{data.warrantyMonths} months</div>
+                  </div>
+                  {data.warrantyStartAt && (
+                    <div>
+                      <div className="text-blue-700">Start Date</div>
+                      <div className="font-semibold text-blue-900">{formatDate(data.warrantyStartAt)}</div>
+                    </div>
+                  )}
+                  {data.warrantyEndAt && (
+                    <div>
+                      <div className="text-blue-700">End Date</div>
+                      <div className="font-semibold text-blue-900">{formatDate(data.warrantyEndAt)}</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
 
             {/* Services
             {data.services && data.services.length > 0 && (
@@ -353,6 +387,25 @@ export default function ArchivedRODetailDialog({
                                     </div>
                                   </div>
                                 </div>
+                                
+                                {/* Warranty Information */}
+                                {part.warrantyMonths && part.warrantyMonths > 0 && (
+                                  <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded">
+                                    <div className="flex items-center gap-1 mb-1">
+                                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                      <span className="text-xs font-medium text-blue-700">Warranty Coverage</span>
+                                    </div>
+                                    <div className="text-xs text-blue-600 space-y-1">
+                                      <div>Duration: {part.warrantyMonths} months</div>
+                                      {part.warrantyStartAt && (
+                                        <div>Start: {formatDate(part.warrantyStartAt)}</div>
+                                      )}
+                                      {part.warrantyEndAt && (
+                                        <div>End: {formatDate(part.warrantyEndAt)}</div>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             ))}
                           </div>
