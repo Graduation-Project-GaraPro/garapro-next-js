@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import QuoteHeader from "./quoteHeader"
 import QuoteInfo from "./quoteInfo"
 import ServicesTable from "./servicesTable"
-import ManagerNotes from "./managerNotes"
+import CustomerNotes from "./customerNotes"
 import QuoteActions from "./quoteActions"
 import { quotationService } from "@/services/manager/quotation-service"
 import { QuotationDto } from "@/types/manager/quotation"
@@ -33,7 +33,6 @@ export default function QuotePage() {
   const [quotation, setQuotation] = useState<QuotationDto | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [managerNote, setManagerNote] = useState("")
 
   // Fetch quotation data
   useEffect(() => {
@@ -48,7 +47,6 @@ export default function QuotePage() {
         setLoading(true)
         const data = await quotationService.getQuotationById(quotationId)
         setQuotation(data)
-        setManagerNote(data.note || "")
       } catch (err) {
         console.error("Failed to fetch quotation:", err)
         setError("Failed to load quotation")
@@ -136,6 +134,33 @@ export default function QuotePage() {
     if (!quotation) return
     
     alert(`Downloading quote ${quotation.quotationId} as PDF`)
+  }
+
+  const handleCopyToJobs = async () => {
+    if (!quotation) return
+    
+    // Check if jobs were already created
+    if (quotation.jobsCreated) {
+      alert(`Jobs were already created from this quotation on ${new Date(quotation.jobsCreatedAt || '').toLocaleDateString()}`)
+      return;
+    }
+    
+    try {
+      // Call the API to copy quotation to jobs
+      await quotationService.copyQuotationToJobs(quotation.quotationId);
+      
+      // Update local state to reflect jobs created
+      setQuotation({
+        ...quotation,
+        jobsCreated: true,
+        jobsCreatedAt: new Date().toISOString()
+      });
+      
+      alert(`Quote ${quotation.quotationId} converted to jobs successfully`)
+    } catch (error: any) {
+      console.error("Failed to copy quotation to jobs:", error)
+      alert("Failed to convert quotation to jobs. Please try again.")
+    }
   }
 
   if (loading) {
@@ -318,12 +343,6 @@ export default function QuotePage() {
                   <span className="text-muted-foreground">Total Services:</span>
                   <span className="font-medium text-card-foreground">{quotation.quotationServices.length}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Total Parts:</span>
-                  <span className="font-medium text-card-foreground">
-                    {quotation.quotationServices.reduce((sum, service) => sum + service.parts.length, 0)}
-                  </span>
-                </div>
                 <div className="border-t border-border pt-3">
                   <div className="flex justify-between">
                     <span className="text-lg font-semibold text-card-foreground">Amount:</span>
@@ -333,14 +352,20 @@ export default function QuotePage() {
               </div>
             </div>
 
-            <ManagerNotes note={managerNote} onNoteChange={setManagerNote} />
+            <CustomerNotes 
+              customerNote={quotation.customerNote} 
+              customerResponseAt={quotation.customerResponseAt}
+            />
           </div>
 
           <QuoteActions 
             onSend={handleSend} 
             onDelete={handleDelete} 
             onDownloadPDF={handleDownloadPDF}
+            onCopyToJobs={handleCopyToJobs}
             isApproved={quotation.status === "Approved"}
+            jobsCreated={quotation.jobsCreated || false}
+            jobsCreatedAt={quotation.jobsCreatedAt || null}
             quoteSent={quotation.status === "Sent" || quotation.sentToCustomerAt !== null}
             sentAt={quotation.sentToCustomerAt}
             status={quotation.status as "Pending" | "Sent" | "Approved" | "Rejected" | "Expired" | "Good"}

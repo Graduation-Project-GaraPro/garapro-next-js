@@ -16,8 +16,8 @@ interface Service {
   name: string
   price: number
   isRequired?: boolean // Add isRequired property
-  isGood?: boolean // ✅ NEW - true = view only, no repair needed
-  inspectionFee?: number // ✅ NEW - inspection fee for this service
+  isGood?: boolean 
+  inspectionFee?: number 
   isSelected?: boolean // Track if customer selected this service
   parts: Part[]
 }
@@ -458,7 +458,7 @@ export default function ServicesTable({ services, showCustomerChoices = false, q
                   </div>
                 )}
                 <div className="flex justify-between font-semibold text-card-foreground">
-                  <span>Service Total:</span>
+                  <span>Service Price:</span>
                   <span className={service.isGood ? 'text-green-600' : 'text-primary'}>
                     {service.isGood 
                       ? (service.inspectionFee && service.inspectionFee > 0 

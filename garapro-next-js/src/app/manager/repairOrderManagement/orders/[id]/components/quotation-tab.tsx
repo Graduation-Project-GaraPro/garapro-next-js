@@ -585,6 +585,7 @@ export default function QuotationTab({ orderId, repairOrderStatus, isArchived, o
           open={isPreviewOpen}
           onOpenChange={setIsPreviewOpen}
           quotationId={selectedQuotationId}
+          onQuotationUpdated={loadQuotations} // Add callback to refresh quotations
         />
       )}
 

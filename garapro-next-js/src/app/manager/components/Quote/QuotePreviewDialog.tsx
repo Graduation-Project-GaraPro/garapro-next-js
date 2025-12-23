@@ -12,7 +12,7 @@ import {
 import QuoteHeader from "./quotePreview/quoteHeader"
 import QuoteInfo from "./quotePreview/quoteInfo"
 import ServicesTable from "./quotePreview/servicesTable"
-import ManagerNotes from "./quotePreview/managerNotes"
+import CustomerNotes from "./quotePreview/customerNotes"
 import QuoteActions from "./quotePreview/quoteActions"
 import { quotationService } from "@/services/manager/quotation-service"
 import { QuotationDto } from "@/types/manager/quotation"
@@ -35,14 +35,14 @@ interface QuotePreviewDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   quotationId: string
+  onQuotationUpdated?: () => void // Add callback for when quotation is updated
 }
 
-export default function QuotePreviewDialog({ open, onOpenChange, quotationId }: QuotePreviewDialogProps) {
+export default function QuotePreviewDialog({ open, onOpenChange, quotationId, onQuotationUpdated }: QuotePreviewDialogProps) {
   const router = useRouter()
   const [quotation, setQuotation] = useState<QuotationDto | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [managerNote, setManagerNote] = useState("")
 
   // Fetch quotation data
   useEffect(() => {
@@ -57,7 +57,6 @@ export default function QuotePreviewDialog({ open, onOpenChange, quotationId }: 
         setLoading(true)
         const data = await quotationService.getQuotationById(quotationId)
         setQuotation(data)
-        setManagerNote(data.note || "")
       } catch (err) {
         console.error("Failed to fetch quotation:", err)
         setError("Failed to load quotation")
@@ -135,6 +134,11 @@ export default function QuotePreviewDialog({ open, onOpenChange, quotationId }: 
       // Update the local state with the updated quotation
       setQuotation(updatedQuotation);
       
+      // Notify parent component about the update
+      if (onQuotationUpdated) {
+        onQuotationUpdated();
+      }
+      
       // Dismiss loading and show success
       toast.dismiss(loadingToast);
       toast.success("Quotation sent successfully!", {
@@ -200,6 +204,11 @@ export default function QuotePreviewDialog({ open, onOpenChange, quotationId }: 
         jobsCreated: true,
         jobsCreatedAt: new Date().toISOString()
       });
+      
+      // Notify parent component about the update
+      if (onQuotationUpdated) {
+        onQuotationUpdated();
+      }
       
       // Close dialog after successful conversion
       setTimeout(() => {
@@ -364,7 +373,10 @@ export default function QuotePreviewDialog({ open, onOpenChange, quotationId }: 
               </div>
             </div>
 
-            <ManagerNotes note={managerNote} onNoteChange={setManagerNote} />
+            <CustomerNotes 
+              customerNote={quotation.customerNote} 
+              customerResponseAt={quotation.customerResponseAt}
+            />
           </div>
 
           {/* Hide actions for Good status quotations */}
