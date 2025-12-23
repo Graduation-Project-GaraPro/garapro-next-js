@@ -105,12 +105,15 @@ export default function QuotePreviewDialog({ open, onOpenChange, quotationId }: 
       price: service.totalPrice,
       isRequired: service.isRequired, 
       isGood: service.isGood, 
+      isSelected: service.isSelected, // Add customer selection status
       inspectionFee: service.isGood ? inspectionFeePerService : 0,
       parts: service.parts ? service.parts.map((part) => ({
         id: stringIdToNumber(part.quotationServicePartId),
         name: part.partName,
         quantity: part.quantity,
         unitPrice: part.price,
+        isSelected: part.isSelected, // Add customer selection status for parts
+        isRecommended: part.isRecommended, // Add recommendation status
       })) : [],
     }))
   }
@@ -320,7 +323,11 @@ export default function QuotePreviewDialog({ open, onOpenChange, quotationId }: 
             </div>
           )}
 
-          <ServicesTable services={servicesData} />
+          <ServicesTable 
+            services={servicesData} 
+            showCustomerChoices={true}
+            quotationStatus={quotation.status as "Pending" | "Sent" | "Approved" | "Rejected" | "Expired" | "Good"}
+          />
 
           <div className="grid gap-6 md:grid-cols-2">
             <div className="rounded-lg border border-border bg-card p-6">

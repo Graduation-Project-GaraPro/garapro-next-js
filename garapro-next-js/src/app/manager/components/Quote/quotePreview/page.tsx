@@ -10,6 +10,8 @@ import { quotationService } from "@/services/manager/quotation-service"
 import { QuotationDto } from "@/types/manager/quotation"
 import { Button } from "@/components/ui/button"
 import { useRouter, useSearchParams } from "next/navigation"
+import { Check, X, Eye } from "lucide-react"
+import { formatVND } from "@/lib/currency"
 
 // Helper function to convert string ID to number
 const stringIdToNumber = (id: string): number => {
@@ -86,11 +88,17 @@ export default function QuotePage() {
       id: stringIdToNumber(service.quotationServiceId),
       name: service.serviceName,
       price: service.totalPrice,
+      isRequired: service.isRequired,
+      isGood: service.isGood,
+      isSelected: service.isSelected, // Add customer selection status
+      inspectionFee: quotation.inspectionFee || undefined, // Convert null to undefined
       parts: service.parts.map((part: any) => ({
         id: stringIdToNumber(part.quotationServicePartId),
         name: part.partName,
         quantity: part.quantity,
         unitPrice: part.price,
+        isSelected: part.isSelected, // Add customer selection status for parts
+        isRecommended: part.isRecommended, // Add recommendation status
       })),
     }))
   }
@@ -169,7 +177,138 @@ export default function QuotePage() {
         <div className="mt-8 space-y-8">
           <QuoteInfo quote={quoteInfoData} />
 
-          <ServicesTable services={servicesData} />
+          <ServicesTable 
+            services={servicesData} 
+            showCustomerChoices={true}
+            quotationStatus={quotation.status as "Pending" | "Sent" | "Approved" | "Rejected" | "Expired" | "Good"}
+          />
+
+          {/* Customer Response Summary - Only show after customer has responded */}
+          {(quotation.status === "Approved" || quotation.status === "Rejected") && (
+            <div className="rounded-lg border border-border bg-card p-6">
+              <h3 className="text-lg font-semibold text-card-foreground mb-4">
+                Customer Response Summary
+              </h3>
+              
+              <div className="grid gap-6 md:grid-cols-2">
+                {/* Selected Items */}
+                <div className="space-y-4">
+                  <h4 className="font-medium text-green-700 flex items-center gap-2">
+                    <Check className="w-4 h-4" />
+                    Selected by Customer
+                  </h4>
+                  
+                  {/* Selected Services */}
+                  <div className="space-y-2">
+                    <h5 className="text-sm font-medium text-gray-700">Services:</h5>
+                    {servicesData.filter(s => s.isSelected && !s.isGood).length > 0 ? (
+                      <ul className="space-y-1 text-sm">
+                        {servicesData.filter(s => s.isSelected && !s.isGood).map(service => (
+                          <li key={service.id} className="flex items-center gap-2 text-green-700">
+                            <Check className="w-3 h-3" />
+                            {service.name} - {formatVND(service.price)}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-sm text-gray-500">No services selected</p>
+                    )}
+                  </div>
+
+                  {/* Selected Parts */}
+                  <div className="space-y-2">
+                    <h5 className="text-sm font-medium text-gray-700">Parts:</h5>
+                    {servicesData.some(s => s.parts.some(p => p.isSelected)) ? (
+                      <ul className="space-y-1 text-sm">
+                        {servicesData.flatMap(service => 
+                          service.parts.filter(part => part.isSelected).map(part => (
+                            <li key={part.id} className="flex items-center gap-2 text-green-700">
+                              <Check className="w-3 h-3" />
+                              {part.name} (Qty: {part.quantity}) - {formatVND(part.unitPrice * part.quantity)}
+                            </li>
+                          ))
+                        )}
+                      </ul>
+                    ) : (
+                      <p className="text-sm text-gray-500">No parts selected</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Declined Items */}
+                <div className="space-y-4">
+                  <h4 className="font-medium text-red-700 flex items-center gap-2">
+                    <X className="w-4 h-4" />
+                    Declined by Customer
+                  </h4>
+                  
+                  {/* Declined Services */}
+                  <div className="space-y-2">
+                    <h5 className="text-sm font-medium text-gray-700">Services:</h5>
+                    {servicesData.filter(s => !s.isSelected && !s.isGood && !s.isRequired).length > 0 ? (
+                      <ul className="space-y-1 text-sm">
+                        {servicesData.filter(s => !s.isSelected && !s.isGood && !s.isRequired).map(service => (
+                          <li key={service.id} className="flex items-center gap-2 text-red-700">
+                            <X className="w-3 h-3" />
+                            {service.name} - {formatVND(service.price)}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-sm text-gray-500">No optional services declined</p>
+                    )}
+                  </div>
+
+                  {/* Declined Parts */}
+                  <div className="space-y-2">
+                    <h5 className="text-sm font-medium text-gray-700">Parts:</h5>
+                    {servicesData.some(s => s.parts.some(p => !p.isSelected)) ? (
+                      <ul className="space-y-1 text-sm">
+                        {servicesData.flatMap(service => 
+                          service.parts.filter(part => !part.isSelected).map(part => (
+                            <li key={part.id} className="flex items-center gap-2 text-red-700">
+                              <X className="w-3 h-3" />
+                              {part.name} (Qty: {part.quantity}) - {formatVND(part.unitPrice * part.quantity)}
+                            </li>
+                          ))
+                        )}
+                      </ul>
+                    ) : (
+                      <p className="text-sm text-gray-500">No parts declined</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Good Condition Items */}
+              {servicesData.filter(s => s.isGood).length > 0 && (
+                <div className="mt-6 pt-4 border-t border-border">
+                  <h4 className="font-medium text-green-700 flex items-center gap-2 mb-3">
+                    <Eye className="w-4 h-4" />
+                    Items in Good Condition (No Repair Needed)
+                  </h4>
+                  <ul className="space-y-1 text-sm">
+                    {servicesData.filter(s => s.isGood).map(service => (
+                      <li key={service.id} className="flex items-center gap-2 text-green-700">
+                        <Eye className="w-3 h-3" />
+                        {service.name}
+                        {service.inspectionFee && service.inspectionFee > 0 && (
+                          <span className="text-gray-600">- Inspection Fee: {formatVND(service.inspectionFee)}</span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Customer Response Date */}
+              {quotation.customerResponseAt && (
+                <div className="mt-4 pt-4 border-t border-border text-sm text-gray-600">
+                  Customer responded on: {new Date(quotation.customerResponseAt).toLocaleString()}
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="grid gap-6 md:grid-cols-2">
             <div className="rounded-lg border border-border bg-card p-6">
