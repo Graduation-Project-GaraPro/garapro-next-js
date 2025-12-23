@@ -60,6 +60,9 @@ interface JobPartDto {
   partName: string;
   quantity: number;
   unitPrice: number;
+  warrantyMonths?: number;  
+  warrantyStartAt?: string; 
+  warrantyEndAt?: string;
 }
 
 export default function RepairHistory() {
@@ -144,7 +147,10 @@ export default function RepairHistory() {
           jobParts: job.jobParts.map(p => ({
             partName: p.partName,
             quantity: p.quantity,
-            unitPrice: p.unitPrice
+            unitPrice: p.unitPrice,
+            warrantyMonths: p.warrantyMonths,
+            warrantyStartAt: p.warrantyStartAt,
+            warrantyEndAt: p.warrantyEndAt
           }))
         }))
       }));
@@ -657,6 +663,32 @@ export default function RepairHistory() {
                                                 <span className="text-gray-600 text-sm">Quantity:</span>
                                                 <span className="font-medium">{part.quantity}</span>
                                               </div>
+                                              {/* <div className="flex justify-between">
+                                                <span className="text-gray-600 text-sm">Unit Price:</span>
+                                                <span className="font-medium">{part.unitPrice.toLocaleString()} VND</span>
+                                              </div> */}
+                                              {part.warrantyMonths && (
+                                                <div className="flex justify-between">
+                                                  <span className="text-gray-600 text-sm">Warranty:</span>
+                                                  <span className="font-medium text-green-600">{part.warrantyMonths} months</span>
+                                                </div>
+                                              )}
+                                              {part.warrantyStartAt && (
+                                                <div className="flex justify-between">
+                                                  <span className="text-gray-600 text-sm">Start:</span>
+                                                  <span className="font-medium">
+                                                    {new Date(part.warrantyStartAt).toLocaleDateString()}
+                                                  </span>
+                                                </div>
+                                              )}
+                                              {part.warrantyEndAt && (
+                                                <div className="flex justify-between">
+                                                  <span className="text-gray-600 text-sm">End:</span>
+                                                  <span className="font-medium">
+                                                    {new Date(part.warrantyEndAt).toLocaleDateString()}
+                                                  </span>
+                                                </div>
+                                              )}
                                             </div>
                                           </div>
                                         )}

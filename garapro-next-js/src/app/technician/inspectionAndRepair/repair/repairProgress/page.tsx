@@ -961,7 +961,7 @@ function getCurrentTechnicianId(): string {
             <div className="bg-gradient-to-r from-slate-50 to-gray-100 rounded-xl p-4 border border-gray-200 mb-2">
               <h6 className="text-base md:text-lg font-bold text-gray-900 mb-3 flex items-center">
                 <FileText className="w-5 h-5 mr-2 text-indigo-600" />
-                Vehicle Diagnostic Results
+                Customer Reported Issues
               </h6>
               <p className="text-gray-800 leading-relaxed bg-white p-4 rounded-lg border border-gray-200 font-medium">
                 {vehicleInfo.result}
