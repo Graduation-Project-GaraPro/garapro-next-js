@@ -205,28 +205,48 @@ export default function QuotationDetailsView({
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Services & Parts</CardTitle>
+              {quotation.status === "Approved" && (
+                <p className="text-sm text-gray-600">
+                  ✓ Shows customer selections after approval
+                </p>
+              )}
             </CardHeader>
             <CardContent className="space-y-4">
               {quotation.quotationServices.map(service => (
                 <div 
                   key={service.quotationServiceId} 
-                  className={`border rounded-lg ${service.isGood ? 'bg-green-50 border-green-200' : ''}`}
+                  className={`border rounded-lg ${
+                    service.isGood 
+                      ? 'bg-green-50 border-green-200' 
+                      : service.isSelected 
+                        ? 'bg-blue-50 border-blue-200' 
+                        : 'bg-gray-50 border-gray-200'
+                  }`}
                 >
                   <div className="flex items-center justify-between p-4">
                     <div className="flex items-center space-x-3">
                       <div>
                         <div className="flex items-center gap-2">
-                          <h3 className={`font-medium ${service.isGood ? 'text-green-700' : ''}`}>
+                          <h3 className={`font-medium ${
+                            service.isGood 
+                              ? 'text-green-700' 
+                              : service.isSelected 
+                                ? 'text-blue-700' 
+                                : 'text-gray-700'
+                          }`}>
                             {service.serviceName}
                           </h3>
                           {service.isGood && (
                             <Badge className="bg-green-600">Good Condition</Badge>
                           )}
-                          {!service.isGood && service.isRequired && (
-                            <Badge variant="destructive">Required</Badge>
+                          {!service.isGood && service.isSelected && (
+                            <Badge className="bg-blue-600">✓ Selected by Customer</Badge>
                           )}
-                          {!service.isGood && !service.isRequired && (
-                            <Badge variant="secondary">Optional</Badge>
+                          {!service.isGood && !service.isSelected && service.isRequired && (
+                            <Badge variant="destructive">Required - Not Selected</Badge>
+                          )}
+                          {!service.isGood && !service.isSelected && !service.isRequired && (
+                            <Badge variant="outline">Optional - Not Selected</Badge>
                           )}
                         </div>
                       </div>
@@ -237,7 +257,9 @@ export default function QuotationDetailsView({
                         <span className="text-sm text-green-600 font-medium">No repair needed</span>
                       ) : (
                         <>
-                          <span className="font-medium">${service.price.toFixed(2)}</span>
+                          <span className={`font-medium ${service.isSelected ? 'text-blue-700' : 'text-gray-500'}`}>
+                            ${service.price.toFixed(2)}
+                          </span>
                           <span className="text-sm text-gray-500">Qty: {service.quantity}</span>
                         </>
                       )}
@@ -263,24 +285,44 @@ export default function QuotationDetailsView({
                       <h4 className="font-medium mb-3">Parts</h4>
                       <div className="space-y-3">
                         {service.parts.map(part => (
-                          <div key={part.quotationServicePartId} className="flex items-center justify-between">
+                          <div 
+                            key={part.quotationServicePartId} 
+                            className={`flex items-center justify-between p-2 rounded ${
+                              part.isSelected ? 'bg-blue-50 border border-blue-200' : ''
+                            }`}
+                          >
                             <div className="flex items-center space-x-3">
                               <div>
-                                <h5 className="text-sm font-medium">{part.partName}</h5>
+                                <div className="flex items-center gap-2">
+                                  <h5 className={`text-sm font-medium ${
+                                    part.isSelected ? 'text-blue-700' : 'text-gray-700'
+                                  }`}>
+                                    {part.partName}
+                                  </h5>
+                                  {part.isSelected && (
+                                    <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-300">
+                                      ✓ Selected
+                                    </Badge>
+                                  )}
+                                  {part.isRecommended && (
+                                    <Badge variant="secondary">Recommended</Badge>
+                                  )}
+                                </div>
                                 {part.recommendationNote && (
-                                  <p className="text-xs text-gray-500">
+                                  <p className="text-xs text-gray-500 mt-1">
                                     Note: {part.recommendationNote}
                                   </p>
-                                )}
-                                {part.isRecommended && (
-                                  <Badge variant="secondary" className="mt-1">Recommended</Badge>
                                 )}
                               </div>
                             </div>
                             
                             <div className="flex items-center space-x-4">
                               <span className="text-sm text-gray-500">Qty: {part.quantity}</span>
-                              <span className="text-sm font-medium">${part.price.toFixed(2)}</span>
+                              <span className={`text-sm font-medium ${
+                                part.isSelected ? 'text-blue-700' : 'text-gray-500'
+                              }`}>
+                                ${part.price.toFixed(2)}
+                              </span>
                             </div>
                           </div>
                         ))}
@@ -297,6 +339,11 @@ export default function QuotationDetailsView({
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Financial Summary</CardTitle>
+                {quotation.status === "Approved" && (
+                  <p className="text-sm text-gray-600">
+                    Based on customer-selected services and parts
+                  </p>
+                )}
               </CardHeader>
               <CardContent>
                 <div className="space-y-2 max-w-xs ml-auto">
@@ -315,6 +362,27 @@ export default function QuotationDetailsView({
                     </span>
                   </div>
                 </div>
+                
+                {/* Show breakdown of selected vs not selected items */}
+                {quotation.status === "Approved" && (
+                  <div className="mt-4 pt-4 border-t">
+                    <h4 className="font-medium mb-2">Selection Summary:</h4>
+                    <div className="text-sm space-y-1">
+                      <div className="flex justify-between">
+                        <span>Selected Services:</span>
+                        <span>{quotation.quotationServices.filter(s => s.isSelected && !s.isGood).length}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Selected Parts:</span>
+                        <span>
+                          {quotation.quotationServices.reduce((total, service) => 
+                            total + (service.parts?.filter(p => p.isSelected).length || 0), 0
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
