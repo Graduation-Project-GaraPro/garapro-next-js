@@ -15,7 +15,8 @@ import {
   X,
   ChevronDown,
   ChevronRight,
-  FileSearch
+  FileSearch,
+  MessageSquare
 } from "lucide-react";
 import {
   Dialog,
@@ -387,14 +388,28 @@ export default function QuotationDetailsView({
             </Card>
           )}
           
-          {/* Notes */}
-          {quotation.note && (
+        
+          {/* Customer Notes */}
+          {quotation.customerNote && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Notes</CardTitle>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5" />
+                  Customer Note
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-700 whitespace-pre-wrap">{quotation.note}</p>
+                <div className="rounded-lg bg-blue-50 border border-blue-200 p-4">
+                  <p className="text-gray-800 whitespace-pre-wrap">{quotation.customerNote}</p>
+                </div>
+                {quotation.customerResponseAt && (
+                  <div className="mt-3 text-sm text-muted-foreground">
+                    <span>Customer responded on: </span>
+                    <span className="font-medium">
+                      {new Date(quotation.customerResponseAt).toLocaleString()}
+                    </span>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}

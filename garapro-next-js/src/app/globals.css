@@ -162,3 +162,19 @@ body:not([data-radix-dialog-overlay-open]) {
   scrollbar-width: thin; /* Độ mỏng của thanh cuộn */
   scrollbar-color: #888 #f1f1f1; /* Màu thanh kéo và nền */
 }
+
+/* Custom animations for date picker feedback */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+}

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { X, Calendar, User, Car, DollarSign, Package, Wrench, FileText, Archive, Shield } from "lucide-react"
+import { X, Calendar, User, Car, DollarSign, Package, Wrench, FileText, Archive } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -47,10 +47,6 @@ interface ArchivedRODetail {
   customerName: string
   customerEmail: string
   customerPhone: string
-  // New warranty fields
-  warrantyMonths: number | null
-  warrantyStartAt: string | null
-  warrantyEndAt: string | null
   vehicle: {
     licensePlate: string
     vin: string
@@ -83,7 +79,6 @@ interface ArchivedRODetail {
     endTime: string | null
     status: string
     notes: string
-    // Add warranty information for each job
     jobParts: Array<{
       jobPartId: string
       partName: string
@@ -91,9 +86,6 @@ interface ArchivedRODetail {
       unitPrice: number
       quantity: number
       totalPrice: number
-      warrantyMonths: number | null
-      warrantyStartAt: string | null
-      warrantyEndAt: string | null
     }>
   }>
   totalJobs: number
@@ -233,9 +225,9 @@ export default function ArchivedRODetailDialog({
                   <h4 className="font-semibold">Customer</h4>
                 </div>
                 <div className="space-y-1 text-sm">
-                  <div className="font-medium">{data.customerName}</div>
-                  <div className="text-gray-600">{data.customerPhone}</div>
-                  <div className="text-gray-600">{data.customerEmail}</div>
+                  <div className="font-medium">{data.customerName || 'N/A'}</div>
+                  <div className="text-gray-600">{data.customerPhone || 'N/A'}</div>
+                  <div className="text-gray-600">{data.customerEmail || 'N/A'}</div>
                 </div>
               </div>
 
@@ -246,11 +238,11 @@ export default function ArchivedRODetailDialog({
                 </div>
                 <div className="space-y-1 text-sm">
                   <div className="font-medium">
-                    {data.vehicle.brandName} {data.vehicle.modelName} ({data.vehicle.year})
+                    {data.vehicle.brandName || 'Unknown'} {data.vehicle.modelName || 'Model'} ({data.vehicle.year || 'N/A'})
                   </div>
-                  <div className="text-gray-600">Plate: {data.vehicle.licensePlate}</div>
-                  <div className="text-gray-600">VIN: {data.vehicle.vin}</div>
-                  <div className="text-gray-600">Odometer: {data.vehicle.odometer.toLocaleString()} km</div>
+                  <div className="text-gray-600">Plate: {data.vehicle.licensePlate || 'N/A'}</div>
+                  <div className="text-gray-600">VIN: {data.vehicle.vin || 'N/A'}</div>
+                  <div className="text-gray-600">Odometer: {data.vehicle.odometer ? data.vehicle.odometer.toLocaleString() : 'N/A'} km</div>
                 </div>
               </div>
             </div>
@@ -273,38 +265,6 @@ export default function ArchivedRODetailDialog({
               </div>
             </div>
 
-            {/* Warranty Information */}
-            {(data.warrantyMonths || data.warrantyStartAt || data.warrantyEndAt) && (
-              <div className="border rounded-lg p-4 bg-blue-50 border-blue-200">
-                <div className="flex items-center gap-2 mb-3">
-                  <Shield className="h-4 w-4 text-blue-600" />
-                  <h4 className="font-semibold text-blue-900">Warranty Information</h4>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                  {data.warrantyMonths && (
-                    <div>
-                      <div className="text-blue-700 font-medium">Coverage Period</div>
-                      <div className="font-semibold text-blue-900">{data.warrantyMonths} months</div>
-                    </div>
-                  )}
-                  {data.warrantyStartAt && (
-                    <div>
-                      <div className="text-blue-700 font-medium">Warranty Start</div>
-                      <div className="font-semibold text-blue-900">{formatDate(data.warrantyStartAt)}</div>
-                    </div>
-                  )}
-                  {data.warrantyEndAt && (
-                    <div>
-                      <div className="text-blue-700 font-medium">Warranty End</div>
-                      <div className="font-semibold text-blue-900">{formatDate(data.warrantyEndAt)}</div>
-                    </div>
-                  )}
-                </div>
-                <div className="mt-2 text-xs text-blue-700">
-                  * Warranty information is based on parts used in this repair order
-                </div>
-              </div>
-            )}
 
             {/* Services
             {data.services && data.services.length > 0 && (
@@ -393,40 +353,6 @@ export default function ArchivedRODetailDialog({
                                     </div>
                                   </div>
                                 </div>
-                                
-                                {/* Warranty Information for this part */}
-                                {(part.warrantyMonths || part.warrantyStartAt || part.warrantyEndAt) && (
-                                  <div className="mt-2 p-2 bg-blue-50 rounded border border-blue-200">
-                                    <div className="text-xs font-medium text-blue-800 mb-1">Warranty:</div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 text-xs">
-                                      {part.warrantyMonths && (
-                                        <div>
-                                          <span className="text-blue-700">Period:</span>{" "}
-                                          <span className="font-medium">{part.warrantyMonths} months</span>
-                                        </div>
-                                      )}
-                                      {part.warrantyStartAt && (
-                                        <div>
-                                          <span className="text-blue-700">Start:</span>{" "}
-                                          <span className="font-medium">{formatDate(part.warrantyStartAt)}</span>
-                                        </div>
-                                      )}
-                                      {part.warrantyEndAt && (
-                                        <div>
-                                          <span className="text-blue-700">End:</span>{" "}
-                                          <span className="font-medium">{formatDate(part.warrantyEndAt)}</span>
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-                                )}
-                                
-                                {/* No warranty indicator */}
-                                {!part.warrantyMonths && !part.warrantyStartAt && !part.warrantyEndAt && (
-                                  <div className="mt-2 text-xs text-gray-500 italic">
-                                    No warranty information available
-                                  </div>
-                                )}
                               </div>
                             ))}
                           </div>

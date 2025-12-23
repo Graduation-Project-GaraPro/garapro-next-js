@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react"
 import { format, isAfter, startOfDay, addMinutes } from "date-fns"
-import { Calendar as CalendarIcon, Clock } from "lucide-react"
+import { Calendar as CalendarIcon, Clock, CheckCircle, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -36,6 +36,7 @@ export function DateTimePicker({
   const [selectedDate, setSelectedDate] = useState<Date | undefined>()
   const [selectedTime, setSelectedTime] = useState<string>("")
   const [isOpen, setIsOpen] = useState(false)
+  const [dateSelectionEffect, setDateSelectionEffect] = useState<'success' | 'error' | null>(null)
 
   // Parse the initial value
   useEffect(() => {
@@ -62,13 +63,23 @@ export function DateTimePicker({
     if (!date) {
       setSelectedDate(undefined)
       onChange(null)
+      setDateSelectionEffect(null)
       return
     }
 
-    // Validate against minimum date
-    if (minDate && !isAfter(date, startOfDay(minDate))) {
+    // Check if date is in the past
+    const isPastDate = minDate && !isAfter(date, startOfDay(minDate))
+    
+    if (isPastDate) {
+      // Show error effect for past dates
+      setDateSelectionEffect('error')
+      setTimeout(() => setDateSelectionEffect(null), 2000)
       return // Don't select dates in the past
     }
+
+    // Show success effect for valid future dates
+    setDateSelectionEffect('success')
+    setTimeout(() => setDateSelectionEffect(null), 1500)
 
     setSelectedDate(date)
     
@@ -101,8 +112,15 @@ export function DateTimePicker({
       
       // Validate combined datetime against minimum
       if (minDate && !isAfter(combinedDateTime, minDate)) {
+        // Show error effect for past times
+        setDateSelectionEffect('error')
+        setTimeout(() => setDateSelectionEffect(null), 2000)
         return // Don't allow past times
       }
+      
+      // Show success effect for valid times
+      setDateSelectionEffect('success')
+      setTimeout(() => setDateSelectionEffect(null), 1500)
       
       onChange(combinedDateTime.toISOString())
     }
@@ -111,6 +129,7 @@ export function DateTimePicker({
   const handleClear = () => {
     setSelectedDate(undefined)
     setSelectedTime("")
+    setDateSelectionEffect(null)
     onChange(null)
     setIsOpen(false)
   }
@@ -148,15 +167,27 @@ export function DateTimePicker({
           <Button
             variant="outline"
             className={cn(
-              "w-full justify-start text-left font-normal",
+              "w-full justify-start text-left font-normal transition-all duration-300 hover:border-blue-300 hover:bg-blue-50",
               !selectedDate && "text-muted-foreground",
-              error && "border-red-500",
-              isInPast() && "border-red-500 bg-red-50"
+              error && "border-red-500 hover:border-red-400",
+              isInPast() && "border-red-500 bg-red-50 hover:bg-red-100",
+              dateSelectionEffect === 'success' && "border-green-500 bg-green-50 shadow-md hover:bg-green-100",
+              dateSelectionEffect === 'error' && "border-red-500 bg-red-50 shadow-md animate-pulse hover:bg-red-100"
             )}
             disabled={disabled}
           >
-            <CalendarIcon className="mr-2 h-4 w-4" />
+            <CalendarIcon className={cn(
+              "mr-2 h-4 w-4 transition-colors duration-300",
+              dateSelectionEffect === 'success' && "text-green-600",
+              dateSelectionEffect === 'error' && "text-red-600"
+            )} />
             {formatDisplayValue() || placeholder}
+            {dateSelectionEffect === 'success' && (
+              <CheckCircle className="ml-auto h-4 w-4 text-green-600 animate-bounce" />
+            )}
+            {dateSelectionEffect === 'error' && (
+              <AlertCircle className="ml-auto h-4 w-4 text-red-600 animate-bounce" />
+            )}
           </Button>
         </PopoverTrigger>
         
@@ -176,7 +207,7 @@ export function DateTimePicker({
                 caption_label: "text-sm font-medium",
                 nav: "space-x-1 flex items-center",
                 nav_button: cn(
-                  "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100"
+                  "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 hover:bg-blue-100 transition-all duration-200"
                 ),
                 nav_button_previous: "absolute left-1",
                 nav_button_next: "absolute right-1",
@@ -184,14 +215,14 @@ export function DateTimePicker({
                 head_row: "flex",
                 head_cell: "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem]",
                 row: "flex w-full mt-2",
-                cell: "text-center text-sm p-0 relative [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+                cell: "text-center text-sm p-0 relative [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20 hover:bg-blue-50 transition-colors duration-150",
                 day: cn(
-                  "h-9 w-9 p-0 font-normal aria-selected:opacity-100"
+                  "h-9 w-9 p-0 font-normal aria-selected:opacity-100 hover:bg-blue-100 hover:text-blue-900 transition-colors duration-200 cursor-pointer"
                 ),
                 day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
-                day_today: "bg-accent text-accent-foreground",
-                day_outside: "text-muted-foreground opacity-50",
-                day_disabled: "text-muted-foreground opacity-50",
+                day_today: "bg-accent text-accent-foreground hover:bg-blue-200",
+                day_outside: "text-muted-foreground opacity-50 hover:opacity-75",
+                day_disabled: "text-muted-foreground opacity-50 cursor-not-allowed hover:bg-red-50 hover:text-red-400",
                 day_range_middle: "aria-selected:bg-accent aria-selected:text-accent-foreground",
                 day_hidden: "invisible",
               }}
@@ -205,12 +236,16 @@ export function DateTimePicker({
               </div>
               
               <Select value={selectedTime} onValueChange={handleTimeSelect}>
-                <SelectTrigger className="w-24">
+                <SelectTrigger className="w-24 hover:border-blue-300 hover:bg-blue-50 transition-colors duration-200">
                   <SelectValue placeholder="--:--" />
                 </SelectTrigger>
                 <SelectContent className="max-h-60">
                   {timeOptions.map((time) => (
-                    <SelectItem key={time} value={time}>
+                    <SelectItem 
+                      key={time} 
+                      value={time}
+                      className="hover:bg-blue-100 hover:text-blue-900 cursor-pointer transition-colors duration-150"
+                    >
                       {time}
                     </SelectItem>
                   ))}
@@ -221,7 +256,7 @@ export function DateTimePicker({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="w-full"
+                  className="w-full hover:bg-green-100 hover:text-green-800 hover:border-green-300 transition-colors duration-200"
                   onClick={() => {
                     const now = new Date()
                     const futureTime = addMinutes(now, 60) // Default to 1 hour from now
@@ -235,7 +270,7 @@ export function DateTimePicker({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="w-full"
+                  className="w-full hover:bg-gray-100 hover:text-gray-800 hover:border-gray-300 transition-colors duration-200"
                   onClick={handleClear}
                 >
                   Clear
@@ -250,9 +285,17 @@ export function DateTimePicker({
         <p className="text-sm text-red-500">{error}</p>
       )}
       
-      {isInPast() && (
+      
+      {dateSelectionEffect === 'error' && (
+        <div className="flex items-center gap-2 text-sm text-red-600 animate-fade-in">
+          <AlertCircle className="h-4 w-4" />
+          <span>Cannot select past dates.</span>
+        </div>
+      )}
+      
+      {isInPast() && !dateSelectionEffect && (
         <p className="text-sm text-red-500">
-          ⚠️ Selected time is in the past. Please choose a future date and time.
+          Selected time is in the past. Please choose a future date and time.
         </p>
       )}
     </div>

@@ -16,12 +16,12 @@ import {
   Users,
   AlertCircle,
   Edit,
-  CreditCard,
-  Shield
+  CreditCard
 } from "lucide-react"
 import { jobService } from "@/services/manager/job-service"
 import { TechnicianSelectionDialog } from "@/components/manager/technician-selection-dialog"
 import EditJobDialog from "./edit-job-dialog"
+import { EditJobConfirmationDialog } from "@/components/manager/edit-job-confirmation-dialog"
 import { useToast } from "@/hooks/use-toast"
 import type { Job } from "@/types/job"
 
@@ -46,6 +46,8 @@ export default function JobsTab({ orderId, branchId, isArchived, onAllJobsComple
   const [isEditJobOpen, setIsEditJobOpen] = useState(false)
   const [selectedJob, setSelectedJob] = useState<Job | null>(null)
   const [hasNotifiedCompletion, setHasNotifiedCompletion] = useState(false)
+  const [isEditConfirmationOpen, setIsEditConfirmationOpen] = useState(false)
+  const [jobToEdit, setJobToEdit] = useState<Job | null>(null)
 
   // Get technician monogram from name
   const getTechnicianMonogram = (name: string | null): string => {
@@ -53,20 +55,6 @@ export default function JobsTab({ orderId, branchId, isArchived, onAllJobsComple
     const names = name.split(" ")
     if (names.length === 1) return names[0].substring(0, 2).toUpperCase()
     return (names[0][0] + names[names.length - 1][0]).toUpperCase()
-  }
-
-  // Format date for warranty display
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return "N/A"
-    try {
-      return new Date(dateString).toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      })
-    } catch {
-      return "N/A"
-    }
   }
 
   useEffect(() => {
@@ -176,8 +164,34 @@ export default function JobsTab({ orderId, branchId, isArchived, onAllJobsComple
   }
 
   const handleEditJob = (job: Job) => {
+    // Check if job is completed (status 3) - cannot edit
+    if (job.status === 3) {
+      toast({
+        variant: "destructive",
+        title: "Cannot Edit Job",
+        description: "Completed jobs cannot be edited.",
+      })
+      return
+    }
+    
+    // If job is in progress (status 2) or on hold (status 4), show confirmation dialog
+    if (job.status === 2 || job.status === 4) {
+      setJobToEdit(job)
+      setIsEditConfirmationOpen(true)
+      return
+    }
+    
+    // For other statuses (0, 1), allow direct editing
     setSelectedJob(job)
     setIsEditJobOpen(true)
+  }
+
+  const handleConfirmEdit = () => {
+    if (jobToEdit) {
+      setSelectedJob(jobToEdit)
+      setIsEditJobOpen(true)
+      setJobToEdit(null)
+    }
   }
 
   const handleJobUpdated = () => {
@@ -340,7 +354,7 @@ export default function JobsTab({ orderId, branchId, isArchived, onAllJobsComple
           {!isArchived && (
             <div className="space-y-1">
               <p className="text-sm text-gray-500">
-                Jobs can only be edited when they are in Pending or New status
+                Jobs can be edited except when completed. In-progress jobs require confirmation.
               </p>
               {jobs.length > 0 && (
                 <p className="text-sm text-gray-600">
@@ -418,8 +432,8 @@ export default function JobsTab({ orderId, branchId, isArchived, onAllJobsComple
                     <CardTitle className="text-lg">{job.jobName}</CardTitle>
                   </div>
                   <div className="flex items-center gap-2">
-                    {/* Edit Job Button - Only allow editing for Pending (0) or New (1) status */}
-                    {!isArchived && (job.status === 0 || job.status === 1) ? (
+                    {/* Edit Job Button - Allow editing for all statuses except Completed (3) */}
+                    {!isArchived && job.status !== 3 ? (
                       <Button
                         variant="outline"
                         size="sm"
@@ -429,13 +443,13 @@ export default function JobsTab({ orderId, branchId, isArchived, onAllJobsComple
                         <Edit className="h-4 w-4" />
                         <span>Edit</span>
                       </Button>
-                    ) : !isArchived && job.status >= 2 ? (
+                    ) : !isArchived && job.status === 3 ? (
                       <Button
                         variant="outline"
                         size="sm"
                         disabled
                         className="flex items-center gap-2 opacity-50 cursor-not-allowed"
-                        title="Cannot edit job - technician has started working"
+                        title="Cannot edit completed job"
                       >
                         <Edit className="h-4 w-4" />
                         <span>Edit</span>
@@ -541,43 +555,6 @@ export default function JobsTab({ orderId, branchId, isArchived, onAllJobsComple
                                 </p>
                               </div>
                             </div>
-                            
-                            {/* Warranty Information */}
-                            {(part.warrantyMonths || part.warrantyStartAt || part.warrantyEndAt) && (
-                              <div className="mt-2 p-2 bg-blue-50 rounded border border-blue-200">
-                                <div className="flex items-center gap-1 mb-1">
-                                  <Shield className="w-3 h-3 text-blue-600" />
-                                  <span className="text-xs font-medium text-blue-800">Warranty:</span>
-                                </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 text-xs">
-                                  {part.warrantyMonths && (
-                                    <div>
-                                      <span className="text-blue-700">Period:</span>{" "}
-                                      <span className="font-medium">{part.warrantyMonths} months</span>
-                                    </div>
-                                  )}
-                                  {part.warrantyStartAt && (
-                                    <div>
-                                      <span className="text-blue-700">Start:</span>{" "}
-                                      <span className="font-medium">{formatDate(part.warrantyStartAt)}</span>
-                                    </div>
-                                  )}
-                                  {part.warrantyEndAt && (
-                                    <div>
-                                      <span className="text-blue-700">End:</span>{" "}
-                                      <span className="font-medium">{formatDate(part.warrantyEndAt)}</span>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-                            
-                            {/* No warranty indicator */}
-                            {!part.warrantyMonths && !part.warrantyStartAt && !part.warrantyEndAt && (
-                              <div className="mt-2 text-xs text-gray-500 italic">
-                                No warranty information available
-                              </div>
-                            )}
                           </div>
                         ))}
                       </div>
@@ -606,6 +583,18 @@ export default function JobsTab({ orderId, branchId, isArchived, onAllJobsComple
         jobIds={selectedJobIds}
         branchId={branchId}
       />
+
+      {/* Edit Job Confirmation Dialog */}
+      {jobToEdit && (
+        <EditJobConfirmationDialog
+          open={isEditConfirmationOpen}
+          onOpenChange={setIsEditConfirmationOpen}
+          onConfirm={handleConfirmEdit}
+          jobName={jobToEdit.jobName}
+          technicianName={assignedTechs[jobToEdit.jobId]?.name}
+          jobStatus={jobToEdit.status}
+        />
+      )}
 
       {/* Edit Job Dialog */}
       {selectedJob && (

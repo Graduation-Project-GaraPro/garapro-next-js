@@ -8,8 +8,8 @@ import {
   Clipboard,
   Calculator,
   CreditCard,
-  Settings,
-  MessageSquare,
+  // Settings,
+  // MessageSquare,
   Edit,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -41,7 +41,7 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
   const [vehicleData, setVehicleData] = useState<VehicleWithCustomerDto | null>(null)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isLoadingOrder, setIsLoadingOrder] = useState(true)
-  const [allJobsCompleted, setAllJobsCompleted] = useState(false)
+  const [ {/*allJobsCompleted */} , setAllJobsCompleted] = useState(false)
   const { getBranchId, isLoading: sessionLoading } = useManagerSession()
   const userBranchId = getBranchId()
 
@@ -273,7 +273,7 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
                 <Edit className="w-4 h-4" />
               </Button>
             )}
-            <Button variant="ghost" size="sm" className="text-white hover:bg-opacity-80" style={{ backgroundColor: "rgba(255, 255, 255, 0.1)" }}>
+         {/*   <Button variant="ghost" size="sm" className="text-white hover:bg-opacity-80" style={{ backgroundColor: "rgba(255, 255, 255, 0.1)" }}>
               <FileText className="w-4 h-4" />
             </Button>
             <Button variant="ghost" size="sm" className="text-white hover:bg-opacity-80" style={{ backgroundColor: "rgba(255, 255, 255, 0.1)" }} disabled={repairOrder?.isArchived}>
@@ -281,7 +281,7 @@ export default function OrderDetailsPage({ params }: OrderDetailsProps) {
             </Button>
             <Button variant="ghost" size="sm" className="text-white hover:bg-opacity-80" style={{ backgroundColor: "rgba(255, 255, 255, 0.1)" }} disabled={repairOrder?.isArchived}>
               <Settings className="w-4 h-4" />
-            </Button>
+            </Button> */}
           </div>
         </div>
 

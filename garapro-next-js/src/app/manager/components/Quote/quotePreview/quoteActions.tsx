@@ -30,11 +30,19 @@ export default function QuoteActions({
 }: QuoteActionsProps) {
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
-      {/* <Button onClick={onDownloadPDF} variant="outline" className="flex items-center gap-2 bg-transparent">
-        <Download className="h-4 w-4" />
-        Download PDF
-      </Button> */}
-      {jobsCreated ? (
+      {/* Copy to Jobs Button - Show only if approved and jobs not created yet */}
+      {isApproved && !jobsCreated && onCopyToJobs && (
+        <Button
+          onClick={onCopyToJobs}
+          className="flex items-center gap-2 bg-green-600 text-white hover:bg-green-700"
+        >
+          <Wrench className="h-4 w-4" />
+          Copy to Jobs
+        </Button>
+      )}
+      
+      {/* Jobs Created Status - Show if jobs were already created */}
+      {jobsCreated && (
         <div className="flex items-center gap-2 rounded-md bg-blue-100 px-4 py-2 text-sm font-medium text-blue-800">
           <Wrench className="h-4 w-4" />
           Jobs Created
@@ -44,51 +52,51 @@ export default function QuoteActions({
             </span>
           )}
         </div>
-      ) : isApproved && onCopyToJobs ? (
-        <Button
-          onClick={onCopyToJobs}
-          className="flex items-center gap-2 bg-green-600 text-white hover:bg-green-700"
-        >
-          <Wrench className="h-4 w-4" />
-          Copy to Jobs
-        </Button>
-      ) : null}
-      {!isApproved && (
-        status === "Sent" ? (
-          <div className="flex items-center gap-2 rounded-md bg-green-100 px-4 py-2 text-sm font-medium text-green-800">
-            <Send className="h-4 w-4" />
-            Quote Sent
-            {sentAt && (
-              <span className="text-green-600">
-                • {new Date(sentAt).toLocaleDateString()}
-              </span>
-            )}
-          </div>
-        ) : status === "Approved" ? (
-          <div className="flex items-center gap-2 rounded-md bg-blue-100 px-4 py-2 text-sm font-medium text-blue-800">
-            <Send className="h-4 w-4" />
-            Quote Approved
-          </div>
-        ) : status === "Rejected" ? (
-          <div className="flex items-center gap-2 rounded-md bg-red-100 px-4 py-2 text-sm font-medium text-red-800">
-            <Send className="h-4 w-4" />
-            Quote Rejected
-          </div>
-        ) : status === "Expired" ? (
-          <div className="flex items-center gap-2 rounded-md bg-gray-100 px-4 py-2 text-sm font-medium text-gray-800">
-            <Send className="h-4 w-4" />
-            Quote Expired
-          </div>
-        ) : status === "Pending" ? (
-          <Button
-            onClick={onSend}
-            className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
-          >
-            <Send className="h-4 w-4" />
-            Send Quote
-          </Button>
-        ) : null
       )}
+      
+      {/* Quote Status Indicators */}
+      {status === "Sent" && !isApproved && (
+        <div className="flex items-center gap-2 rounded-md bg-green-100 px-4 py-2 text-sm font-medium text-green-800">
+          <Send className="h-4 w-4" />
+          Quote Sent
+          {sentAt && (
+            <span className="text-green-600">
+              • {new Date(sentAt).toLocaleDateString()}
+            </span>
+          )}
+        </div>
+      )}
+      
+      {status === "Approved" && !jobsCreated && (
+        <div className="flex items-center gap-2 rounded-md bg-blue-100 px-4 py-2 text-sm font-medium text-blue-800">
+          <Send className="h-4 w-4" />
+          Quote Approved
+        </div>
+      )}
+      
+      {status === "Rejected" && (
+        <div className="flex items-center gap-2 rounded-md bg-red-100 px-4 py-2 text-sm font-medium text-red-800">
+          <Send className="h-4 w-4" />
+          Quote Rejected
+        </div>
+      )}
+      
+      {status === "Expired" && (
+        <div className="flex items-center gap-2 rounded-md bg-gray-100 px-4 py-2 text-sm font-medium text-gray-800">
+          <Send className="h-4 w-4" />
+          Quote Expired
+        </div>
+      )}
+      
+      {status === "Pending" && (
+        <Button
+          onClick={onSend}
+          className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
+        >
+          <Send className="h-4 w-4" />
+          Send Quotation
+        </Button>
+      )}  
     </div>
   )
 }
