@@ -165,161 +165,221 @@ export default function RepairProgressPage() {
     setTimeout(() => setShowSuccessToast(false), 3000);
   };
 
-  useEffect(() => {
-    const MAX_RETRIES = 3;
+useEffect(() => {
+  const MAX_RETRIES = 3;
 
-    const fetchRepairDetails = async (retryCount: number = 0) => {
-      if (!jobId) {
-        setError("Job ID is missing");
-        setLoading(false);
-        return;
-      }
-      try {
-        setLoading(true);
-        setError("");
-        const authToken =
-          typeof window !== "undefined"
-            ? localStorage.getItem("authToken")
-            : "";
-
-        const jobResponse = await fetch(
-          API_URL + `/odata/JobTechnician/my-jobs/${jobId}`,
-          {
-            headers: {
-              Authorization: `Bearer ${authToken}`,
-            },
-          }
-        );
-        if (!jobResponse.ok) {
-          throw new Error("Failed to fetch job details");
-        }
-        const jobData = await jobResponse.json();
-        const repairOrderId = jobData.repairOrderId;
-        if (!repairOrderId) {
-          throw new Error("Repair order ID not found in job details");
-        }
-
-        const data: RepairDetailDto = await getRepairOrderDetails(repairOrderId);
-
-        try {
-          // Get current technician ID from auth token or user profile
-          const currentTechnicianId = getCurrentTechnicianId(); 
-          const jobIdsFromDetail = data.jobs
-            .filter((job: JobDetailDto) => {
-              // Check if this job is assigned to current technician
-              return job.technicians.some(tech => tech.technicianId === currentTechnicianId);
-            })
-            .map((job: JobDetailDto) => job.jobId);
-          
-          console.log("My job IDs in this repair order (including completed+overdue):", jobIdsFromDetail);
-          setMyJobIds(jobIdsFromDetail);
-        } catch (err) {
-          console.warn(
-            "Could not determine my jobs, using current job only:",
-            err
-          );
-          setMyJobIds([jobId]);
-        }
-
-        const vehicleName =
-          data.vehicle?.brand?.brandName && data.vehicle?.model?.modelName
-            ? `${data.vehicle.brand.brandName} ${
-                data.vehicle.model.modelName
-              } ${data.vehicle.model.manufacturingYear || ""}`
-            : data.vin || "Unknown Vehicle";
-
-        setVehicleInfo({
-          repairOrderId: data.repairOrderId,
-          vehicle: vehicleName.trim(),
-          licensePlate: data.vehicleLicensePlate || "N/A",
-          owner: data.customerName || "Unknown",
-          phone: data.customerPhone || "N/A",
-          issue: data.jobs.map((j) => j.jobName).join(", ") || "N/A",
-          result: data.note || "No diagnostic results available",
-        });
-
-        const steps: RepairStep[] = data.jobs.map((job: JobDetailDto) => {
-          const repair = job.repairs;
-          let estimatedHours = 0;
-          let estimatedMinutes = 0;
-
-          if (repair?.estimatedTimeShort) {
-            const match = repair.estimatedTimeShort.match(/(\d+)h\s*(\d+)m/);
-            if (match) {
-              estimatedHours = parseInt(match[1]) || 0;
-              estimatedMinutes = parseInt(match[2]) || 0;
-            }
-          }
-
-          return {
-            jobId: job.jobId,
-            title: job.jobName,
-            description: repair?.description || null,
-            status: job.status as RepairStep["status"],
-            startTime: repair?.startTime,
-            endTime: repair?.endTime,
-            notes: repair?.notes || "",
-            estimatedHours,
-            estimatedMinutes,
-            actualTimeShort: repair?.actualTimeShort,
-            estimatedTimeShort: repair?.estimatedTimeShort,
-            repairId: repair?.repairId,
-            serviceName: job.serviceName,
-            parts: job.parts || [],
-          };
-        });
-        setRepairSteps(steps);
-      } catch (err: unknown) {
-        console.error("Error fetching repair details:", err);
-
-        const errorMessage = err instanceof Error ? err.message : String(err);
-        const isNetworkError =
-          errorMessage.includes("Failed to fetch") ||
-          errorMessage.includes("NetworkError") ||
-          errorMessage.includes("ERR_HTTP2") ||
-          errorMessage.includes("HTTP2") ||
-          errorMessage.includes("stream") ||
-          errorMessage.includes("ECONNRESET") ||
-          errorMessage.includes("network") ||
-          errorMessage.includes("timeout");
-
-        if (isNetworkError && retryCount < MAX_RETRIES) {
-          const delay = 150 + retryCount * 150;
-          console.log(
-            `Network error detected. Retrying in ${delay}ms... (Attempt ${
-              retryCount + 1
-            }/${MAX_RETRIES})`
-          );
-          await new Promise((resolve) => setTimeout(resolve, delay));
-          return fetchRepairDetails(retryCount + 1);
-        }
-
-        setError(
-          "Failed to load repair details. Please check your connection and try again."
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchRepairDetails();
-  }, [jobId]);
-
-  function getCurrentTechnicianId(): string {
-    const techId = localStorage.getItem("technicianId");
-    if (techId) return techId;
-    
-    const token = localStorage.getItem("authToken");
-    if (token) {
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        return payload.technicianId || payload.sub; 
-      } catch (e) {
-        console.error("Error decoding token:", e);
-      }
+  const fetchRepairDetails = async (retryCount: number = 0) => {
+    if (!jobId) {
+      setError("Job ID is missing");
+      setLoading(false);
+      return;
     }
-    
-    return "";
+    try {
+      setLoading(true);
+      setError("");
+      const authToken =
+        typeof window !== "undefined"
+          ? localStorage.getItem("authToken")
+          : "";
+
+      const jobResponse = await fetch(
+        API_URL + `/odata/JobTechnician/my-jobs/${jobId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        }
+      );
+      if (!jobResponse.ok) {
+        throw new Error("Failed to fetch job details");
+      }
+      const jobData = await jobResponse.json();
+      const repairOrderId = jobData.repairOrderId;
+      if (!repairOrderId) {
+        throw new Error("Repair order ID not found in job details");
+      }
+
+      const data: RepairDetailDto = await getRepairOrderDetails(repairOrderId);
+
+      try {
+        let currentTechnicianId = "";
+        
+        const matchingJob = data.jobs.find(j => j.jobId === jobId);
+        if (matchingJob && matchingJob.technicians.length > 0) {
+          currentTechnicianId = matchingJob.technicians[0].technicianId;
+          console.log("Using technician ID from current job:", currentTechnicianId);
+        }
+        
+        if (!currentTechnicianId) {
+          currentTechnicianId = getCurrentTechnicianId();
+          console.log("Using technician ID from token:", currentTechnicianId);
+        }
+        
+        const normalizedCurrentId = currentTechnicianId?.toLowerCase().trim();
+        
+        console.log("Current Technician ID:", currentTechnicianId);
+        console.log("Normalized ID:", normalizedCurrentId);
+        console.log("All jobs in repair order:", data.jobs.map(j => ({
+          jobId: j.jobId,
+          jobName: j.jobName,
+          technicians: j.technicians.map(t => ({
+            id: t.technicianId,
+            normalizedId: t.technicianId?.toLowerCase().trim(),
+            name: t.fullName
+          }))
+        })));
+        
+        const jobIdsFromDetail = data.jobs
+          .filter((job: JobDetailDto) => {
+            // Check if this job is assigned to current technician
+            const isMyJob = job.technicians.some(tech => {
+              const normalizedTechId = tech.technicianId?.toLowerCase().trim();
+              const matches = normalizedTechId === normalizedCurrentId;
+              console.log(`Comparing: "${normalizedTechId}" === "${normalizedCurrentId}"`, matches);
+              return matches;
+            });
+            return isMyJob;
+          })
+          .map((job: JobDetailDto) => job.jobId);
+        
+        console.log("My job IDs in this repair order:", jobIdsFromDetail);
+        
+        if (jobIdsFromDetail.length === 0) {
+          console.warn("No jobs found for current technician, using fallback");
+          setMyJobIds([jobId]);
+        } else {
+          setMyJobIds(jobIdsFromDetail);
+        }
+      } catch (err) {
+        console.error("Error determining my jobs:", err);
+        setMyJobIds([jobId]);
+      }
+
+      const vehicleName =
+        data.vehicle?.brand?.brandName && data.vehicle?.model?.modelName
+          ? `${data.vehicle.brand.brandName} ${
+              data.vehicle.model.modelName
+            } ${data.vehicle.model.manufacturingYear || ""}`
+          : data.vin || "Unknown Vehicle";
+
+      setVehicleInfo({
+        repairOrderId: data.repairOrderId,
+        vehicle: vehicleName.trim(),
+        licensePlate: data.vehicleLicensePlate || "N/A",
+        owner: data.customerName || "Unknown",
+        phone: data.customerPhone || "N/A",
+        issue: data.jobs.map((j) => j.jobName).join(", ") || "N/A",
+        result: data.note || "No diagnostic results available",
+      });
+
+      const steps: RepairStep[] = data.jobs.map((job: JobDetailDto) => {
+        const repair = job.repairs;
+        let estimatedHours = 0;
+        let estimatedMinutes = 0;
+
+        if (repair?.estimatedTimeShort) {
+          const match = repair.estimatedTimeShort.match(/(\d+)h\s*(\d+)m/);
+          if (match) {
+            estimatedHours = parseInt(match[1]) || 0;
+            estimatedMinutes = parseInt(match[2]) || 0;
+          }
+        }
+
+        return {
+          jobId: job.jobId,
+          title: job.jobName,
+          description: repair?.description || null,
+          status: job.status as RepairStep["status"],
+          startTime: repair?.startTime,
+          endTime: repair?.endTime,
+          notes: repair?.notes || "",
+          estimatedHours,
+          estimatedMinutes,
+          actualTimeShort: repair?.actualTimeShort,
+          estimatedTimeShort: repair?.estimatedTimeShort,
+          repairId: repair?.repairId,
+          serviceName: job.serviceName,
+          parts: job.parts || [],
+        };
+      });
+      setRepairSteps(steps);
+    } catch (err: unknown) {
+      console.error("Error fetching repair details:", err);
+
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      const isNetworkError =
+        errorMessage.includes("Failed to fetch") ||
+        errorMessage.includes("NetworkError") ||
+        errorMessage.includes("ERR_HTTP2") ||
+        errorMessage.includes("HTTP2") ||
+        errorMessage.includes("stream") ||
+        errorMessage.includes("ECONNRESET") ||
+        errorMessage.includes("network") ||
+        errorMessage.includes("timeout");
+
+      if (isNetworkError && retryCount < MAX_RETRIES) {
+        const delay = 150 + retryCount * 150;
+        console.log(
+          `Network error detected. Retrying in ${delay}ms... (Attempt ${
+            retryCount + 1
+          }/${MAX_RETRIES})`
+        );
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        return fetchRepairDetails(retryCount + 1);
+      }
+
+      setError(
+        "Failed to load repair details. Please check your connection and try again."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+  fetchRepairDetails();
+}, [jobId]);
+
+// Helper function to get current technician ID
+function getCurrentTechnicianId(): string {
+  
+  const techId = localStorage.getItem("technicianId");
+  console.log("LocalStorage technicianId:", techId);
+  
+  if (techId) return techId;
+  
+  const token = localStorage.getItem("authToken");
+  console.log("AuthToken exists:", !!token);
+  
+  if (token) {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      console.log("Token payload:", payload);
+      
+      const possibleIds = [
+        payload.technicianId,
+        payload.TechnicianId,
+        payload.technician_id,
+        payload.sub,
+        payload.userId,
+        payload.UserId,
+        payload.nameid,
+        payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier']
+      ];
+      
+      console.log("Possible IDs from token:", possibleIds);
+      
+      for (const id of possibleIds) {
+        if (id) {
+          console.log("Using technician ID:", id);
+          return id;
+        }
+      }
+    } catch (e) {
+      console.error("Error decoding token:", e);
+    }
   }
+  console.warn("No technician ID found!");
+  return "";
+}
 
   useEffect(() => {
     if (!vehicleInfo?.repairOrderId) return;
