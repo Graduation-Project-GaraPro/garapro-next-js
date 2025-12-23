@@ -98,42 +98,43 @@ export function EditJobConfirmationDialog({
               {getDialogTitle()}
             </AlertDialogTitle>
           </div>
-          <AlertDialogDescription className="text-left space-y-3">
-            <p>
-              {getDialogDescription()}
-            </p>
-            
-            <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 space-y-2">
-              <div className="flex items-center gap-2 text-sm">
-                <Clock className="h-4 w-4 text-orange-600" />
-                <span className="font-medium">Job:</span>
-                <span>{jobName}</span>
-              </div>
-              
-              {technicianName && (
-                <div className="flex items-center gap-2 text-sm">
-                  <User className="h-4 w-4 text-orange-600" />
-                  <span className="font-medium">Technician:</span>
-                  <span>{technicianName}</span>
-                </div>
-              )}
-              
-              <div className="flex items-center gap-2 text-sm">
-                <AlertTriangle className="h-4 w-4 text-orange-600" />
-                <span className="font-medium">Status:</span>
-                <span className={`px-2 py-1 rounded text-xs ${getStatusColor(jobStatus)}`}>
-                  {getStatusText(jobStatus)}
-                </span>
-              </div>
+        </AlertDialogHeader>
+        
+        <div className="space-y-3">
+          <AlertDialogDescription className="text-left">
+            {getDialogDescription()}
+          </AlertDialogDescription>
+          
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 space-y-2">
+            <div className="flex items-center gap-2 text-sm">
+              <Clock className="h-4 w-4 text-orange-600" />
+              <span className="font-medium">Job:</span>
+              <span>{jobName}</span>
             </div>
-
-            {needsConfirmation && (
-              <div className="text-sm text-gray-600">
-                <strong>Warning:</strong> {getWarningMessage()}
+            
+            {technicianName && (
+              <div className="flex items-center gap-2 text-sm">
+                <User className="h-4 w-4 text-orange-600" />
+                <span className="font-medium">Technician:</span>
+                <span>{technicianName}</span>
               </div>
             )}
-          </AlertDialogDescription>
-        </AlertDialogHeader>
+            
+            <div className="flex items-center gap-2 text-sm">
+              <AlertTriangle className="h-4 w-4 text-orange-600" />
+              <span className="font-medium">Status:</span>
+              <span className={`px-2 py-1 rounded text-xs ${getStatusColor(jobStatus)}`}>
+                {getStatusText(jobStatus)}
+              </span>
+            </div>
+          </div>
+
+          {needsConfirmation && (
+            <div className="text-sm text-gray-600">
+              <strong>Warning:</strong> {getWarningMessage()}
+            </div>
+          )}
+        </div>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
           <AlertDialogAction
