@@ -225,9 +225,9 @@ export default function ArchivedRODetailDialog({
                   <h4 className="font-semibold">Customer</h4>
                 </div>
                 <div className="space-y-1 text-sm">
-                  <div className="font-medium">{data.customerName}</div>
-                  <div className="text-gray-600">{data.customerPhone}</div>
-                  <div className="text-gray-600">{data.customerEmail}</div>
+                  <div className="font-medium">{data.customerName || 'N/A'}</div>
+                  <div className="text-gray-600">{data.customerPhone || 'N/A'}</div>
+                  <div className="text-gray-600">{data.customerEmail || 'N/A'}</div>
                 </div>
               </div>
 
@@ -238,11 +238,11 @@ export default function ArchivedRODetailDialog({
                 </div>
                 <div className="space-y-1 text-sm">
                   <div className="font-medium">
-                    {data.vehicle.brandName} {data.vehicle.modelName} ({data.vehicle.year})
+                    {data.vehicle.brandName || 'Unknown'} {data.vehicle.modelName || 'Model'} ({data.vehicle.year || 'N/A'})
                   </div>
-                  <div className="text-gray-600">Plate: {data.vehicle.licensePlate}</div>
-                  <div className="text-gray-600">VIN: {data.vehicle.vin}</div>
-                  <div className="text-gray-600">Odometer: {data.vehicle.odometer.toLocaleString()} km</div>
+                  <div className="text-gray-600">Plate: {data.vehicle.licensePlate || 'N/A'}</div>
+                  <div className="text-gray-600">VIN: {data.vehicle.vin || 'N/A'}</div>
+                  <div className="text-gray-600">Odometer: {data.vehicle.odometer ? data.vehicle.odometer.toLocaleString() : 'N/A'} km</div>
                 </div>
               </div>
             </div>
