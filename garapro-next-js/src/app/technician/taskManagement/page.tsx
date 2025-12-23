@@ -240,7 +240,7 @@ export default function TaskManagement() {
             licensePlate: item.vehicle?.licensePlate || "N/A",
             owner: item.customer?.fullName || "Unknown",
             phone: item.customer?.phoneNumber || "N/A",
-            description: item.repair?.description || item.note || "No description",
+            description: item.note || "No description",
           } as Task;
         });
 
@@ -368,7 +368,7 @@ useEffect(() => {
                 licensePlate: item.vehicle?.licensePlate || "N/A",
                 owner: item.customer?.fullName || "Unknown",
                 phone: item.customer?.phoneNumber || "N/A",
-                description: item.repair?.description || item.note || "No description",
+                description: item.note || "No description",
               } as Task;
             });
 
@@ -1007,7 +1007,7 @@ const TaskDetailModal = ({
           <div className="bg-gradient-to-r from-gray-50 to-slate-50 rounded-xl p-4 border border-gray-100">
             <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
               <FileText className="w-5 h-5 mr-2 text-gray-600" />
-              Describe Vehicle Condition
+              Job Notes
             </h3>
             <p className="text-gray-700 leading-relaxed bg-white p-4 rounded-lg border border-gray-200">
               {task.description}
